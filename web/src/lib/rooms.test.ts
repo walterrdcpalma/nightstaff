@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { canStart, codeError, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
+import { botsNight, canStart, codeError, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
 import type { RoomCard } from './rooms.ts';
 
 const card = (over: Partial<RoomCard>): RoomCard => ({
   id: 1,
   code: 'ABCDEF',
+  kind: 'people',
   status: 'lobby',
   isAdmin: false,
   players: 1,
@@ -46,6 +47,21 @@ describe('As minhas salas: o que falta fazer', () => {
     expect(openNight('2026-11-02', '2026-11-02')).toBe(1);
     expect(openNight('2026-11-02', '2026-11-10')).toBe(9);
     expect(openNight('2026-11-02', '2026-11-11')).toBeNull();
+  });
+});
+
+describe('salas contra bots', () => {
+  it('a noite aberta é a seguinte à última resolvida, a qualquer hora; depois da 9, nenhuma', () => {
+    expect(botsNight(0)).toBe(1);
+    expect(botsNight(8)).toBe(9);
+    expect(botsNight(9)).toBeNull();
+  });
+
+  it('a sala está sempre à minha espera: o tempo só passa quando eu carrego em Passar o dia', () => {
+    const bots = card({ kind: 'bots', status: 'running', night: 3, chosen: true, isAdmin: true });
+    expect(roomTodo(bots)).toBe('Noite 3: escolhe e carrega em ⏭️ Passar o dia.');
+    expect(needsMe(bots)).toBe(true);
+    expect(roomErrorText('BOT_COUNT')).toBe('Escolhe entre 2 e 11 bots.');
   });
 });
 

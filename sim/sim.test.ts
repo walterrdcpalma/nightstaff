@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { QUOTAS, SALARY, validateAction } from '../engine/index.ts';
+import { QUOTAS, SALARY, mulberry32, validateAction } from '../engine/index.ts';
 import type { LedgerEntry, LimitedActionType, PastAction, PlayerId } from '../engine/index.ts';
-import { BOTS, randomBot, smartBot } from './bots.ts';
+import { BOTS, randomBot, randomTurn, smartBot } from './bots.ts';
 import type { BotKind } from './bots.ts';
 import { NIGHTS, playGame } from './game.ts';
 import { PLAYER_COUNTS, configsFor, formatTable, runConfig } from './run.ts';
@@ -135,5 +135,23 @@ describe('stats', () => {
     // Mistos com 5 lugares: 3 espertos e 2 aleatórios.
     expect(md).toContain('| smart | 3 |');
     expect(md).toContain('| random | 2 |');
+  });
+});
+
+describe('randomTurn (salas contra bots)', () => {
+  it('9 noites só de bots ao calhas: todas as ações válidas, e quem não é bot fica de fora', () => {
+    const players = ['eu', 'bot1', 'bot2', 'bot3'];
+    const bots = players.slice(1);
+    for (let seed = 1; seed <= 50; seed++) {
+      const rng = mulberry32(seed);
+      const past: PastAction[] = [];
+      for (let night = 1; night <= NIGHTS; night++) {
+        const state = { players, night, pastActions: [...past] };
+        const actions = randomTurn(state, bots, rng);
+        expect(actions.map((a) => a.playerId)).toEqual(bots);
+        for (const a of actions) expect(validateAction(state, a)).toEqual({ ok: true });
+        past.push(...actions.map((a) => ({ ...a, night })));
+      }
+    }
   });
 });

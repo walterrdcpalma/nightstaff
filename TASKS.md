@@ -76,7 +76,7 @@
   - Lobby: código grande com botão para copiar e lista de jogadores. O admin vê **Começar** (desligado com menos de 3) e, com a sala acabada, **Reiniciar**.
   - Dentro de uma sala, as abas de sempre (Hoje, Manhã, Bairro, Pontos), só com dados dessa sala.
   - Primeiro login: pedir o nome que os outros vão ver.
-- [ ] **T11 — Salas contra bots**
+- [x] **T11 — Salas contra bots**
   - **Criar sala contra bots**: escolher o número de bots (2 a 11). Os bots têm nomes do staff (por exemplo "Bot Rececionista").
   - Botão **⏭️ Passar o dia**: os bots escolhem ao calhas (usar o `randomBot` do `sim/`, que respeita quotas, alvos e a regra de não repetir alvo), resolve a noite com o mesmo `resolveNight` e abre a seguinte. Depois da noite 9, resolução.
   - Os bots só existem nessa sala: não são contas e não aparecem em mais lado nenhum.
