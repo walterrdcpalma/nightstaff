@@ -1,17 +1,27 @@
-# Night Staff — Regras (v1)
+# Night Staff — Regras (v2)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
 
 ## 1. Formato
-- **8 jogadores**, cada um com uma casa.
-- **10 dias:** 9 noites de jogo + 1 dia de descanso (dia 10).
-- Todos começam com **0 pontos**. Os pontos podem ficar negativos.
+- Número de jogadores **variável**, com **mínimo de 3**. Cada jogador tem uma casa.
+- O jogo corre em **ciclos de 11 dias**, sempre seguidos:
+
+| Dia do ciclo | Fase | O que acontece |
+|---|---|---|
+| 1 | 📝 **Preparação** | Entrar ou sair do ciclo, até às 23:59. Sem ações |
+| 2–10 | 🌙 **Noites 1–9** | Escolha até às 23:59 e resolução às 00:00 seguintes |
+| 11 | 🏆 **Resolução** | Ranking final e Funcionário do Mês. Sem ações |
+
+- O dia a seguir à resolução é o dia 1 (preparação) do ciclo seguinte.
+- **Inscrição:** mantém-se de ciclo para ciclo. Só se entra ou sai no dia de preparação. Durante o resto do ciclo, a lista de jogadores fica fixa.
+- Se no fim da preparação houver **menos de 3** inscritos, a preparação repete-se no dia seguinte.
+- Em cada ciclo, todos começam com **0 pontos** e quotas completas. Os pontos podem ficar negativos. Cada ciclo tem o seu vencedor.
 - Escala de pontos: **10** por ataque. Bónus de casa: **2**.
 - Fuso horário: **Europe/Lisbon** em tudo.
 
 ## 2. Ações (1 por noite)
-| Código | Nome na app | Significado | Quota no jogo | Onde fica o jogador |
+| Código | Nome na app | Significado | Quota por ciclo | Onde fica o jogador |
 |---|---|---|---|---|
 | `STAY` | 🏠 Folga | Ficar em casa | ∞ | Em casa |
 | `DEFEND` | 🛡️ Segurança | Defender | 2 | Em casa |
@@ -58,10 +68,10 @@ Aplica-se o **primeiro** caso que se verificar:
   - Quem se **defendeu com sucesso**, e nesse caso **revela-se quem o atacou**.
   - Os sorteios e as bombas aparecem só com os números (ex.: "3 atacantes no Pedro, houve sorteio"). Cada atacante vê o seu próprio resultado.
   - Quem ganhou o bónus de casa.
-- **Pontuações:** durante o jogo, cada jogador vê **só os seus pontos** e os movimentos de cada noite. O ranking completo só é revelado no dia 10.
+- **Pontuações:** durante o jogo, cada jogador vê **só os seus pontos** e os movimentos de cada noite. O ranking completo só é revelado no dia 11 (resolução).
 - O **histórico** de todas as noites anteriores fica sempre consultável.
 
-## 5. Fim do jogo (dia 10, descanso)
+## 5. Fim do ciclo (dia 11, resolução)
 - Não há ações. A app mostra o ranking final, o vencedor (🏆 **Funcionário do Mês**) e o histórico completo.
 - **Desempate:**
   1. Mais ataques bem-sucedidos.
