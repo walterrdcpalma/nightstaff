@@ -9,7 +9,7 @@
   - Cada cenário do `CENARIOS.md` vira um teste permanente.
   - `sim/` com bots aleatórios e "espertos" (que leem o histórico). `npm run sim` corre 1000 ciclos.
   - Relatório no PR: média de acertos por ciclo, pontos finais (média e dispersão), frequência de sorteios e bombas, % de jogadores com 0 ou menos. Correr com 3, 5, 8 e 12 jogadores.
-- [ ] **T2 — Ciclo e ranking no motor** (funções puras)
+- [x] **T2 — Ciclo e ranking no motor** (funções puras)
   - `cyclePhase(startDate, today)` → `{ phase: 'PREP' | 'NIGHT' | 'RESULTS', day, night? }`, com datas `YYYY-MM-DD` em hora de Lisboa (RULES.md §1).
   - `finalRanking(ledger)` com desempate (RULES.md §5) e vitória partilhada.
   - Testes: limites de cada fase, mudança de hora (fim de março e fim de outubro), empates.

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { rankPlayers } from './ranking.ts';
+import { finalRanking } from './ranking.ts';
 import type { LedgerEntry, LedgerReason } from './types.ts';
 
 const e = (playerId: string, delta: number, reason: LedgerReason): LedgerEntry => ({ playerId, delta, reason });
 const order = (ledger: LedgerEntry[], players = ['A', 'B', 'C']) =>
-  rankPlayers(players, ledger).map((r) => [r.playerId, r.rank]);
+  finalRanking(players, ledger).map((r) => [r.playerId, r.rank]);
 
-describe('rankPlayers', () => {
+describe('finalRanking', () => {
   it('ordena por pontos e soma o ledger de várias noites', () => {
-    const r = rankPlayers(['A', 'B', 'C'], [
+    const r = finalRanking(['A', 'B', 'C'], [
       e('A', 10, 'ATTACK_SUCCESS'),
       e('B', 2, 'HOME_BONUS'),
       e('A', -10, 'VICTIM'),
@@ -22,7 +22,7 @@ describe('rankPlayers', () => {
   });
 
   it('jogadores sem entradas no ledger ficam com 0', () => {
-    expect(rankPlayers(['A', 'B'], [e('A', -10, 'VICTIM')]).map((r) => [r.playerId, r.points])).toEqual([
+    expect(finalRanking(['A', 'B'], [e('A', -10, 'VICTIM')]).map((r) => [r.playerId, r.points])).toEqual([
       ['B', 0],
       ['A', -10],
     ]);
@@ -43,7 +43,7 @@ describe('rankPlayers', () => {
 
   it('bombas que renderam pontos contam como ataque bem-sucedido', () => {
     const ledger = [e('A', 10, 'ATTACK_SUCCESS'), e('B', 6, 'BOMB_SUCCESS'), e('B', 4, 'DEFENSE')];
-    const r = rankPlayers(['A', 'B'], ledger);
+    const r = finalRanking(['A', 'B'], ledger);
     expect(r.map((x) => [x.playerId, x.successfulAttacks, x.rank])).toEqual([
       ['A', 1, 1],
       ['B', 1, 1],
@@ -68,12 +68,33 @@ describe('rankPlayers', () => {
     expect(order(ledger)).toEqual([['A', 1], ['B', 1], ['C', 3]]);
   });
 
+  it('empate a 3 em pontos, desfeito em cascata pelos critérios', () => {
+    // A, B e C com 10 pontos. C tem 2 acertos; A e B têm 1, e A perdeu menos.
+    const ledger = [
+      e('A', 10, 'ATTACK_SUCCESS'),
+      e('B', 10, 'ATTACK_SUCCESS'),
+      e('B', 10, 'DEFENSE'),
+      e('B', -10, 'VICTIM'),
+      e('C', 10, 'ATTACK_SUCCESS'),
+      e('C', 10, 'ATTACK_SUCCESS'),
+      e('C', -10, 'VICTIM'),
+      e('D', 10, 'DEFENSE'),
+      e('D', 10, 'DEFENSE'),
+    ];
+    expect(order(ledger, ['A', 'B', 'C', 'D'])).toEqual([['D', 1], ['C', 2], ['A', 3], ['B', 4]]);
+  });
+
+  it('empate só abaixo do 1.º lugar: partilham a posição e o vencedor é único', () => {
+    const ledger = [e('A', 20, 'DEFENSE'), e('B', 2, 'HOME_BONUS'), e('C', 2, 'HOME_BONUS')];
+    expect(order(ledger)).toEqual([['A', 1], ['B', 2], ['C', 2]]);
+  });
+
   it('entradas com delta 0 não contam como acerto nem como perda', () => {
-    const r = rankPlayers(['A'], [e('A', 0, 'ATTACK_TARGET_AWAY'), e('A', 0, 'BOMB_TARGET_AWAY')]);
+    const r = finalRanking(['A'], [e('A', 0, 'ATTACK_TARGET_AWAY'), e('A', 0, 'BOMB_TARGET_AWAY')]);
     expect(r[0]).toMatchObject({ points: 0, successfulAttacks: 0, pointsLost: 0 });
   });
 
   it('jogador desconhecido no ledger lança erro', () => {
-    expect(() => rankPlayers(['A'], [e('Z', 10, 'ATTACK_SUCCESS')])).toThrow(/Z/);
+    expect(() => finalRanking(['A'], [e('Z', 10, 'ATTACK_SUCCESS')])).toThrow(/Z/);
   });
 });
