@@ -1,6 +1,7 @@
 // Leituras partilhadas pelos ecrãs, como o jogador com sessão (RLS). Um erro lança: o ecrã mostra-o.
 import type { NightSummary } from '../../../engine/index.ts';
 import type { MyEntry } from './night.ts';
+import type { LedgerRow } from './points.ts';
 import { supabase } from './supabase.ts';
 import type { GameStatus } from './today.ts';
 
@@ -8,6 +9,8 @@ export interface Game {
   id: number;
   start_date: string;
   status: GameStatus;
+  /** Seed do desempate, gravada quando o ciclo acaba. */
+  seed: number | null;
 }
 
 export interface ResolvedNight {
@@ -22,7 +25,7 @@ function ok<T>(res: { data: T | null; error: { message: string } | null }): T {
 
 /** Ciclos, do mais recente para o mais antigo. */
 export async function loadGames(): Promise<Game[]> {
-  return ok(await supabase.from('games').select('id, start_date, status').order('id', { ascending: false }));
+  return ok(await supabase.from('games').select('id, start_date, status, seed').order('id', { ascending: false }));
 }
 
 /** Nomes de todos os jogadores. */
@@ -35,6 +38,12 @@ export async function loadNames(): Promise<Map<string, string>> {
 export async function loadEnrolled(gameId: number): Promise<string[]> {
   const rows: { player_id: string }[] = ok(await supabase.from('game_players').select('player_id').eq('game_id', gameId));
   return rows.map((r) => r.player_id);
+}
+
+/** Ids dos ciclos com pelo menos uma noite resolvida, numa só leitura. */
+export async function loadGamesWithNights(): Promise<Set<number>> {
+  const rows: { game_id: number }[] = ok(await supabase.from('nights').select('game_id'));
+  return new Set(rows.map((r) => r.game_id));
 }
 
 /** Noites resolvidas de um ciclo (a RLS só mostra essas), por ordem. */
@@ -53,4 +62,9 @@ export async function loadMyEntries(gameId: number, night: number, userId: strin
       .eq('player_id', userId)
       .order('id'),
   );
+}
+
+/** Ledger de um ciclo: a RLS só mostra o meu durante o ciclo, e o de todos com o ciclo acabado. */
+export async function loadLedger(gameId: number): Promise<LedgerRow[]> {
+  return ok(await supabase.from('ledger').select('night, player_id, delta, reason, target_id').eq('game_id', gameId).order('id'));
 }

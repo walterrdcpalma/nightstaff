@@ -67,15 +67,15 @@ export function myResultLines(entries: MyEntry[], nameOf: NameOf): string[] {
   return entries.map((e) => `${REASON_TEXT[e.reason]}${e.target_id ? ` (${nameOf(e.target_id)})` : ''}: ${formatDelta(e.delta)}`);
 }
 
-export type Window = 'HOME' | 'AWAY' | null;
+export type WindowLight = 'HOME' | 'AWAY' | null;
 
 /**
  * Bairro: uma linha por jogador, com a janela de cada noite (1 a 9). `null` = noite ainda por resolver
  * ou jogador fora do ciclo nessa noite. Entra também quem saiu a meio e aparece nos resumos.
  */
-export function historyGrid(enrolled: string[], nights: { night: number; summary: NightSummary }[]): Map<string, Window[]> {
-  const grid = new Map<string, Window[]>();
-  const row = (id: string) => grid.get(id) ?? grid.set(id, Array<Window>(9).fill(null)).get(id)!;
+export function historyGrid(enrolled: string[], nights: { night: number; summary: NightSummary }[]): Map<string, WindowLight[]> {
+  const grid = new Map<string, WindowLight[]>();
+  const row = (id: string) => grid.get(id) ?? grid.set(id, Array<WindowLight>(9).fill(null)).get(id)!;
   enrolled.forEach(row);
   for (const n of nights) for (const s of n.summary.players) row(s.playerId)[n.night - 1] = s.location;
   return grid;

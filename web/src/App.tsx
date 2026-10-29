@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import Login from './Login.tsx';
 import { Morning, Neighborhood } from './Neighborhood.tsx';
+import Points from './Points.tsx';
 import Today from './Today.tsx';
 
-const TABS = { today: '🌙 Hoje', morning: '☀️ Manhã', neighborhood: '🏘️ Bairro' } as const;
+const TABS = { today: '🌙 Hoje', morning: '☀️ Manhã', neighborhood: '🏘️ Bairro', points: '💰 Pontos' } as const;
 type Tab = keyof typeof TABS;
 
 export default function App() {
@@ -31,7 +32,7 @@ export default function App() {
       </header>
       {session === undefined ? null : session ? (
         <>
-          <nav className="grid grid-cols-3 gap-2">
+          <nav className="grid grid-cols-2 gap-2">
             {(Object.keys(TABS) as Tab[]).map((t) => (
               <Button key={t} size="sm" variant={tab === t ? 'default' : 'neutral'} onClick={() => setTab(t)} className="px-1">
                 {TABS[t]}
@@ -41,6 +42,7 @@ export default function App() {
           {tab === 'today' && <Today userId={session.user.id} />}
           {tab === 'morning' && <Morning userId={session.user.id} />}
           {tab === 'neighborhood' && <Neighborhood userId={session.user.id} />}
+          {tab === 'points' && <Points userId={session.user.id} />}
         </>
       ) : (
         <Login />

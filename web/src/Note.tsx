@@ -28,16 +28,25 @@ export function LoadError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/** Carrega dados com `load`; devolve `undefined` enquanto carrega e `error` se falhar. */
+/**
+ * Carrega dados com `load`; devolve `undefined` enquanto carrega e `error` se falhar.
+ * Um `reload` mantém os dados à vista; quando `load` muda (outro ciclo, outro dia), os dados antigos
+ * deixam de se ver e as respostas atrasadas de leituras antigas são ignoradas.
+ */
 export function useLoad<T>(load: () => Promise<T>) {
-  const [data, setData] = useState<T | undefined>(undefined);
-  const [error, setError] = useState(false);
-  const reload = useCallback(() => {
-    setError(false);
-    load().then(setData, () => setError(true));
-  }, [load]);
+  const [result, setResult] = useState<{ load: () => Promise<T>; data?: T; error?: boolean } | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
   useEffect(() => {
-    reload();
-  }, [reload]);
-  return { data, error, reload };
+    let ignore = false;
+    load().then(
+      (data) => !ignore && setResult({ load, data }),
+      () => !ignore && setResult({ load, error: true }),
+    );
+    return () => {
+      ignore = true;
+    };
+  }, [load, attempt]);
+  const current = result?.load === load ? result : null;
+  return { data: current?.data, error: !!current?.error, reload };
 }

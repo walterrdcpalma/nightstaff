@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { loadEnrolled, loadGames, loadNames, loadNights } from '@/lib/data';
+import { loadEnrolled, loadGames, loadGamesWithNights, loadNames, loadNights } from '@/lib/data';
 import type { Game, ResolvedNight } from '@/lib/data';
 import { historyGrid } from '@/lib/night';
-import type { Window } from '@/lib/night';
+import type { WindowLight } from '@/lib/night';
 import { cn } from '@/lib/utils';
 import { NightView } from './NightView.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
@@ -16,9 +16,8 @@ interface Cycle {
 
 /** Ciclos com pelo menos uma noite resolvida, do mais recente para o mais antigo. */
 async function loadCycles(): Promise<{ cycles: Game[]; names: Map<string, string> }> {
-  const [games, names] = await Promise.all([loadGames(), loadNames()]);
-  const withNights = await Promise.all(games.map(async (g) => ((await loadNights(g.id)).length > 0 ? g : null)));
-  return { cycles: withNights.filter((g): g is Game => g !== null), names };
+  const [games, names, withNights] = await Promise.all([loadGames(), loadNames(), loadGamesWithNights()]);
+  return { cycles: games.filter((g) => withNights.has(g.id)), names };
 }
 
 async function loadCycle(game: Game): Promise<Cycle> {
@@ -80,7 +79,10 @@ export function Neighborhood({ userId }: { userId: string }) {
       )}
 
       <Note title={`🏘️ O bairro · ${cycleLabel(cycle.data.game)}`}>
-        <table className="w-full border-separate border-spacing-1 text-sm">
+        <table className="w-full table-fixed border-separate border-spacing-0.5 text-sm">
+          <colgroup>
+            <col className="w-16" />
+          </colgroup>
           <thead>
             <tr>
               <th />
@@ -103,7 +105,7 @@ export function Neighborhood({ userId }: { userId: string }) {
           <tbody>
             {grid.map(([id, windows]) => (
               <tr key={id}>
-                <td className="pr-1 font-heading">{nameOf(id)}</td>
+                <td className="max-w-16 truncate pr-1 font-heading">{nameOf(id)}</td>
                 {windows.map((w, i) => (
                   <td key={i}>
                     <WindowCell window={w} />
@@ -121,14 +123,14 @@ export function Neighborhood({ userId }: { userId: string }) {
   );
 }
 
-function WindowCell({ window }: { window: Window }) {
+function WindowCell({ window }: { window: WindowLight }) {
   const label = window === 'HOME' ? 'em casa' : window === 'AWAY' ? 'fora' : 'por resolver';
   return (
     <div
       title={label}
       aria-label={label}
       className={cn(
-        'mx-auto size-6 rounded-sm border-2 border-border',
+        'mx-auto size-5 rounded-sm border-2 border-border',
         window === 'HOME' && 'bg-main shadow-[0_0_8px_var(--main)]',
         window === 'AWAY' && 'bg-background',
         window === null && 'border-dashed opacity-30',

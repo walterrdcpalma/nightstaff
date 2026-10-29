@@ -38,7 +38,7 @@
   - Login por magic link. Ecrã Hoje: fase atual, escolha da ação com os nomes da app, quotas restantes, contagem até às 23:59. No dia de preparação, botão para entrar ou sair.
 - [x] **T6 — Web: "Manhã" e "Bairro/Histórico"**
   - Resumo da noite (RULES.md §4) e histórico com uma casa por jogador e a janela acesa ou apagada, por noite.
-- [ ] **T7 — Web: pontos e resolução**
+- [x] **T7 — Web: pontos e resolução**
   - Os meus pontos e movimentos durante o ciclo. No dia 11, ranking final e 🏆 Funcionário do Mês.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
