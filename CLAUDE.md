@@ -100,6 +100,7 @@ supabase start      # Supabase local
 5. **Não alterar o `RULES.md`.** Se uma regra for ambígua, parar e perguntar.
 6. Não adicionar dependências sem justificar no PR.
 7. **Antes de começares uma tarefa**, lê os comentários de revisão do teu último PR com merge (`gh pr list --state merged --limit 1`, depois `gh pr view <n> --comments`). Trata das 🟡 sugestões que ainda estiverem pendentes ou explica no PR porque não o fizeste.
+8. **Decisões de implementação:** se mudares o modelo de dados, a estrutura ou as convenções (uma coluna nova, um nome, um formato), atualiza o CLAUDE.md **no mesmo PR** e lista a decisão na descrição. Se a decisão mudar as **regras do jogo** (pontos, quotas, horários, visibilidade), não decidas: pára e pergunta ao Walter.
 
 ## Processo automático
 - O trabalho está no **`TASKS.md`**, por ordem. Faz-se sempre a primeira tarefa `[ ]` que não esteja marcada como "em curso".
