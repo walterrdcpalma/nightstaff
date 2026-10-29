@@ -1,4 +1,4 @@
-# Night Staff — Regras (v4)
+# Night Staff — Regras (v5)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -28,10 +28,12 @@
 | `DEFEND` | 🛡️ Segurança | Defender | 2 | Em casa |
 | `ATTACK` | 🗡️ Visita surpresa | Atacar `alvo` | 3 | Fora |
 | `BOMB` | 💣 Reunião de emergência | Bomba em `alvo` | 1 | Fora |
+| `VANISH` | 🫥 Desaparecer | Sair de casa sem atacar ninguém | 2 | Fora |
 
 - O prazo para escolher é até às **23:59**. Até lá, pode-se mudar a escolha.
 - Quem não escolher fica com `STAY`.
 - Não se pode escolher a si próprio como alvo.
+- **Não se pode atacar a mesma pessoa duas noites seguidas:** o alvo de uma Visita surpresa ou de uma Reunião de emergência não pode ser o mesmo da Visita ou Reunião do próprio jogador na noite anterior. Uma noite sem ataque pelo meio volta a permitir.
 - Não se pode escolher uma ação com a quota esgotada. Isto é validado ao submeter.
 - A quota gasta-se sempre que a ação é escolhida, aconteça o que acontecer.
 
@@ -42,7 +44,7 @@ Para cada jogador **T** que foi alvo de pelo menos um ataque ou bomba, sejam:
 
 Aplica-se o **primeiro** caso que se verificar:
 
-1. **T está fora** (escolheu `ATTACK` ou `BOMB`):
+1. **T está fora** (escolheu `ATTACK`, `BOMB` ou `VANISH`):
    - **Assalto à casa vazia:** se B estiver vazio, T perde **5** e os atacantes de N dividem **5** em partes iguais, arredondado para baixo. Não há sorteio nem perdedores.
    - Se houver bomba (B não vazio), **a bomba leva tudo**: os atacantes de N ficam com 0.
    - **A bomba acerta na mesma** ("Reunião de emergência obriga a comparecer"): se B não estiver vazio, T perde **10** e os bombistas dividem **10** em partes iguais, arredondado para baixo.
@@ -50,7 +52,7 @@ Aplica-se o **primeiro** caso que se verificar:
    - Cada atacante de N perde **5**.
    - Cada bombista de B perde **10**.
    - T ganha **10 por cada atacante** (N + B).
-   - A identidade de todos os atacantes de T é revelada no resumo.
+   - Todos os atacantes de T ficam **apanhados** (§4).
 3. **T está em casa sem defesa (`STAY`):**
    - **B vazio e |N| = 1:** o atacante ganha **10** e T perde **10**.
    - **B vazio e |N| ≥ 2:** **sorteio** entre N. O vencedor ganha **10** e T perde **10**. Cada um dos outros atacantes de N perde **10** ("morre").
@@ -66,14 +68,14 @@ Aplica-se o **primeiro** caso que se verificar:
 
 ## 4. Visibilidade
 - **Antes da resolução:** ninguém vê as ações dos outros, nem na app nem através da API.
-- **Depois da resolução, no resumo público da noite:**
-  - Quem estava **em casa** e quem estava **fora**.
-  - Quem foi **atacado** e quantas vezes. O ataque é anónimo.
-  - Quem se **defendeu com sucesso**, e nesse caso **revela-se quem o atacou**.
-  - Os sorteios e as bombas aparecem só com os números (ex.: "3 atacantes no Pedro, houve sorteio"). Cada atacante vê o seu próprio resultado.
-  - Quem ganhou o bónus de casa.
-- **Pontuações:** durante o jogo, cada jogador vê **só os seus pontos** e os movimentos de cada noite. O ranking completo só é revelado no dia 11 (resolução).
-- O **histórico** de todas as noites anteriores fica sempre consultável.
+- **Público** (todos veem, depois da resolução):
+  - Quem estava **em casa** e quem estava **fora**. Nunca a ação.
+  - Quem foi **apanhado**: "🚨 Carla foi apanhada a meio de uma visita". Sem dizer em que casa, para não revelar quem se defendeu.
+  - Nada mais: nem quem foi atacado, nem defesas, sorteios, bombas, assaltos, bónus ou contagens.
+- **Privado** (só o próprio vê):
+  - O que lhe aconteceu nessa noite: foi atacado, assaltado ou bombardeado (sem saber por quem), ganhou ou perdeu um sorteio, apanhou alguém (e quem), ganhou o bónus.
+  - Os seus pontos e movimentos. O ranking completo só é revelado no dia 11 (resolução).
+- O **histórico** de todas as noites anteriores fica sempre consultável, com as mesmas regras.
 
 ## 5. Fim do ciclo (dia 11, resolução)
 - Não há ações. A app mostra o ranking final, o vencedor (🏆 **Funcionário do Mês**) e o histórico completo.

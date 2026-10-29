@@ -40,6 +40,18 @@
   - Resumo da noite (RULES.md §4) e histórico com uma casa por jogador e a janela acesa ou apagada, por noite.
 - [x] **T7 — Web: pontos e resolução**
   - Os meus pontos e movimentos durante o ciclo. No dia 11, ranking final e 🏆 Funcionário do Mês.
+- [ ] **T2d — Regras v5 no motor, na BD e no simulador**
+  - Ação `VANISH` (🫥 Desaparecer): quota 2, fica fora, sem alvo e sem bónus de casa.
+  - Validação "não atacar a mesma pessoa duas noites seguidas" (ATTACK e BOMB contam), no `validateAction` **e na BD** (mesma regra que o motor).
+  - **Resumo público novo (RULES.md §4):** `nights.summary` só com casa/fora por jogador e a lista de apanhados. Tudo o resto sai do público: contagens de ataques, defesas, sorteios, bombas e bónus. O que é privado de cada jogador vem do seu próprio `ledger`, que tem de ter os `reason` suficientes para isso.
+  - Migração da BD para o novo `summary`, para o tipo de ação novo e para a validação nova. Testes de RLS atualizados no Supabase local.
+  - Bot esperto e simulador com Desaparecer. Relatório na descrição do PR.
+  - O `CENARIOS.md` v5 passa (incluindo os cenários extra E e F).
+- [ ] **T6b — Web: visibilidade v5 e Desaparecer**
+  - **Hoje:** carta 🫥 Desaparecer (2 por ciclo). Alvos atacados na noite anterior aparecem bloqueados, com o motivo.
+  - **Manhã = relatório privado:** o que te aconteceu esta noite e os teus pontos da noite, mais as manchetes públicas (🚨 quem foi apanhado, sem dizer onde).
+  - **Bairro = só casa/fora:** grelha de jogadores × noites com a janela acesa ou apagada. Nunca mostra ações, ataques, defesas nem bombas.
+  - Confirmar que nenhuma informação privada de outros jogadores chega ao browser (nem nas respostas da API).
 - [x] **T7b — Dados de demonstração para testar no browser** (só Supabase local)
   - Script `npm run demo` (por exemplo `scripts/demo.ts`). Limpa a BD local e cria 6 jogadores (o Walter incluído, com o email do `seed.sql`) e **3 ciclos ao mesmo tempo**:
     - **Ciclo terminado** (dia 11): 9 noites jogadas, com ranking final e Funcionário do Mês.
