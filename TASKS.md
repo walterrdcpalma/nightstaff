@@ -5,7 +5,7 @@
 > Só o Walter acrescenta ou muda tarefas. O construtor só muda `[ ]` → `[x]`.
 
 - [x] **T0 — Motor:** `engine/` com `resolveNight`, `validateAction`, `rng` e testes (PR #1).
-- [ ] **T1 — Simulador + cenários** *(em curso: agente local, branch `feat/sim`)*
+- [x] **T1 — Simulador + cenários** *(em curso: agente local, branch `feat/sim`)*
   - Cada cenário do `CENARIOS.md` vira um teste permanente.
   - `sim/` com bots aleatórios e "espertos" (que leem o histórico). `npm run sim` corre 1000 ciclos.
   - Relatório no PR: média de acertos por ciclo, pontos finais (média e dispersão), frequência de sorteios e bombas, % de jogadores com 0 ou menos. Correr com 3, 5, 8 e 12 jogadores.
