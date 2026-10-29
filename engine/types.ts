@@ -22,9 +22,13 @@ export const POINTS = 10;
 /** Bónus de casa (RULES.md §1). */
 export const HOME_BONUS = 2;
 
+export const ACTION_TYPES: readonly ActionType[] = ['STAY', 'DEFEND', 'ATTACK', 'BOMB'];
+
+/** Ações com quota. STAY é ilimitado e por isso fica de fora (e tudo continua serializável em JSON). */
+export type LimitedActionType = Exclude<ActionType, 'STAY'>;
+
 /** Quotas por jogo (RULES.md §2). */
-export const QUOTAS: Record<ActionType, number> = {
-  STAY: Infinity,
+export const QUOTAS: Record<LimitedActionType, number> = {
   DEFEND: 2,
   ATTACK: 3,
   BOMB: 1,

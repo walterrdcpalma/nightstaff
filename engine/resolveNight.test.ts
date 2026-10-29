@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveNight } from './resolveNight.ts';
+import { InvalidActionError, resolveNight } from './resolveNight.ts';
 import type { Action, GameState, LedgerEntry, PlayerId } from './types.ts';
 
 const PLAYERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -289,5 +289,17 @@ describe('ações inválidas', () => {
   it('quota esgotada lança erro', () => {
     const s: GameState = { players: PLAYERS, pastActions: [bomb('A', 'C')] };
     expect(() => resolveNight(s, [bomb('A', 'B')], 1)).toThrow(/QUOTA_EXHAUSTED/);
+  });
+
+  it('o erro diz qual o jogador e o código, para a resolve-night registar', () => {
+    const err = (() => {
+      try {
+        run([stay('C'), attack('D', 'D')]);
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(err).toBeInstanceOf(InvalidActionError);
+    expect(err).toMatchObject({ playerId: 'D', code: 'SELF_TARGET' });
   });
 });

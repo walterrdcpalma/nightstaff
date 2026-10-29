@@ -1,5 +1,5 @@
-import { QUOTAS } from './types.ts';
-import type { Action, ActionType, GameState, PlayerId } from './types.ts';
+import { ACTION_TYPES, QUOTAS } from './types.ts';
+import type { Action, GameState, LimitedActionType, PlayerId } from './types.ts';
 
 export type ValidationError =
   | 'UNKNOWN_PLAYER'
@@ -12,11 +12,11 @@ export type ValidationError =
 
 export type ValidationResult = { ok: true } | { ok: false; error: ValidationError };
 
-/** Quotas que o jogador ainda tem, contando as ações de `state.pastActions` (RULES.md §2). */
-export function remainingQuota(state: GameState, playerId: PlayerId): Record<ActionType, number> {
+/** Quotas que o jogador ainda tem, contando as ações de `state.pastActions` (RULES.md §2). STAY não tem quota. */
+export function remainingQuota(state: GameState, playerId: PlayerId): Record<LimitedActionType, number> {
   const remaining = { ...QUOTAS };
   for (const a of state.pastActions) {
-    if (a.playerId === playerId) remaining[a.type]--;
+    if (a.playerId === playerId && a.type !== 'STAY') remaining[a.type]--;
   }
   return remaining;
 }
@@ -26,7 +26,7 @@ export function validateAction(state: GameState, action: Action): ValidationResu
   const fail = (error: ValidationError): ValidationResult => ({ ok: false, error });
 
   if (!state.players.includes(action.playerId)) return fail('UNKNOWN_PLAYER');
-  if (!Object.hasOwn(QUOTAS, action.type)) return fail('UNKNOWN_TYPE');
+  if (!ACTION_TYPES.includes(action.type)) return fail('UNKNOWN_TYPE');
 
   if (action.type === 'ATTACK' || action.type === 'BOMB') {
     if (action.targetId == null) return fail('TARGET_REQUIRED');
@@ -36,6 +36,8 @@ export function validateAction(state: GameState, action: Action): ValidationResu
     return fail('UNEXPECTED_TARGET');
   }
 
-  if (remainingQuota(state, action.playerId)[action.type] <= 0) return fail('QUOTA_EXHAUSTED');
+  if (action.type !== 'STAY' && remainingQuota(state, action.playerId)[action.type] <= 0) {
+    return fail('QUOTA_EXHAUSTED');
+  }
   return { ok: true };
 }
