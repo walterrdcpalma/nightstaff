@@ -62,5 +62,24 @@
   - Script `npm run demo:dia`: avança o ciclo a meio 1 dia, para testar a passagem de noite e o dia 11.
   - **Recusa correr** se o `SUPABASE_URL` não for local (127.0.0.1 ou localhost). Usa a `service_role` local, que só existe no script e nunca no `web/`.
   - No `CLAUDE.md`, secção Comandos: como usar os scripts e o que ver em cada ecrã.
+- [ ] **T9 — Salas: base de dados e resolução**
+  - Modelo de dados para **salas** (código, admin, tipo `pessoas`/`bots`, estado `lobby`/`a decorrer`/`acabada`) e **partidas** dentro de cada sala. Os ciclos automáticos desaparecem: nada de `next_cycle` nem de criar ciclos sozinho.
+  - Código de 6 caracteres, único e sem letras ambíguas (0/O, 1/I/L).
+  - Funções seguras na BD: criar sala, entrar com o código (só em lobby), sair (só em lobby), começar (só o admin, com 3 ou mais jogadores, e a noite 1 abre nesse momento), reiniciar (só o admin, com a sala acabada).
+  - RLS **por sala**: só os jogadores da sala veem a sala, as noites e os resumos, e as regras de visibilidade v5 aplicam-se dentro de cada sala. Quem não está na sala não vê nada dela.
+  - **Registo aberto:** `enable_signup = true` e o login com `shouldCreateUser: true`. Ao criar conta, cria-se o `players` com um nome (pedido no primeiro login).
+  - A `resolve-night` resolve todas as salas de pessoas a decorrer, à meia-noite, com a mesma idempotência de antes. As salas de bots ficam de fora.
+  - Atualizar o `seed.sql`, o `npm run demo` e os testes de RLS (2 utilizadores, 2 salas: não se vê nada da sala onde não se está).
+  - Atualizar o CLAUDE.md (Dados, Resolução, Comandos) — regra 8.
+- [ ] **T10 — Salas: web**
+  - Ecrã inicial **As minhas salas**: lista das salas com o estado e o que falta fazer ("escolhe até às 23:59"), mais os botões **Criar sala** e **Entrar com código**.
+  - Lobby: código grande com botão para copiar e lista de jogadores. O admin vê **Começar** (desligado com menos de 3) e, com a sala acabada, **Reiniciar**.
+  - Dentro de uma sala, as abas de sempre (Hoje, Manhã, Bairro, Pontos), só com dados dessa sala.
+  - Primeiro login: pedir o nome que os outros vão ver.
+- [ ] **T11 — Salas contra bots**
+  - **Criar sala contra bots**: escolher o número de bots (2 a 11). Os bots têm nomes do staff (por exemplo "Bot Rececionista").
+  - Botão **⏭️ Passar o dia**: os bots escolhem ao calhas (usar o `randomBot` do `sim/`, que respeita quotas, alvos e a regra de não repetir alvo), resolve a noite com o mesmo `resolveNight` e abre a seguinte. Depois da noite 9, resolução.
+  - Os bots só existem nessa sala: não são contas e não aparecem em mais lado nenhum.
+  - Testes: uma partida inteira contra 3 bots só com Passar o dia, que acaba com ranking e Funcionário do Mês.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
