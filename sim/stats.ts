@@ -33,7 +33,7 @@ export interface KindReport {
 export interface Report {
   games: number;
   players: number;
-  /** Acertos = ataques ganhos + bombas que renderam pontos (como no desempate do §5). */
+  /** Acertos = Visitas ganhas + assaltos + bombas que renderam pontos (como no desempate do §5). */
   hitsPerGame: number;
   /** Visitas que renderam pontos: ganhas em casa + assaltos à casa vazia. */
   attackHitsPerGame: number;
