@@ -19,6 +19,11 @@
   - Ranking: desempate pela ordem do RULES.md §5 (ataques bem-sucedidos, confronto direto/mini-liga, pontos perdidos, sorteio com a seed do ciclo). Nunca há vitória partilhada. O ledger tem de guardar o alvo de cada ataque bem-sucedido.
   - Todos os testes atualizados. O `CENARIOS.md` v3 (noites 1 a 5 e cenários extra A, B e C) passa.
   - Simulador e relatório atualizados para as regras v3 ("sem salário" em vez de "0 ou menos"), com o relatório na descrição do PR.
+- [ ] **T2c — Regras v4 (assalto à casa vazia) no motor e no simulador**
+  - `resolveNight`, caso "T está fora" (RULES.md §3.1): sem bomba, T −5 e os atacantes dividem 5 (arredondado para baixo). Com bomba, os atacantes ficam com 0. Uma Visita que rendeu pontos conta como ataque bem-sucedido contra T (desempate).
+  - O bot esperto passa a ter em conta que assaltar casas vazias rende pontos.
+  - Todos os testes atualizados. O `CENARIOS.md` v4 passa (incluindo o cenário extra D).
+  - Relatório do simulador v4 na descrição do PR. Assinalar se a viragem na última noite continuar perto de 0%.
 - [ ] **T3 — Supabase: schema e RLS**
   - `supabase/` com `npx supabase init`. Migrações para as tabelas do CLAUDE.md.
   - RLS exatamente como no CLAUDE.md. Validação de quota, alvo e prazo **na BD** (função ou trigger), usando as mesmas regras do `validateAction`.

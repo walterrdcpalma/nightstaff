@@ -1,4 +1,4 @@
-# Night Staff — Regras (v3)
+# Night Staff — Regras (v4)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -43,7 +43,8 @@ Para cada jogador **T** que foi alvo de pelo menos um ataque ou bomba, sejam:
 Aplica-se o **primeiro** caso que se verificar:
 
 1. **T está fora** (escolheu `ATTACK` ou `BOMB`):
-   - Os ataques normais de N falham: 0 pontos.
+   - **Assalto à casa vazia:** se B estiver vazio, T perde **5** e os atacantes de N dividem **5** em partes iguais, arredondado para baixo. Não há sorteio nem perdedores.
+   - Se houver bomba (B não vazio), **a bomba leva tudo**: os atacantes de N ficam com 0.
    - **A bomba acerta na mesma** ("Reunião de emergência obriga a comparecer"): se B não estiver vazio, T perde **10** e os bombistas dividem **10** em partes iguais, arredondado para baixo.
 2. **T escolheu `DEFEND`:**
    - Cada atacante de N perde **5**.
