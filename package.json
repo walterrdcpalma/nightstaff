@@ -8,7 +8,10 @@
     "sim": "node sim/run.ts",
     "test:db": "supabase test db && SUPABASE_E2E=1 vitest run supabase",
     "dev": "vite web",
-    "build": "vite build web"
+    "build": "vite build web",
+    "demo": "node scripts/demo.ts",
+    "demo:noite": "node scripts/demo.ts noite",
+    "demo:dia": "node scripts/demo.ts dia"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

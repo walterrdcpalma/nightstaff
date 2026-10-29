@@ -101,7 +101,27 @@ npm run build       # build do web/
 supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste)
 supabase stop --no-backup  # obrigatório depois de mudar o config.toml: com backup, o auth arranca com a config antiga
 npm run test:db     # testes SQL (pgTAP) + ciclo inteiro na resolve-night (precisa do Supabase local)
+npm run demo [-- meio|terminado|prep]  # limpa a BD LOCAL e cria um ciclo de demonstração (por omissão: meio)
+npm run demo:noite  # resolve já a noite atual; quem não escolheu joga com os bots
+npm run demo:dia    # avança 1 dia (passagem de noite, dia 11, ciclo seguinte)
 ```
+
+### Testar no browser com dados de demonstração
+1. `npx supabase start` e `npm run demo` (ou `-- terminado` ou `-- prep`). O script recusa correr se o `SUPABASE_URL` não for local. A `service_role` local só existe no script.
+2. `npm run dev` e entrar como `walter@nightstaff.local`. O magic link chega ao Mailpit (http://127.0.0.1:54324).
+3. O que ver (6 jogadores: Walter, Ana, Bruno, Carla, Duarte e Eva; as noites são jogadas pelos bots do `sim/` e resolvidas pela `resolve-night`):
+   - **`meio`** (noite 5 a decorrer, o Walter ainda não escolheu):
+     - **Hoje:** escolha, quotas já gastas e contagem até às 23:59.
+     - **Manhã:** a noite 4.
+     - **Bairro:** as janelas das noites 1 a 4, com sorteio, defesa com revelação, bomba e assalto a uma casa vazia.
+     - **Pontos:** só os do Walter.
+   - **`demo:noite`** resolve a noite 5 e abre a 6. Repetido, chega ao dia 11. **`demo:dia`** passa um dia sem preencher escolhas.
+   - **`terminado`** (dia 11):
+     - **Pontos:** 🏆 Funcionário do Mês e ranking final.
+     - **Bairro:** as 9 noites.
+     - **Hoje:** "Dia de resolução".
+     - **`demo:dia`** cria o ciclo seguinte em preparação.
+   - **`prep`** (dia 1): o Hoje mostra a preparação com 5 inscritos e o botão para o Walter entrar.
 
 ## Regras para agentes (obrigatório)
 1. Trabalhar **só em branches** e entregar por **Pull Request**. Nunca fazer push para `main`.

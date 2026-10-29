@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { loadEnrolled, loadGames, loadLedger, loadNames } from '@/lib/data';
 import type { Game } from '@/lib/data';
-import { movementsByNight, points, rankingRows, rankingVisible } from '@/lib/points';
+import { attacksText, movementsByNight, points, rankingRows, rankingVisible } from '@/lib/points';
 import type { LedgerRow } from '@/lib/points';
 import { cn } from '@/lib/utils';
 import { LoadError, Note, useLoad } from './Note.tsx';
@@ -46,6 +46,9 @@ export default function Points({ userId }: { userId: string }) {
     <div className="flex flex-col gap-6">
       {data.previous && <p className="text-sm">Há um ciclo novo em preparação: lá, todos começam com 50. Isto é o ciclo anterior.</p>}
       {showRanking && <Ranking game={data.game} data={data} userId={userId} nameOf={nameOf} />}
+      {rankingVisible(data.game.status) && !showRanking && (
+        <Note title="🏆 Funcionário do Mês">O ranking ainda está a ser apurado. Espreita daqui a pouco.</Note>
+      )}
 
       <Note title="💰 Os teus pontos">
         <p className="font-heading text-4xl text-main">{points(mine)}</p>
@@ -78,7 +81,7 @@ function Ranking(props: { game: Game; data: Data; userId: string; nameOf: (id: s
       <Note title="🏆 Funcionário do Mês">
         <p className="font-heading text-3xl text-main">{winner.name}</p>
         <p>
-          {winner.points} pontos, {winner.successfulAttacks} ataques bem-sucedidos.
+          {winner.points} pontos, {attacksText(winner.successfulAttacks)}.
           {winner.tiebreak && ' Decidido no desempate.'}
         </p>
       </Note>
