@@ -98,6 +98,18 @@
     - as cenas saem na ordem certa, e sem apanhados não há cena de apanhados.
   - Animações só com **CSS/Tailwind**, sem dependências novas. Mobile-first, tema escuro de sempre.
   - O Bairro/Histórico não muda. O texto das manchetes públicas existentes pode ser reaproveitado.
+- [ ] **T12b — Renomear a ação das bombas: 🔥 Despedimento coletivo**
+  - O `RULES.md` v7 (§2) chama-lhe agora **🔥 Despedimento coletivo** (antes 💣 Reunião de emergência). Só muda o **nome na app**: o código `BOMB`, as regras e as migrações já aplicadas não mudam. Esta tarefa só corre depois do PR de regras v7 estar em `main`; se o `RULES.md` ainda disser "Reunião de emergência", parar e avisar.
+  - Trocar o nome em **tudo o que o jogador lê** em `web/` (hoje em `web/src/lib/today.ts` e `web/src/lib/night.ts`, e nos componentes e textos que o usarem), com a **concordância certa**: passou de feminino a masculino.
+    - "💣 Reunião de emergência" → "🔥 Despedimento coletivo"
+    - "Havia uma Reunião de emergência no alvo" → "Havia um Despedimento coletivo no alvo"
+    - "Casa vazia, mas a Reunião de emergência levou tudo" → "…mas o Despedimento coletivo levou tudo"
+    - "Uma Reunião de emergência apanhou-te" → "Um Despedimento coletivo apanhou-te"
+    - "Visita ou Reunião de ontem" → "Visita ou Despedimento de ontem"
+  - Atualizar os testes que usam o nome (`night.test.ts`, `today.test.ts`, …) e os comentários e nomes de testes que digam "Reunião" (`engine/`, `sim/`, `scripts/`, `supabase/tests/`). **Não** editar migrações já aplicadas.
+  - Se a T12 já tiver a lista de palavras proibidas em `story.ts`, acrescentar `despedimento` (e manter `reunião`). Procurar no `web/` qualquer outra frase que mencione o nome.
+  - No `CLAUDE.md`, secção UI, "Nomes na UI": trocar "Reunião de emergência" por "Despedimento coletivo" (regra 8).
+  - Teste de regressão: nenhuma string visível ao jogador no `web/` contém "Reunião de emergência".
 - [ ] **T13 — Ajuda: como funciona o jogo**
   - Botão **❓ Ajuda** no cabeçalho da app, visível em todos os ecrãs (As minhas salas, lobby, dentro de uma sala, primeiro login). Abre um ecrã de ajuda por cima, com **Fechar**, sem router (estado do `App`, como o resto).
   - Para quem **nunca ouviu falar do jogo**. Duas partes, por esta ordem:
