@@ -1,0 +1,73 @@
+# Night Staff — Regras (v1)
+
+> Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
+> Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
+
+## 1. Formato
+- **8 jogadores**, cada um com uma casa.
+- **10 dias:** 9 noites de jogo + 1 dia de descanso (dia 10).
+- Todos começam com **0 pontos**. Os pontos podem ficar negativos.
+- Escala de pontos: **10** por ataque. Bónus de casa: **2**.
+- Fuso horário: **Europe/Lisbon** em tudo.
+
+## 2. Ações (1 por noite)
+| Código | Nome na app | Significado | Quota no jogo | Onde fica o jogador |
+|---|---|---|---|---|
+| `STAY` | 🏠 Folga | Ficar em casa | ∞ | Em casa |
+| `DEFEND` | 🛡️ Segurança | Defender | 2 | Em casa |
+| `ATTACK` | 🗡️ Visita surpresa | Atacar `alvo` | 3 | Fora |
+| `BOMB` | 💣 Reunião de emergência | Bomba em `alvo` | 1 | Fora |
+
+- O prazo para escolher é até às **23:59**. Até lá, pode-se mudar a escolha.
+- Quem não escolher fica com `STAY`.
+- Não se pode escolher a si próprio como alvo.
+- Não se pode escolher uma ação com a quota esgotada. Isto é validado ao submeter.
+- A quota gasta-se sempre que a ação é escolhida, aconteça o que acontecer.
+
+## 3. Resolução (00:00, tudo em simultâneo)
+Para cada jogador **T** que foi alvo de pelo menos um ataque ou bomba, sejam:
+- **N** = os atacantes normais em T
+- **B** = os bombistas em T
+
+Aplica-se o **primeiro** caso que se verificar:
+
+1. **T está fora** (escolheu `ATTACK` ou `BOMB`): todos os ataques a T falham e ninguém ganha nem perde pontos.
+2. **T escolheu `DEFEND`:**
+   - Cada atacante de N perde **10**.
+   - Cada bombista de B perde **20**.
+   - T ganha **10 por cada atacante** (N + B).
+   - A identidade de todos os atacantes de T é revelada no resumo.
+3. **T está em casa sem defesa (`STAY`):**
+   - **B vazio e |N| = 1:** o atacante ganha **10** e T perde **10**.
+   - **B vazio e |N| ≥ 2:** **sorteio** entre N. O vencedor ganha **10** e T perde **10**. Cada um dos outros atacantes de N perde **10** ("morre").
+   - **B com 1 ou mais bombistas:** não há sorteio.
+     - T perde **10** e cada atacante de N perde **10** ("morre").
+     - Bolo = `10 + 10 × |N|`, dividido em partes iguais por B e arredondado para baixo.
+     - O resto da divisão perde-se.
+     - Uma bomba sozinha num alvo dá **+10**, como um ataque normal.
+
+**Bónus de casa:** quem escolheu `STAY` ou `DEFEND` e **não foi alvo** de nenhum ataque ou bomba ganha **+2**.
+
+**Sorteio:** é determinístico a partir de uma `seed` guardada por noite, para se poder reproduzir e auditar.
+
+## 4. Visibilidade
+- **Antes da resolução:** ninguém vê as ações dos outros, nem na app nem através da API.
+- **Depois da resolução, no resumo público da noite:**
+  - Quem estava **em casa** e quem estava **fora**.
+  - Quem foi **atacado** e quantas vezes. O ataque é anónimo.
+  - Quem se **defendeu com sucesso**, e nesse caso **revela-se quem o atacou**.
+  - Os sorteios e as bombas aparecem só com os números (ex.: "3 atacantes no Pedro, houve sorteio"). Cada atacante vê o seu próprio resultado.
+  - Quem ganhou o bónus de casa.
+- **Pontuações:** durante o jogo, cada jogador vê **só os seus pontos** e os movimentos de cada noite. O ranking completo só é revelado no dia 10.
+- O **histórico** de todas as noites anteriores fica sempre consultável.
+
+## 5. Fim do jogo (dia 10, descanso)
+- Não há ações. A app mostra o ranking final, o vencedor (🏆 **Funcionário do Mês**) e o histórico completo.
+- **Desempate:**
+  1. Mais ataques bem-sucedidos.
+  2. Menos pontos perdidos.
+  3. Se continuar empatado, a vitória é partilhada.
+
+## 6. Em aberto (decidir depois do primeiro teste)
+- O defensor ganha +10 **por atacante** ou +10 fixo? Por agora fica por atacante.
+- Os números (10 / 2 / quotas) ajustam-se com base no simulador.
