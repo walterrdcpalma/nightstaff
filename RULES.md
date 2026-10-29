@@ -1,4 +1,4 @@
-# Night Staff — Regras (v6)
+# Night Staff — Regras (v7)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -38,13 +38,13 @@
 | `STAY` | 🏠 Folga | Ficar em casa | ∞ | Em casa |
 | `DEFEND` | 🛡️ Segurança | Defender | 2 | Em casa |
 | `ATTACK` | 🗡️ Visita surpresa | Atacar `alvo` | 3 | Fora |
-| `BOMB` | 💣 Reunião de emergência | Bomba em `alvo` | 1 | Fora |
+| `BOMB` | 🔥 Despedimento coletivo | Bomba em `alvo` | 1 | Fora |
 | `VANISH` | 🫥 Desaparecer | Sair de casa sem atacar ninguém | 2 | Fora |
 
 - O prazo para escolher é até às **23:59**. Até lá, pode-se mudar a escolha.
 - Quem não escolher fica com `STAY`.
 - Não se pode escolher a si próprio como alvo.
-- **Não se pode atacar a mesma pessoa duas noites seguidas:** o alvo de uma Visita surpresa ou de uma Reunião de emergência não pode ser o mesmo da Visita ou Reunião do próprio jogador na noite anterior. Uma noite sem ataque pelo meio volta a permitir.
+- **Não se pode atacar a mesma pessoa duas noites seguidas:** o alvo de uma Visita surpresa ou de um Despedimento coletivo não pode ser o mesmo da Visita ou do Despedimento do próprio jogador na noite anterior. Uma noite sem ataque pelo meio volta a permitir.
 - Não se pode escolher uma ação com a quota esgotada. Isto é validado ao submeter.
 - A quota gasta-se sempre que a ação é escolhida, aconteça o que acontecer.
 
@@ -58,7 +58,7 @@ Aplica-se o **primeiro** caso que se verificar:
 1. **T está fora** (escolheu `ATTACK`, `BOMB` ou `VANISH`):
    - **Assalto à casa vazia:** se B estiver vazio, T perde **5** e os atacantes de N dividem **5** em partes iguais, arredondado para baixo. Não há sorteio nem perdedores.
    - Se houver bomba (B não vazio), **a bomba leva tudo**: os atacantes de N ficam com 0.
-   - **A bomba acerta na mesma** ("Reunião de emergência obriga a comparecer"): se B não estiver vazio, T perde **10** e os bombistas dividem **10** em partes iguais, arredondado para baixo.
+   - **A bomba acerta na mesma** ("num Despedimento coletivo ninguém escapa, esteja onde estiver"): se B não estiver vazio, T perde **10** e os bombistas dividem **10** em partes iguais, arredondado para baixo.
 2. **T escolheu `DEFEND`:**
    - Cada atacante de N perde **5**.
    - Cada bombista de B perde **10**.
@@ -96,7 +96,7 @@ Aplica-se o **primeiro** caso que se verificar:
   3. Menos pontos perdidos.
   4. Se continuar empatado, há **sorteio** com uma seed guardada para a partida (reprodutível). Há sempre um único Funcionário do Mês.
 
-  **Ataque bem-sucedido** = Visita surpresa que rendeu pontos (atacante único ou vencedor do sorteio), ou Reunião de emergência que rendeu pontos. Conta "contra X" quando X foi o alvo.
+  **Ataque bem-sucedido** = Visita surpresa que rendeu pontos (atacante único ou vencedor do sorteio), ou Despedimento coletivo que rendeu pontos. Conta "contra X" quando X foi o alvo.
 
 ## 6. Em aberto (decidir depois do primeiro teste)
 - O defensor ganha +10 **por atacante** ou +10 fixo? Por agora fica por atacante.

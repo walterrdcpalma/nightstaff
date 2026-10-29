@@ -98,7 +98,7 @@
 - Ana tenta **Bomba** → rejeitado: já usou a bomba (noite 3).
 - Gil tenta **Atacar Gil** → rejeitado: não pode ser alvo de si próprio.
 - Gil tenta **Atacar Filipe** → rejeitado: atacou o Filipe na noite anterior (noite 4).
-- Bruno tenta **Atacar Filipe** → rejeitado: a Reunião da noite 4 foi no Filipe, e conta como ataque.
+- Bruno tenta **Atacar Filipe** → rejeitado: o Despedimento da noite 4 foi no Filipe, e conta como ataque.
 - Gil tenta **Atacar Ana** → aceite: só usou 1 ataque e a Ana não foi o seu alvo na noite 4.
 - Ana tenta **Desaparecer** → aceite: ainda não usou nenhum dos 2.
 
@@ -178,7 +178,7 @@
 - Os ataques contra jogadores fora do empate não contam.
 - → **Ganha o Bruno** (2), contra Ana 1 e Carla 1.
 
-**C3. Bomba conta como ataque:** uma Reunião de emergência que rendeu pontos no Bruno conta como 1 ataque bem-sucedido contra o Bruno. Isto vale para cada bombista.
+**C3. Bomba conta como ataque:** um Despedimento coletivo que rendeu pontos no Bruno conta como 1 ataque bem-sucedido contra o Bruno. Isto vale para cada bombista.
 
 **C4. Sorteio:**
 - Dois jogadores empatados em tudo: pontos, ataques bem-sucedidos, confronto direto e pontos perdidos.
