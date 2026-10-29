@@ -36,6 +36,19 @@
   --font-weight-base: 500;
   --font-weight-heading: 800;
   --font-heading: 'Archivo Black', system-ui, sans-serif;
+
+  /* Manhã em modo história (T12): cada cena entra a subir e a acender. Usar com `motion-safe:`. */
+  --animate-scene-in: scene-in 450ms ease-out both;
+  @keyframes scene-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 body {

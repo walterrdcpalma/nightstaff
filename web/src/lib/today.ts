@@ -25,6 +25,19 @@ export function botsPhase(status: GameStatus, resolvedNights: number): TodayPhas
   return resolvedNights < NIGHTS ? { kind: 'NIGHT', night: resolvedNights + 1 } : { kind: 'WAKING' };
 }
 
+/**
+ * A escolha no ecrã é diferente da gravada (sem escolha gravada, conta como Folga). Numa sala contra bots, o
+ * Passar o dia fica desligado até confirmar, para a escolha não se perder.
+ */
+export function hasUnsavedChoice(
+  selected: { type: ActionType; targetId: string | null },
+  saved: { type: ActionType; target_id: string | null } | undefined,
+): boolean {
+  if (selected.type !== (saved?.type ?? 'STAY')) return true;
+  const needsTarget = selected.type === 'ATTACK' || selected.type === 'BOMB';
+  return needsTarget && selected.targetId !== (saved?.target_id ?? null);
+}
+
 /** Próximas 00:00 de Lisboa depois de `now`: o fim do prazo das 23:59 (RULES.md §2). Trata a mudança de hora. */
 export function nextLisbonMidnight(now: Date): Date {
   const tomorrow = addDays(lisbonDate(now), 1);

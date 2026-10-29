@@ -194,6 +194,9 @@ async function passDay(req: Request, roomId: number, night: number): Promise<Res
   );
   const game = gameRow && (await readGame(gameRow.id));
   if (!game) return reply({ error: 'NOT_BOTS_NIGHT' }, 409);
+  // Esta verificação não é atómica: dois pedidos ao mesmo tempo para a mesma noite passam ambos. Não faz mal:
+  // as ações dos bots são `ignoreDuplicates` (fica a primeira de cada bot), o `apply_night` só grava a noite uma
+  // vez e o `finish_game` só acaba a partida uma vez. Um pedido atrasado já vê a noite seguinte e para aqui.
   if (game.resolvedNights + 1 !== night) return reply({ error: 'NIGHT_CHANGED', night: game.resolvedNights + 1 }, 409);
 
   const everyone = await players(game.id);

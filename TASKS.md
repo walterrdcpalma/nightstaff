@@ -81,7 +81,7 @@
   - Botão **⏭️ Passar o dia**: os bots escolhem ao calhas (usar o `randomBot` do `sim/`, que respeita quotas, alvos e a regra de não repetir alvo), resolve a noite com o mesmo `resolveNight` e abre a seguinte. Depois da noite 9, resolução.
   - Os bots só existem nessa sala: não são contas e não aparecem em mais lado nenhum.
   - Testes: uma partida inteira contra 3 bots só com Passar o dia, que acaba com ranking e Funcionário do Mês.
-- [ ] **T12 — Manhã em modo história**
+- [x] **T12 — Manhã em modo história**
   - A Manhã (`web/src/NightView.tsx`) passa a contar a noite **uma cena de cada vez**, como um narrador: cada jogador, ao seu ritmo, com animação de entrada. Botão **Seguinte** (ou toque no ecrã) para avançar, **Saltar** para ver tudo de uma vez, e **Ver outra vez** no fim. Com `prefers-reduced-motion`, sem animações e tudo visível.
   - **Cenas, na ordem:**
     1. Abertura com o número da noite e quantos ficaram em casa e fora.

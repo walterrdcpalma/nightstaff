@@ -29,6 +29,8 @@ export interface Game {
 
 export interface ResolvedNight {
   night: number;
+  /** Seed da resolução: escolhe as frases da história da manhã (T12), igual para todos. */
+  seed: number;
   summary: NightSummary;
 }
 
@@ -102,7 +104,7 @@ export async function loadEnrolled(gameId: number): Promise<string[]> {
 
 /** Noites resolvidas de uma partida (a RLS só mostra essas), por ordem. */
 export async function loadNights(gameId: number): Promise<ResolvedNight[]> {
-  return ok(await supabase.from('nights').select('night, summary').eq('game_id', gameId).order('night'));
+  return ok(await supabase.from('nights').select('night, seed, summary').eq('game_id', gameId).order('night'));
 }
 
 /** Os meus movimentos numa noite (a RLS só mostra os meus). */

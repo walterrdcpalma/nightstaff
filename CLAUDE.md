@@ -50,7 +50,7 @@ CLAUDE.md
 | `games` | id (= uma partida), room_id, start_date (dia da noite 1 = dia do Começar), status: `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Quem a joga, e só se for a partida atual da sala |
 | `game_players` | game_id, player_id (lista fixa, copiada da sala no Começar) | Quem joga a partida atual. Escrita só pelo `start_room` |
 | `actions` | game_id, night, player_id, type, target_id; único (game_id, night, player_id) | **Só o próprio**, e só da partida atual |
-| `nights` | game_id, night, seed, resolved_at, summary jsonb | Quem joga a partida atual, depois de resolvida |
+| `nights` | game_id, night, seed (também escolhe as frases da história da manhã), resolved_at, summary jsonb | Quem joga a partida atual, depois de resolvida |
 | `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio** (também com a partida acabada), e só da partida atual |
 | `rankings` | game_id, player_id, rank, points, successful_attacks | Quem jogou a partida atual, só quando `games.status = finished` |
 
@@ -91,7 +91,7 @@ CLAUDE.md
   - Primeiro login: o nome que os outros vão ver (cria o meu `players`).
   - Dentro de uma sala, as abas só com dados dessa sala:
     - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin. Contra bots: sem contagem, com **⏭️ Passar o dia** por baixo da escolha.
-    - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As rondas anteriores da partida atual continuam consultáveis.
+    - Manhã, em **modo história** (T12): a noite contada uma cena de cada vez — abertura (quantos em casa e fora), uma cena por jogador (em casa ou fora, com uma frase), os 🚨 apanhados (sem dizer onde, só se houver) e, por fim, a minha noite (relatório privado, só do meu ledger). Seguinte (ou toque), Saltar e Ver outra vez; com `prefers-reduced-motion`, tudo visível e sem animação. As rondas anteriores da partida atual continuam consultáveis.
     - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
     - Os meus pontos (durante a partida) e o ranking final (só na resolução).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
@@ -102,12 +102,13 @@ CLAUDE.md
   - Tema: as variáveis do neobrutalism.dev em `web/src/index.css`, com a paleta acima. Contornos e sombras claros (`#F4F1E8`), para se verem no fundo escuro. Títulos em Archivo Black.
   - A lógica pura de cada ecrã fica em `web/src/lib/` e testa-se no Vitest. O web importa o `engine/` por caminho relativo.
   - Leituras partilhadas em `web/src/lib/data.ts`: um erro lança e o ecrã mostra `LoadError` ("Espreitar outra vez"), nunca um estado vazio. Ecrãs em abas (Hoje, Manhã, Bairro, Pontos), sem router. O `useLoad` ignora respostas de leituras antigas.
+  - História da manhã: frases em `web/src/lib/story.ts` (*em casa*, *fora* e *apanhado*, 10 ou mais cada, com `{nome}`, sem género). As de casa e fora **nunca revelam a ação** (lista `FORBIDDEN_WORDS`, testada). A frase de cada jogador sai da `nights.seed` e do id do jogador (`mulberry32`): toda a gente vê a mesma história. Animação só com CSS (`motion-safe:animate-scene-in`, em `index.css`).
   - Pontos: o ranking vem da tabela `rankings` (a RLS só a mostra com `status = finished`).
   - Ecrã inicial: As minhas salas (sem router: a sala escolhida é estado do `App`). Os ecrãs de uma sala recebem `roomId` e mostram a partida atual (a RLS só dá essa); o Manhã deixa escolher as rondas anteriores dela.
   - Ranking: quem ficou empatado em pontos mostra o critério do desempate, se os ataques bem-sucedidos chegaram; senão, "confronto direto, pontos perdidos ou sorteio" (sem o ledger dos outros não se distingue).
   - Hoje: o alvo da minha Visita ou Reunião de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
   - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
-- **Auth:** registo aberto (`[auth] enable_signup = true`, login com `shouldCreateUser: true`). Não pôr `false` em `[auth.email]`, que desliga também o magic link. Uma conta nova não tem `players`: o nome pede-se no primeiro login, e sem nome as funções da sala dão `NO_NAME`.
+- **Auth:** registo aberto (`[auth] enable_signup = true`, login com `shouldCreateUser: true`). Não pôr `false` em `[auth.email]`, que desliga também o magic link. Uma conta nova não tem `players`: o nome pede-se no primeiro login, e sem nome as funções da sala dão `NO_NAME` (também para um bot, que nunca cria salas nem entra nelas).
   - O magic link volta para `window.location.origin`: o URL do site (dev e produção) tem de estar em *Site URL* / *Redirect URLs* no painel do Supabase. No local já está no `config.toml` (`http://localhost:5173`).
 
 ## Comandos

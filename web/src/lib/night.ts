@@ -3,19 +3,6 @@ import type { LedgerReason, NightSummary } from '../../../engine/index.ts';
 
 type NameOf = (id: string) => string;
 
-/** "Ana", "Ana e Bruno", "Ana, Bruno e Carla". */
-export function listNames(names: string[]): string {
-  return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
-}
-
-/**
- * Manchete pública dos apanhados (RULES.md §4), sem dizer em que casa, para não revelar quem se defendeu.
- * Ex.: "🚨 A Segurança apanhou Carla e Eva a meio de uma visita."
- */
-export function caughtHeadline(summary: NightSummary, nameOf: NameOf): string | null {
-  return summary.caught.length === 0 ? null : `🚨 A Segurança apanhou ${listNames(summary.caught.map(nameOf))} a meio de uma visita.`;
-}
-
 /** Título da manhã, ex.: "Noite 3: 5 em casa, 3 fora." */
 export function morningHeadline(night: number, summary: NightSummary): string {
   const home = summary.players.filter((p) => p.location === 'HOME').length;
