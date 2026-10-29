@@ -77,9 +77,12 @@ Aplica-se o **primeiro** caso que se verificar:
 ## 5. Fim do ciclo (dia 11, resolução)
 - Não há ações. A app mostra o ranking final, o vencedor (🏆 **Funcionário do Mês**) e o histórico completo.
 - **Desempate:**
-  1. Mais ataques bem-sucedidos.
-  2. Menos pontos perdidos.
-  3. Se continuar empatado, há **sorteio** com uma seed guardada para o ciclo (reprodutível). Há sempre um único Funcionário do Mês.
+  1. Mais **ataques bem-sucedidos** no ciclo.
+  2. **Confronto direto** (como no futebol): mais ataques bem-sucedidos **contra os outros jogadores empatados**. Com 3 ou mais empatados, contam só os ataques entre eles (mini-liga).
+  3. Menos pontos perdidos.
+  4. Se continuar empatado, há **sorteio** com uma seed guardada para o ciclo (reprodutível). Há sempre um único Funcionário do Mês.
+
+  **Ataque bem-sucedido** = Visita surpresa que rendeu pontos (atacante único ou vencedor do sorteio), ou Reunião de emergência que rendeu pontos. Conta "contra X" quando X foi o alvo.
 
 ## 6. Em aberto (decidir depois do primeiro teste)
 - O defensor ganha +10 **por atacante** ou +10 fixo? Por agora fica por atacante.

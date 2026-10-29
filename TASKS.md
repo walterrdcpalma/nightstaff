@@ -16,7 +16,7 @@
 - [ ] **T2b — Regras v3 no motor e no simulador**
   - `resolveNight`: atacar quem defende custa 5 (bomba 10); bomba num alvo fora acerta (T −10, os bombistas dividem 10); a noite 9 conta a dobrar. A função tem de saber o número da noite.
   - Salário: constante `SALARY = 50`. Os pontos do jogador são `SALARY + soma do ledger`.
-  - Ranking: o 3.º desempate é por sorteio com a seed do ciclo. Nunca há vitória partilhada.
+  - Ranking: desempate pela ordem do RULES.md §5 (ataques bem-sucedidos, confronto direto/mini-liga, pontos perdidos, sorteio com a seed do ciclo). Nunca há vitória partilhada. O ledger tem de guardar o alvo de cada ataque bem-sucedido.
   - Todos os testes atualizados. O `CENARIOS.md` v3 (noites 1 a 5 e cenários extra A, B e C) passa.
   - Simulador e relatório atualizados para as regras v3 ("sem salário" em vez de "0 ou menos"), com o relatório na descrição do PR.
 - [ ] **T3 — Supabase: schema e RLS**

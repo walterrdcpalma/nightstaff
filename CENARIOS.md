@@ -127,6 +127,20 @@
 - Carla **−10**, Duarte **+20**.
 - Eva **+4**: bónus de casa a dobrar.
 
-## Cenário extra C — Desempate por sorteio
-- **Situação:** dois jogadores acabam o ciclo empatados em pontos, em ataques bem-sucedidos e em pontos perdidos.
-- **Esperado:** o ranking tem **exatamente um** 1.º lugar. Com a mesma seed do ciclo, o vencedor é sempre o mesmo. Com seeds diferentes, os dois jogadores conseguem ganhar.
+## Cenário extra C — Desempates
+**C1. Confronto direto:**
+- Ana e Bruno acabam com os mesmos pontos e com 3 ataques bem-sucedidos cada.
+- Ana acertou **2 vezes no Bruno** e o Bruno acertou **1 vez na Ana**.
+- → **Ganha a Ana**, pelo confronto direto.
+
+**C2. Mini-liga com 3 empatados:**
+- Ana, Bruno e Carla empatados em pontos e em ataques bem-sucedidos.
+- Ataques bem-sucedidos entre eles: Ana→Bruno 1, Bruno→Carla 2, Carla→Ana 1.
+- Os ataques contra jogadores fora do empate não contam.
+- → **Ganha o Bruno** (2), contra Ana 1 e Carla 1.
+
+**C3. Bomba conta como ataque:** uma Reunião de emergência que rendeu pontos no Bruno conta como 1 ataque bem-sucedido contra o Bruno. Isto vale para cada bombista.
+
+**C4. Sorteio:**
+- Dois jogadores empatados em tudo: pontos, ataques bem-sucedidos, confronto direto e pontos perdidos.
+- → O ranking tem **exatamente um** 1.º lugar. Com a mesma seed do ciclo, o vencedor é sempre o mesmo. Com seeds diferentes, os dois conseguem ganhar.
