@@ -4,7 +4,7 @@ import type { Action, LimitedActionType } from '../engine/index.ts';
 import { BOTS, randomBot, smartBot } from './bots.ts';
 import type { BotKind } from './bots.ts';
 import { NIGHTS, playGame } from './game.ts';
-import { CONFIGS, formatReport, runConfig } from './run.ts';
+import { PLAYER_COUNTS, configsFor, formatTable, runConfig } from './run.ts';
 import { spread, summarize } from './stats.ts';
 
 const PLAYERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -24,12 +24,15 @@ describe('playGame', () => {
     expect(playGame(seats(MIXED), 42)).not.toEqual(playGame(seats(MIXED), 43));
   });
 
-  it.each(CONFIGS)('bots de "$name" respeitam alvos e quotas em 200 jogos', ({ seats: kinds }) => {
-    for (let seed = 0; seed < 200; seed++) {
-      const g = playGame(seats(kinds), seed);
+  const cases = PLAYER_COUNTS.flatMap((n) => configsFor(n).map((c) => ({ n, ...c })));
+  it.each(cases)('$n jogadores, $name: bots respeitam alvos e quotas em 100 ciclos', ({ seats: kinds }) => {
+    const players = kinds.map((_, i) => `P${i + 1}`);
+    for (let seed = 0; seed < 100; seed++) {
+      const g = playGame(players.map((playerId, i) => ({ playerId, bot: BOTS[kinds[i]] })), seed);
       const past: Action[] = [];
       for (const n of g.nights) {
-        for (const a of n.actions) expect(validateAction({ players: PLAYERS, pastActions: past }, a)).toEqual({ ok: true });
+        expect(n.actions).toHaveLength(players.length);
+        for (const a of n.actions) expect(validateAction({ players, pastActions: past }, a)).toEqual({ ok: true });
         past.push(...n.actions);
       }
     }
@@ -88,6 +91,7 @@ describe('stats', () => {
     const count = (reason: string) => ledger.filter((e) => e.reason === reason).length;
 
     expect(r.games).toBe(50);
+    expect(r.players).toBe(8);
     expect(r.attackHitsPerGame * 50).toBe(count('ATTACK_SUCCESS'));
     expect(r.bombHitsPerGame * 50).toBe(count('BOMB_SUCCESS'));
     expect(r.drawsPerGame * 50).toBe(all.flatMap((n) => n.summary.players).filter((s) => s.draw).length);
@@ -97,10 +101,13 @@ describe('stats', () => {
     expect(r.byKind.smart!.winPct + r.byKind.random!.winPct).toBeCloseTo(100);
   });
 
-  it('formatReport gera uma tabela Markdown', () => {
-    const md = formatReport('teste', runConfig(MIXED, 5, 1));
-    expect(md).toContain('### teste');
-    expect(md).toContain('| Jogadores com 0 ou menos |');
-    expect(md).toContain('| smart | 4 |');
+  it('formatTable gera uma tabela Markdown com uma coluna por configuração', () => {
+    const md = formatTable(5, configsFor(5).map((c) => ({ name: c.name, report: runConfig(c.seats, 5, 1) })));
+    expect(md).toContain('### 5 jogadores');
+    expect(md).toContain('| Métrica | Aleatórios | Espertos | Mistos |');
+    expect(md).toMatch(/\| Jogadores com 0 ou menos \| [\d.]+% \| [\d.]+% \| [\d.]+% \|/);
+    // Mistos com 5 lugares: 3 espertos e 2 aleatórios.
+    expect(md).toContain('| smart | 3 |');
+    expect(md).toContain('| random | 2 |');
   });
 });

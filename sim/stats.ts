@@ -26,12 +26,13 @@ export interface KindReport {
   seats: number;
   points: Spread;
   zeroOrLessPct: number;
-  /** % de jogos ganhos por este tipo de bot (vitória partilhada conta em fração). */
+  /** % de ciclos ganhos por este tipo de bot (vitória partilhada conta em fração). */
   winPct: number;
 }
 
 export interface Report {
   games: number;
+  players: number;
   /** Acertos = ataques ganhos + bombas que renderam pontos (como no desempate do §5). */
   hitsPerGame: number;
   attackHitsPerGame: number;
@@ -98,6 +99,7 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
 
   return {
     games: games.length,
+    players: games[0]?.players.length ?? 0,
     hitsPerGame: SUCCESS_REASONS.reduce((s, r) => s + count(r), 0) / games.length,
     attackHitsPerGame: count('ATTACK_SUCCESS') / games.length,
     bombHitsPerGame: count('BOMB_SUCCESS') / games.length,
