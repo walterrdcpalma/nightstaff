@@ -25,6 +25,8 @@ export const SALARY = 50;
 export const POINTS = 10;
 /** Bónus de casa (RULES.md §1). */
 export const HOME_BONUS = 2;
+/** Assalto à casa vazia: o que perde o alvo fora e o que dividem os atacantes, sem bomba (RULES.md §3, caso 1). */
+export const BURGLARY_POINTS = 5;
 /** O que perde quem ataca um jogador que se defendeu (RULES.md §3, caso 2). */
 export const DEFENDED_COST = { ATTACK: 5, BOMB: 10 } as const;
 
@@ -45,10 +47,12 @@ export type LedgerReason =
   | 'ATTACK_LOST_DRAW' // perdeu o sorteio (-10)
   | 'ATTACK_BOMBED' // atacante normal "morre" porque houve bomba no alvo (-10)
   | 'ATTACK_DEFENDED' // atacou quem se defendeu (-5)
-  | 'ATTACK_TARGET_AWAY' // alvo estava fora (0)
+  | 'ATTACK_BURGLARY' // assalto à casa vazia: parte dos 5, arredondada para baixo
+  | 'ATTACK_AWAY_BOMBED' // alvo fora e com bomba: a bomba leva tudo (0)
   | 'BOMB_SUCCESS' // parte do bolo, também com o alvo fora
   | 'BOMB_DEFENDED' // bombardeou quem se defendeu (-10)
   | 'VICTIM' // atacado em casa sem defesa, ou bombardeado mesmo fora (-10)
+  | 'BURGLARY_VICTIM' // estava fora e assaltaram-lhe a casa, sem bomba (-5)
   | 'DEFENSE' // defendeu-se: +10 por atacante
   | 'HOME_BONUS'; // em casa e não foi alvo (+2)
 

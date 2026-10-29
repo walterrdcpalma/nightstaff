@@ -2,8 +2,8 @@ import { mulberry32 } from './rng.ts';
 import { SALARY } from './types.ts';
 import type { LedgerEntry, LedgerReason, PlayerId } from './types.ts';
 
-/** Acertos para o desempate (RULES.md §5): ataques ganhos e bombas, quando renderam pontos. */
-export const SUCCESS_REASONS: readonly LedgerReason[] = ['ATTACK_SUCCESS', 'BOMB_SUCCESS'];
+/** Acertos para o desempate (RULES.md §5): Visitas (ganhas ou assaltos) e bombas, quando renderam pontos. */
+export const SUCCESS_REASONS: readonly LedgerReason[] = ['ATTACK_SUCCESS', 'ATTACK_BURGLARY', 'BOMB_SUCCESS'];
 
 const isSuccess = (e: LedgerEntry) => SUCCESS_REASONS.includes(e.reason) && e.delta > 0;
 
@@ -37,8 +37,9 @@ export function finalRanking(players: PlayerId[], ledger: LedgerEntry[], seed: n
     r.points += e.delta;
     if (e.delta < 0) r.pointsLost -= e.delta;
     if (isSuccess(e)) {
+      if (!e.targetId) throw new Error(`Acerto sem alvo no ledger: ${e.playerId} (${e.reason})`);
       r.successfulAttacks++;
-      hitTargets.get(e.playerId)!.push(e.targetId!);
+      hitTargets.get(e.playerId)!.push(e.targetId);
     }
   }
 

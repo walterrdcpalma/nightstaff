@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { QUOTAS, SALARY, validateAction } from '../engine/index.ts';
-import type { Action, LimitedActionType } from '../engine/index.ts';
+import type { Action, LedgerEntry, LimitedActionType, PlayerId } from '../engine/index.ts';
 import { BOTS, randomBot, smartBot } from './bots.ts';
 import type { BotKind } from './bots.ts';
 import { NIGHTS, playGame } from './game.ts';
@@ -71,9 +71,9 @@ describe('bots', () => {
     for (const t of ['DEFEND', 'ATTACK', 'BOMB'] as const) expect(left[t] / 100).toBeLessThan(0.5);
   });
 
-  // Desligado na v3: o bot esperto deixou de bater o aleatório. Os espertos saem todos nas mesmas
-  // noites (4 a 6), e os ataques entre eles acertam ~1% das vezes. Na v2 a vantagem vinha de evitar
-  // defesas, que agora custam metade. Ver a descrição do PR da T2b.
+  // Desligado desde a v3: o bot esperto não bate o aleatório. Na v4 já conta com os assaltos, mas
+  // gasta as quotas todas até à noite 6 e fica em Folga nas noites 7 a 9, sem aproveitar a noite 9
+  // a dobrar. Ver as descrições dos PRs da T2b e da T2c.
   it.skip('o bot esperto faz mais pontos em média do que o aleatório (jogos mistos)', () => {
     const r = runConfig(MIXED, 400, 1);
     expect(r.byKind.smart!.points.mean).toBeGreaterThan(r.byKind.random!.points.mean);
@@ -96,6 +96,10 @@ describe('stats', () => {
     expect(r.games).toBe(50);
     expect(r.players).toBe(8);
     expect(r.attackHitsPerGame * 50).toBeCloseTo(count('ATTACK_SUCCESS'));
+    const burglaries = ledger.filter((e) => e.reason === 'ATTACK_BURGLARY' && e.delta > 0).length;
+    expect(burglaries).toBeGreaterThan(0);
+    expect(r.burglaryHitsPerGame * 50).toBeCloseTo(burglaries);
+    expect(r.hitsPerGame).toBeCloseTo(r.attackHitsPerGame + r.burglaryHitsPerGame + r.bombHitsPerGame);
     expect(r.bombHitsPerGame * 50).toBeCloseTo(count('BOMB_SUCCESS'));
     expect(r.drawsPerGame * 50).toBeCloseTo(all.flatMap((n) => n.summary.players).filter((s) => s.draw).length);
     expect(r.bombOutcomePct.home + r.bombOutcomePct.away + r.bombOutcomePct.defended).toBeCloseTo(100);
@@ -105,6 +109,19 @@ describe('stats', () => {
     expect(Object.values(r.actionPct).reduce((s, x) => s + x, 0)).toBeCloseTo(100);
     expect(r.points.mean * 400).toBeCloseTo(400 * SALARY + ledger.reduce((s, e) => s + e.delta, 0));
     expect(r.byKind.smart!.winPct + r.byKind.random!.winPct).toBeCloseTo(100);
+    expect(r.lastNightSwingPct).toBeGreaterThanOrEqual(0);
+    expect(r.lastNightSwingPct).toBeLessThanOrEqual(100);
+  });
+
+  it('viragem na noite 9: conta o ciclo quando o vencedor não liderava antes da última noite', () => {
+    const night = (ledger: LedgerEntry[]) => ({ actions: [], ledger, summary: { players: [] } });
+    const rank = (ids: PlayerId[]) => ids.map((playerId, i) => ({ playerId, points: 0, successfulAttacks: 0, pointsLost: 0, rank: i + 1 }));
+    const game = (winner: PlayerId) => ({
+      players: ['A', 'B'],
+      nights: [night([{ playerId: 'A', delta: 10, reason: 'ATTACK_SUCCESS', targetId: 'B' }]), night([])],
+      ranking: rank(winner === 'A' ? ['A', 'B'] : ['B', 'A']),
+    });
+    expect(summarize([game('A'), game('B'), game('B'), game('A')], () => 'random').lastNightSwingPct).toBe(50);
   });
 
   it('formatTable gera uma tabela Markdown com uma coluna por configuração', () => {

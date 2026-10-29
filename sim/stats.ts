@@ -35,9 +35,11 @@ export interface Report {
   players: number;
   /** Acertos = ataques ganhos + bombas que renderam pontos (como no desempate do §5). */
   hitsPerGame: number;
+  /** Visitas que renderam pontos: ganhas em casa + assaltos à casa vazia. */
   attackHitsPerGame: number;
+  burglaryHitsPerGame: number;
   bombHitsPerGame: number;
-  /** % das Visitas surpresa que renderam pontos. */
+  /** % das Visitas surpresa que renderam pontos (ganhas ou assaltos). */
   attackHitPct: number;
   /** Pontos finais, já com o salário. */
   points: Spread;
@@ -50,6 +52,8 @@ export interface Report {
   bombOutcomePct: { home: number; away: number; defended: number };
   /** % de ciclos em que o 1.º e o 2.º acabam com os mesmos pontos (o Funcionário do Mês sai do desempate). */
   tiebreakWinPct: number;
+  /** % de ciclos em que o Funcionário do Mês não estava em 1.º (nem empatado) antes da noite 9. */
+  lastNightSwingPct: number;
   actionPct: Record<ActionType, number>;
   byKind: Partial<Record<BotKind, KindReport>>;
 }
@@ -57,12 +61,14 @@ export interface Report {
 const pct = (n: number, total: number) => (total === 0 ? 0 : (100 * n) / total);
 
 export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind): Report {
-  const reasons = new Map<LedgerReason, number>();
+  /** Acertos por razão: só os movimentos que renderam pontos, como no desempate. */
+  const hits = new Map<LedgerReason, number>();
   const actions = new Map<ActionType, number>(ACTION_TYPES.map((t) => [t, 0]));
   const bombOutcomes = { home: 0, away: 0, defended: 0 };
   let draws = 0;
   let gamesWithDraw = 0;
   let tiebreakWins = 0;
+  let lastNightSwings = 0;
   const finals: number[] = [];
   const finalsByKind = new Map<BotKind, number[]>();
   const winsByKind = new Map<BotKind, number>();
@@ -70,7 +76,7 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
   for (const g of games) {
     let gameDraws = 0;
     for (const n of g.nights) {
-      for (const e of n.ledger) reasons.set(e.reason, (reasons.get(e.reason) ?? 0) + 1);
+      for (const e of n.ledger) if (SUCCESS_REASONS.includes(e.reason) && e.delta > 0) hits.set(e.reason, (hits.get(e.reason) ?? 0) + 1);
       for (const a of n.actions) {
         actions.set(a.type, actions.get(a.type)! + 1);
         if (a.type !== 'BOMB') continue;
@@ -83,6 +89,9 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
     if (gameDraws > 0) gamesWithDraw++;
 
     if (g.ranking[0].points === g.ranking[1]?.points) tiebreakWins++;
+    const before = new Map(g.players.map((p) => [p, 0]));
+    for (const n of g.nights.slice(0, -1)) for (const e of n.ledger) before.set(e.playerId, before.get(e.playerId)! + e.delta);
+    if (before.get(g.ranking[0].playerId)! < Math.max(...before.values())) lastNightSwings++;
     for (const r of g.ranking) {
       const kind = kindOf(r.playerId);
       finals.push(r.points);
@@ -91,7 +100,8 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
     }
   }
 
-  const count = (r: LedgerReason) => reasons.get(r) ?? 0;
+  const count = (r: LedgerReason) => hits.get(r) ?? 0;
+  const burglaryHits = count('ATTACK_BURGLARY');
   const bombs = actions.get('BOMB')!;
   const totalActions = [...actions.values()].reduce((s, x) => s + x, 0);
 
@@ -110,8 +120,9 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
     players: games[0]?.players.length ?? 0,
     hitsPerGame: SUCCESS_REASONS.reduce((s, r) => s + count(r), 0) / games.length,
     attackHitsPerGame: count('ATTACK_SUCCESS') / games.length,
+    burglaryHitsPerGame: burglaryHits / games.length,
     bombHitsPerGame: count('BOMB_SUCCESS') / games.length,
-    attackHitPct: pct(count('ATTACK_SUCCESS'), actions.get('ATTACK')!),
+    attackHitPct: pct(count('ATTACK_SUCCESS') + burglaryHits, actions.get('ATTACK')!),
     points: spread(finals),
     noSalaryPct: pct(finals.filter((p) => p < 0).length, finals.length),
     drawsPerGame: draws / games.length,
@@ -123,6 +134,7 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
       defended: pct(bombOutcomes.defended, bombs),
     },
     tiebreakWinPct: pct(tiebreakWins, games.length),
+    lastNightSwingPct: pct(lastNightSwings, games.length),
     actionPct: Object.fromEntries(ACTION_TYPES.map((t) => [t, pct(actions.get(t)!, totalActions)])) as Record<ActionType, number>,
     byKind,
   };

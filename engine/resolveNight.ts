@@ -1,6 +1,6 @@
 import { NIGHTS } from './cycle.ts';
 import { mulberry32, randomIndex } from './rng.ts';
-import { DEFENDED_COST, HOME_BONUS, POINTS } from './types.ts';
+import { BURGLARY_POINTS, DEFENDED_COST, HOME_BONUS, POINTS } from './types.ts';
 import type {
   Action,
   ActionType,
@@ -93,10 +93,14 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
       continue;
     }
 
-    // Caso 1: T está fora. Os ataques normais falham, mas a bomba acerta na mesma.
+    // Caso 1: T está fora. Sem bomba, é assalto à casa vazia; com bomba, a bomba leva tudo.
     if (isAway(t)) {
-      for (const a of n) add(a, 0, 'ATTACK_TARGET_AWAY', t);
-      if (b.length > 0) {
+      if (b.length === 0) {
+        add(t, -BURGLARY_POINTS, 'BURGLARY_VICTIM');
+        const share = Math.floor(BURGLARY_POINTS / n.length);
+        for (const a of n) add(a, share, 'ATTACK_BURGLARY', t);
+      } else {
+        for (const a of n) add(a, 0, 'ATTACK_AWAY_BOMBED', t);
         add(t, -POINTS, 'VICTIM');
         const share = Math.floor(POINTS / b.length);
         for (const a of b) add(a, share, 'BOMB_SUCCESS', t);

@@ -39,7 +39,7 @@ export function formatTable(players: number, reports: { name: string; report: Re
     '',
     `| Métrica | ${reports.map((r) => r.name).join(' | ')} |`,
     `|---|${reports.map(() => '---').join('|')}|`,
-    row('Acertos por ciclo (ataques + bombas, soma de todos)', (r) => `${f1(r.hitsPerGame)} (${f1(r.attackHitsPerGame)} + ${f1(r.bombHitsPerGame)})`),
+    row('Acertos por ciclo (ataques em casa + assaltos + bombas, soma de todos)', (r) => `${f1(r.hitsPerGame)} (${f1(r.attackHitsPerGame)} + ${f1(r.burglaryHitsPerGame)} + ${f1(r.bombHitsPerGame)})`),
     row('Acertos por jogador por ciclo', (r) => f2(r.hitsPerGame / r.players)),
     row('Visitas surpresa que renderam pontos', (r) => fp(r.attackHitPct)),
     row('Pontos finais (com salário): média ± desvio padrão', (r) => `${f1(r.points.mean)} ± ${f1(r.points.sd)}`),
@@ -50,6 +50,7 @@ export function formatTable(players: number, reports: { name: string; report: Re
     row('Bombas por ciclo', (r) => f1(r.bombsPerGame)),
     row('Bombas: alvo em casa / alvo fora / defesa', (r) => `${f1(r.bombOutcomePct.home)} / ${f1(r.bombOutcomePct.away)} / ${f1(r.bombOutcomePct.defended)} %`),
     row('Funcionário do Mês decidido no desempate', (r) => fp(r.tiebreakWinPct)),
+    row('Viragem na noite 9 (o vencedor não liderava antes)', (r) => fp(r.lastNightSwingPct)),
     row('Ações: Folga / Segurança / Visita / Reunião', (r) => `${f1(r.actionPct.STAY)} / ${f1(r.actionPct.DEFEND)} / ${f1(r.actionPct.ATTACK)} / ${f1(r.actionPct.BOMB)} %`),
   ];
 
