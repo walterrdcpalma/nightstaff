@@ -150,5 +150,10 @@
   - **Linhas vermelhas:** nada sobre morte, suicídio ou automutilação; nada sobre violência a pessoas reais; nada sobre doenças, origens, religião, orientação sexual, aparência ou qualquer grupo de pessoas; o jogador nunca é humilhado por ser quem é, só pelas escolhas que o narrador inventa. O humor negro é sobre as situações.
   - **Regra de ouro mantém-se (RULES.md §4):** as frases de *em casa* servem para Folga e Segurança, e as de *fora* para Visita surpresa, a ação das bombas e Desaparecer; nenhuma revela a ação. Os testes da T12 têm de continuar a passar (lista de palavras proibidas, mínimo, sem repetidas).
   - Sem dependências novas, sem mexer na lógica.
+- [ ] **T15 — Mudar o meu nome**
+  - Hoje o nome só se define no primeiro login (`NameForm`) e depois não há como o mudar. Contas já criadas (por exemplo as do `seed.sql` e do `npm run demo`) já têm nome e nunca veem o ecrã.
+  - No cabeçalho, ao lado de **Sair**, mostrar o meu nome como botão (ex.: "🪪 Walter"). Abre o mesmo formulário do primeiro login, já preenchido, com **Guardar** e **Cancelar**, e atualiza o nome com `update` ao meu `players` (a RLS já só deixa mudar o próprio).
+  - Reutilizar o `NameForm` e o `nameError` (1 a 24 caracteres, sem espaços nas pontas); sem componentes novos. Depois de guardar, o nome novo aparece logo nas salas, nas manchetes e no ranking.
+  - Testes no Vitest para a lógica que ficar em `web/src/lib/` (validação e texto do botão). Sem dependências novas.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
