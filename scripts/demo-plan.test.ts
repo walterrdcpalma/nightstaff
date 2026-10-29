@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NIGHTS, validateAction } from '../engine/index.ts';
-import type { Action } from '../engine/index.ts';
+import type { PastAction } from '../engine/index.ts';
 import { DEMO_PLAYERS, botActions, features, findDemoSeed, isLocalUrl, playNights } from './demo-plan.ts';
 
 const players = DEMO_PLAYERS.map((p) => p.id);
@@ -26,14 +26,14 @@ describe('dados de demonstração (T7b)', () => {
     expect(features(players, playNights(players, 4, seed))).toEqual({ draw: true, reveal: true, bomb: true, burglary: true });
   });
 
-  it('as 9 noites dos bots são válidas (quotas e alvos) e as 4 primeiras são as da procura', () => {
+  it('as 9 noites dos bots são válidas (quotas, alvos e alvo repetido) e as 4 primeiras são as da procura', () => {
     const seed = findDemoSeed(players);
     const nights = playNights(players, NIGHTS, seed);
     expect(nights.slice(0, 4)).toEqual(playNights(players, 4, seed));
-    const past: Action[] = [];
+    const past: PastAction[] = [];
     nights.forEach((actions, i) => {
       for (const a of actions) expect(validateAction({ players, night: i + 1, pastActions: past }, a)).toEqual({ ok: true });
-      past.push(...actions);
+      past.push(...actions.map((a) => ({ ...a, night: i + 1 })));
     });
   });
 

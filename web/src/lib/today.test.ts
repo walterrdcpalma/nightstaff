@@ -59,6 +59,7 @@ describe('textos', () => {
       '🛡️ Segurança',
       '🗡️ Visita surpresa',
       '💣 Reunião de emergência',
+      '🫥 Desaparecer',
     ]);
     expect(choiceText('ATTACK', 'Bruno')).toBe('🗡️ Visita surpresa a Bruno');
     expect(choiceText('STAY')).toBe('🏠 Folga');
@@ -67,6 +68,7 @@ describe('textos', () => {
   it('traduz os códigos da validação e da BD, e tem uma mensagem genérica', () => {
     expect(errorText('QUOTA_EXHAUSTED')).toBe('Já gastaste essa ação neste ciclo.');
     expect(errorText('NIGHT_CLOSED')).toBe('O prazo desta noite já fechou.');
+    expect(errorText('SAME_TARGET')).toBe('Não podes ir à mesma casa duas noites seguidas.');
     expect(errorText('new row violates row-level security policy')).toBe('Algo correu mal. Tenta outra vez.');
   });
 });

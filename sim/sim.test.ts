@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { QUOTAS, SALARY, validateAction } from '../engine/index.ts';
-import type { Action, LedgerEntry, LimitedActionType, PlayerId } from '../engine/index.ts';
+import type { LedgerEntry, LimitedActionType, PastAction, PlayerId } from '../engine/index.ts';
 import { BOTS, randomBot, smartBot } from './bots.ts';
 import type { BotKind } from './bots.ts';
 import { NIGHTS, playGame } from './game.ts';
@@ -29,12 +29,13 @@ describe('playGame', () => {
     const players = kinds.map((_, i) => `P${i + 1}`);
     for (let seed = 0; seed < 100; seed++) {
       const g = playGame(players.map((playerId, i) => ({ playerId, bot: BOTS[kinds[i]] })), seed);
-      const past: Action[] = [];
-      for (const n of g.nights) {
+      const past: PastAction[] = [];
+      g.nights.forEach((n, i) => {
         expect(n.actions).toHaveLength(players.length);
-        for (const a of n.actions) expect(validateAction({ players, night: 1, pastActions: past }, a)).toEqual({ ok: true });
-        past.push(...n.actions);
-      }
+        // Valida na noite certa: quotas e o alvo da noite anterior (RULES.md §2).
+        for (const a of n.actions) expect(validateAction({ players, night: i + 1, pastActions: past }, a)).toEqual({ ok: true });
+        past.push(...n.actions.map((a) => ({ ...a, night: i + 1 })));
+      });
     }
   });
 });
@@ -47,10 +48,11 @@ describe('bots', () => {
     nights: NIGHTS,
     history: [],
     quota,
+    lastTarget: null,
   });
 
   it('sem quotas, os dois bots só podem escolher Folga', () => {
-    const none = { DEFEND: 0, ATTACK: 0, BOMB: 0 };
+    const none = { DEFEND: 0, ATTACK: 0, BOMB: 0, VANISH: 0 };
     for (let s = 0; s < 50; s++) {
       const rng = () => (s + 0.5) / 50;
       expect(randomBot(view(none), rng).type).toBe('STAY');
@@ -59,16 +61,17 @@ describe('bots', () => {
   });
 
   it('o bot esperto gasta as quotas até ao fim do jogo', () => {
-    const left = { DEFEND: 0, ATTACK: 0, BOMB: 0 };
+    const left = { DEFEND: 0, ATTACK: 0, BOMB: 0, VANISH: 0 };
     for (let seed = 0; seed < 100; seed++) {
       const g = playGame(seats(Array(8).fill('smart')), seed);
       const used = g.nights.flatMap((n) => n.actions).filter((a) => a.playerId === 'A' && a.type !== 'STAY');
-      for (const t of ['DEFEND', 'ATTACK', 'BOMB'] as const) {
+      for (const t of ['DEFEND', 'ATTACK', 'BOMB', 'VANISH'] as const) {
         left[t] += QUOTAS[t] - used.filter((a) => a.type === t).length;
       }
     }
-    // Em média sobra menos de meia ação de cada tipo por jogo.
+    // Em média sobra menos de meia ação de cada tipo por jogo (o Desaparecer é opcional e só se mede).
     for (const t of ['DEFEND', 'ATTACK', 'BOMB'] as const) expect(left[t] / 100).toBeLessThan(0.5);
+    expect(left.VANISH / 100).toBeLessThanOrEqual(QUOTAS.VANISH);
   });
 
   // Desligado desde a v3: o bot esperto não bate o aleatório. Na v4 já conta com os assaltos, mas
@@ -95,13 +98,13 @@ describe('stats', () => {
 
     expect(r.games).toBe(50);
     expect(r.players).toBe(8);
-    expect(r.attackHitsPerGame * 50).toBeCloseTo(count('ATTACK_SUCCESS'));
     const burglaries = ledger.filter((e) => e.reason === 'ATTACK_BURGLARY' && e.delta > 0).length;
     expect(burglaries).toBeGreaterThan(0);
     expect(r.burglaryHitsPerGame * 50).toBeCloseTo(burglaries);
     expect(r.hitsPerGame).toBeCloseTo(r.attackHitsPerGame + r.burglaryHitsPerGame + r.bombHitsPerGame);
     expect(r.bombHitsPerGame * 50).toBeCloseTo(count('BOMB_SUCCESS'));
-    expect(r.drawsPerGame * 50).toBeCloseTo(all.flatMap((n) => n.summary.players).filter((s) => s.draw).length);
+    expect(r.drawsPerGame * 50).toBeCloseTo(count('ATTACK_DRAW_WON'));
+    expect(r.attackHitsPerGame * 50).toBeCloseTo(count('ATTACK_SUCCESS') + count('ATTACK_DRAW_WON'));
     expect(r.bombOutcomePct.home + r.bombOutcomePct.away + r.bombOutcomePct.defended).toBeCloseTo(100);
     // Bombas com alvo em casa ou fora rendem pontos (aqui o bolo nunca arredonda para 0).
     expect((r.bombOutcomePct.home + r.bombOutcomePct.away) * r.bombsPerGame * 0.5).toBeCloseTo(count('BOMB_SUCCESS'));
@@ -114,7 +117,7 @@ describe('stats', () => {
   });
 
   it('viragem na noite 9: conta o ciclo quando o vencedor não liderava antes da última noite', () => {
-    const night = (ledger: LedgerEntry[]) => ({ actions: [], ledger, summary: { players: [] } });
+    const night = (ledger: LedgerEntry[]) => ({ actions: [], ledger, summary: { players: [], caught: [] } });
     const rank = (ids: PlayerId[]) => ids.map((playerId, i) => ({ playerId, points: 0, successfulAttacks: 0, pointsLost: 0, rank: i + 1 }));
     const game = (winner: PlayerId) => ({
       players: ['A', 'B'],

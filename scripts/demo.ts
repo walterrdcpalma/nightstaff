@@ -6,7 +6,7 @@
 // que resolve com o `resolveNight` do engine/ e grava como em produção.
 import { createClient } from '@supabase/supabase-js';
 import { NIGHTS, addDays, cycleDay, lisbonDate, mulberry32 } from '../engine/index.ts';
-import type { Action, NightSummary } from '../engine/index.ts';
+import type { Action, NightSummary, PastAction } from '../engine/index.ts';
 import { DEMO_PLAYERS, WALTER, botActions, findDemoSeed, isLocalUrl, playNights } from './demo-plan.ts';
 
 interface Proc {
@@ -118,8 +118,9 @@ async function resolveNow() {
   const history = ok(await db.from('nights').select('summary').eq('game_id', g.id).order('night'), 'noites').map(
     (r) => r.summary as NightSummary,
   );
-  const toAction = (r: (typeof stored)[number]): Action => ({ playerId: r.player_id, type: r.type, targetId: r.target_id });
-  const past = stored.filter((r) => r.night < night).map(toAction);
+  const past: PastAction[] = stored
+    .filter((r) => r.night < night)
+    .map((r) => ({ night: r.night, playerId: r.player_id, type: r.type, targetId: r.target_id }));
   const chosen = new Set(stored.filter((r) => r.night === night).map((r) => r.player_id));
   const missing = enrolled.filter((p) => !chosen.has(p));
   // Fora do engine/, a seed dos bots pode vir do relógio.

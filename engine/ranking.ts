@@ -2,8 +2,8 @@ import { mulberry32 } from './rng.ts';
 import { SALARY } from './types.ts';
 import type { LedgerEntry, LedgerReason, PlayerId } from './types.ts';
 
-/** Acertos para o desempate (RULES.md §5): Visitas (ganhas ou assaltos) e bombas, quando renderam pontos. */
-export const SUCCESS_REASONS: readonly LedgerReason[] = ['ATTACK_SUCCESS', 'ATTACK_BURGLARY', 'BOMB_SUCCESS'];
+/** Acertos para o desempate (RULES.md §5): Visitas (únicas, sorteios ganhos ou assaltos) e bombas, quando renderam pontos. */
+export const SUCCESS_REASONS: readonly LedgerReason[] = ['ATTACK_SUCCESS', 'ATTACK_DRAW_WON', 'ATTACK_BURGLARY', 'BOMB_SUCCESS'];
 
 const isSuccess = (e: LedgerEntry) => SUCCESS_REASONS.includes(e.reason) && e.delta > 0;
 

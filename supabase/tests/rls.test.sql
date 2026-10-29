@@ -2,7 +2,7 @@
 -- Jogadores: Ana (…a), Bruno (…b), Carla (…c) e Dina (…d, fora do jogo 1).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(58);
 
 -- Fixtures, como postgres (sem RLS).
 insert into auth.users (id, email) values
@@ -31,7 +31,8 @@ insert into public.game_players (game_id, player_id) values
   (3, '00000000-0000-0000-0000-00000000000b');
 
 -- Noites 1 a 3 do jogo 1, sem o trigger (que só aceita a noite atual).
--- Ana gastou os 3 ataques; Bruno gastou as 2 defesas e a bomba.
+-- Ana gastou os 3 ataques (o último no Bruno); Bruno gastou as 2 defesas e a bomba (na Ana);
+-- Carla gastou os 2 Desaparecer.
 alter table public.actions disable trigger validate_action;
 insert into public.actions (game_id, night, player_id, type, target_id) values
   (1, 1, '00000000-0000-0000-0000-00000000000a', 'ATTACK', '00000000-0000-0000-0000-00000000000b'),
@@ -39,7 +40,9 @@ insert into public.actions (game_id, night, player_id, type, target_id) values
   (1, 3, '00000000-0000-0000-0000-00000000000a', 'ATTACK', '00000000-0000-0000-0000-00000000000b'),
   (1, 1, '00000000-0000-0000-0000-00000000000b', 'DEFEND', null),
   (1, 2, '00000000-0000-0000-0000-00000000000b', 'DEFEND', null),
-  (1, 3, '00000000-0000-0000-0000-00000000000b', 'BOMB', '00000000-0000-0000-0000-00000000000a');
+  (1, 3, '00000000-0000-0000-0000-00000000000b', 'BOMB', '00000000-0000-0000-0000-00000000000a'),
+  (1, 1, '00000000-0000-0000-0000-00000000000c', 'VANISH', null),
+  (1, 2, '00000000-0000-0000-0000-00000000000c', 'VANISH', null);
 alter table public.actions enable trigger validate_action;
 
 -- Noite 1 resolvida, noite 2 ainda não.
@@ -57,7 +60,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000a", "role": "authenticated"}', true);
 
 select throws_ok(
-  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000a', 'ATTACK', '00000000-0000-0000-0000-00000000000b')$$,
+  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000a', 'ATTACK', '00000000-0000-0000-0000-00000000000c')$$,
   'P0001', 'QUOTA_EXHAUSTED', 'Visita sem quota: Ana já fez 3');
 select throws_ok(
   $$insert into public.actions values (1, 3, '00000000-0000-0000-0000-00000000000a', 'STAY', null)$$,
@@ -90,9 +93,12 @@ select throws_ok(
   $$insert into public.actions values (3, 9, '00000000-0000-0000-0000-00000000000a', 'STAY', null)$$,
   'P0001', 'NIGHT_CLOSED', 'sem ações num ciclo acabado');
 
-select lives_ok(
+select throws_ok(
   $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000a', 'BOMB', '00000000-0000-0000-0000-00000000000b')$$,
-  'Ana escolhe Reunião de emergência no Bruno');
+  'P0001', 'SAME_TARGET', 'não ataca o Bruno duas noites seguidas');
+select lives_ok(
+  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000a', 'BOMB', '00000000-0000-0000-0000-00000000000c')$$,
+  'Ana escolhe Reunião de emergência na Carla');
 select throws_ok(
   $$update public.actions set type = 'ATTACK' where night = 4$$,
   'P0001', 'QUOTA_EXHAUSTED', 'não muda para uma ação sem quota');
@@ -101,6 +107,9 @@ select lives_ok(
     on conflict (game_id, night, player_id) do update set type = excluded.type, target_id = excluded.target_id$$,
   'muda a escolha para Folga (upsert)');
 select is((select type from public.actions where night = 4), 'STAY', 'a escolha mudou');
+select lives_ok(
+  $$update public.actions set type = 'VANISH' where night = 4$$,
+  'muda para Desaparecer');
 select throws_ok(
   $$update public.actions set night = 3 where night = 4$$,
   'P0001', 'KEY_CHANGED', 'não muda a noite de uma ação');
@@ -140,11 +149,14 @@ select throws_ok(
   $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000b', 'DEFEND', null)$$,
   'P0001', 'QUOTA_EXHAUSTED', 'Segurança sem quota: Bruno já fez 2');
 select throws_ok(
-  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000b', 'BOMB', '00000000-0000-0000-0000-00000000000a')$$,
+  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000b', 'BOMB', '00000000-0000-0000-0000-00000000000c')$$,
   'P0001', 'QUOTA_EXHAUSTED', 'Reunião sem quota: Bruno já fez 1');
-select lives_ok(
+select throws_ok(
   $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000b', 'ATTACK', '00000000-0000-0000-0000-00000000000a')$$,
-  'Bruno escolhe Visita surpresa à Ana');
+  'P0001', 'SAME_TARGET', 'a Reunião da noite anterior na Ana também conta');
+select lives_ok(
+  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000b', 'ATTACK', '00000000-0000-0000-0000-00000000000c')$$,
+  'Bruno escolhe Visita surpresa à Carla');
 select is((select count(*)::int from public.actions where player_id <> auth.uid()), 0,
   'Bruno não vê as ações da Ana, nem a desta noite');
 select is((select count(*)::int from public.ledger where game_id = 1 and player_id <> auth.uid()), 0,
@@ -162,8 +174,15 @@ select throws_ok(
   $$insert into public.game_players values (1, '00000000-0000-0000-0000-00000000000d')$$,
   '42501', null, 'não entra num ciclo a correr');
 
--- ── Carla: inscrição ─────────────────────────────────────────────────────────
+-- ── Carla: Desaparecer e inscrição ───────────────────────────────────────────
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
+
+select throws_ok(
+  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000c', 'VANISH', '00000000-0000-0000-0000-00000000000a')$$,
+  'P0001', 'UNEXPECTED_TARGET', 'Desaparecer não tem alvo');
+select throws_ok(
+  $$insert into public.actions values (1, 4, '00000000-0000-0000-0000-00000000000c', 'VANISH', null)$$,
+  'P0001', 'QUOTA_EXHAUSTED', 'terceiro Desaparecer: Carla já fez 2');
 
 select lives_ok(
   $$insert into public.game_players values (2, '00000000-0000-0000-0000-00000000000c')$$,

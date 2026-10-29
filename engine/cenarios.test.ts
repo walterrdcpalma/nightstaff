@@ -1,4 +1,4 @@
-// Cenários de aceitação do CENARIOS.md (regras v4). Se o motor der outro resultado, o motor está errado.
+// Cenários de aceitação do CENARIOS.md (regras v5). Se o motor der outro resultado, o motor está errado.
 import { describe, expect, it } from 'vitest';
 import { finalRanking } from './ranking.ts';
 import { resolveNight } from './resolveNight.ts';
@@ -12,6 +12,7 @@ const folga = (p: PlayerId): Action => ({ playerId: p, type: 'STAY' });
 const seguranca = (p: PlayerId): Action => ({ playerId: p, type: 'DEFEND' });
 const ataca = (p: PlayerId, t: PlayerId): Action => ({ playerId: p, type: 'ATTACK', targetId: t });
 const bomba = (p: PlayerId, t: PlayerId): Action => ({ playerId: p, type: 'BOMB', targetId: t });
+const desaparece = (p: PlayerId): Action => ({ playerId: p, type: 'VANISH' });
 
 /** Seed com que o sorteio da noite 2 (Ana, Bruno, Carla → Helena) dá Bruno. */
 const SEED_SORTEIO_BRUNO = 1;
@@ -84,7 +85,7 @@ function playNights(): { results: NightResult[]; state: GameState } {
   const results: NightResult[] = [];
   for (const [i, n] of NIGHTS.entries()) {
     results.push(resolveNight({ ...state, night: i + 1, pastActions: [...state.pastActions] }, n.actions, n.seed));
-    state.pastActions.push(...n.actions);
+    state.pastActions.push(...n.actions.map((a) => ({ ...a, night: i + 1 })));
   }
   return { results, state };
 }
@@ -97,8 +98,17 @@ function sumByPlayer(result: NightResult): Record<PlayerId, number> {
 
 const { results, state: playedNights } = playNights();
 const afterNight4: GameState = { ...playedNights, night: 5 };
-const summaryOf = (night: number, p: PlayerId) => results[night - 1].summary.players.find((s) => s.playerId === p)!;
-const bonusWinners = (night: number) => results[night - 1].summary.players.filter((s) => s.homeBonus).map((s) => s.playerId);
+const locationOf = (night: number, p: PlayerId) => results[night - 1].summary.players.find((s) => s.playerId === p)!.location;
+const bonusWinners = (night: number) =>
+  results[night - 1].ledger.filter((e) => e.reason === 'HOME_BONUS').map((e) => e.playerId);
+/** O que o próprio jogador vê em privado: as suas linhas do ledger (razão, pontos e alvo, se houver). */
+const privateOf = (night: number, p: PlayerId) =>
+  results[night - 1].ledger.filter((e) => e.playerId === p).map((e) => [e.reason, e.delta, e.targetId ?? null]);
+/** O resumo público só tem casa/fora e os apanhados (RULES.md §4). */
+const publicKeys = (night: number) => [
+  Object.keys(results[night - 1].summary).sort(),
+  [...new Set(results[night - 1].summary.players.flatMap((s) => Object.keys(s)))].sort(),
+];
 
 describe('CENARIOS.md', () => {
   NIGHTS.forEach((n, i) => {
@@ -107,10 +117,15 @@ describe('CENARIOS.md', () => {
     });
   });
 
-  it('noite 1: Carla fica revelada pela defesa do Duarte; só Helena ganha bónus', () => {
-    expect(summaryOf(1, 'Duarte')).toMatchObject({ defended: true, revealedAttackers: ['Carla'], homeBonus: false });
-    expect(summaryOf(1, 'Filipe')).toMatchObject({ location: 'AWAY', attacks: 1 });
+  it('noite 1: Carla aparece como apanhada (sem dizer onde); só o Duarte sabe que a apanhou; só Helena ganha bónus', () => {
+    expect(results[0].summary.caught).toEqual(['Carla']);
+    expect(privateOf(1, 'Duarte')).toEqual([['DEFENSE', 10, 'Carla']]);
+    expect(locationOf(1, 'Filipe')).toBe('AWAY');
     expect(bonusWinners(1)).toEqual(['Helena']);
+  });
+
+  it('o resumo público de cada noite só tem casa/fora e os apanhados', () => {
+    for (const night of [1, 2, 3, 4]) expect(publicKeys(night)).toEqual([['caught', 'players'], ['location', 'playerId']]);
   });
 
   it('noite 1: Eva assalta a casa vazia do Filipe (+5 / -5); Filipe acerta no Gil (+10)', () => {
@@ -126,24 +141,33 @@ describe('CENARIOS.md', () => {
     }
   });
 
-  it('noite 2: sorteio dá Bruno; resumo diz "3 atacantes na Helena, houve sorteio", sem nomes', () => {
-    expect(results[1].ledger.find((e) => e.reason === 'ATTACK_SUCCESS')?.playerId).toBe('Bruno');
-    expect(summaryOf(2, 'Helena')).toMatchObject({ attacks: 3, bombs: 0, draw: true, revealedAttackers: [] });
-    expect(summaryOf(2, 'Duarte')).toMatchObject({ location: 'AWAY', attacks: 1 });
-    expect(summaryOf(2, 'Eva')).toMatchObject({ location: 'AWAY', attacks: 1 });
-    expect(summaryOf(2, 'Gil').location).toBe('HOME');
+  it('noite 2: o público só vê quem estava fora; cada um vê o seu resultado (sorteio dá Bruno)', () => {
+    const away = results[1].summary.players.filter((s) => s.location === 'AWAY').map((s) => s.playerId);
+    expect(away).toEqual(['Ana', 'Bruno', 'Carla', 'Duarte', 'Eva']);
+    expect(results[1].summary.caught).toEqual([]);
+    // Privado: o Bruno ganhou o sorteio, a Ana e a Carla perderam-no, a Helena só sabe que foi atacada.
+    expect(privateOf(2, 'Bruno')).toEqual([['ATTACK_DRAW_WON', 10, 'Helena']]);
+    expect(privateOf(2, 'Ana')).toEqual([['ATTACK_LOST_DRAW', -10, 'Helena']]);
+    expect(privateOf(2, 'Carla')).toEqual([['ATTACK_LOST_DRAW', -10, 'Helena']]);
+    expect(privateOf(2, 'Helena')).toEqual([['VICTIM', -10, null]]);
+    expect(locationOf(2, 'Gil')).toBe('HOME');
     expect(bonusWinners(2)).toEqual(['Filipe', 'Gil']);
   });
 
-  it('noite 3: Duarte fica revelado pela defesa da Helena; sem sorteio; ninguém ganha bónus', () => {
-    expect(summaryOf(3, 'Helena')).toMatchObject({ defended: true, bombs: 1, revealedAttackers: ['Duarte'] });
-    expect(summaryOf(3, 'Gil')).toMatchObject({ attacks: 2, bombs: 1, draw: false, revealedAttackers: [] });
+  it('noite 3: Duarte aparece como apanhado; o Gil e o Filipe sabem que foram bombardeados; ninguém ganha bónus', () => {
+    expect(results[2].summary.caught).toEqual(['Duarte']);
+    expect(privateOf(3, 'Helena')).toEqual([['DEFENSE', 10, 'Duarte']]);
+    expect(privateOf(3, 'Gil')).toEqual([['BOMBED', -10, null]]);
+    expect(privateOf(3, 'Filipe')).toEqual([['BOMBED', -10, null]]);
     expect(bonusWinners(3)).toEqual([]);
   });
 
-  it('noite 4: Ana e Eva ficam reveladas; Filipe com 3 bombas e 1 ataque; ninguém ganha bónus', () => {
-    expect(summaryOf(4, 'Duarte')).toMatchObject({ defended: true, attacks: 2, revealedAttackers: ['Ana', 'Eva'] });
-    expect(summaryOf(4, 'Filipe')).toMatchObject({ attacks: 1, bombs: 3, draw: false });
+  it('noite 4: Ana e Eva aparecem como apanhadas; o Duarte sabe que apanhou as duas; ninguém ganha bónus', () => {
+    expect(results[3].summary.caught).toEqual(['Ana', 'Eva']);
+    expect(privateOf(4, 'Duarte')).toEqual([
+      ['DEFENSE', 10, 'Ana'],
+      ['DEFENSE', 10, 'Eva'],
+    ]);
     expect(bonusWinners(4)).toEqual([]);
   });
 
@@ -178,8 +202,20 @@ describe('CENARIOS.md', () => {
       expect(validateAction(afterNight4, ataca('Gil', 'Gil'))).toEqual({ ok: false, error: 'SELF_TARGET' });
     });
 
-    it('Gil tenta atacar Ana → aceite (só usou 1 ataque)', () => {
+    it('Gil tenta atacar Filipe → rejeitado (atacou o Filipe na noite 4)', () => {
+      expect(validateAction(afterNight4, ataca('Gil', 'Filipe'))).toEqual({ ok: false, error: 'SAME_TARGET' });
+    });
+
+    it('Bruno tenta atacar Filipe → rejeitado (a Reunião da noite 4 foi no Filipe e conta como ataque)', () => {
+      expect(validateAction(afterNight4, ataca('Bruno', 'Filipe'))).toEqual({ ok: false, error: 'SAME_TARGET' });
+    });
+
+    it('Gil tenta atacar Ana → aceite (só usou 1 ataque e a Ana não foi o seu alvo na noite 4)', () => {
       expect(validateAction(afterNight4, ataca('Gil', 'Ana'))).toEqual({ ok: true });
+    });
+
+    it('Ana tenta Desaparecer → aceite (ainda não usou nenhum dos 2)', () => {
+      expect(validateAction(afterNight4, desaparece('Ana'))).toEqual({ ok: true });
     });
   });
 });
@@ -195,7 +231,7 @@ describe('CENARIOS.md, cenário extra A: bomba num alvo fora', () => {
   it('Bruno -10 pela bomba, Ana +5, Duarte +5; Carla 0 na casa do Bruno (a bomba leva tudo)', () => {
     expect(of('Ana').map((e) => [e.reason, e.delta])).toEqual([['BOMB_SUCCESS', 5]]);
     expect(of('Duarte').map((e) => [e.reason, e.delta])).toEqual([['BOMB_SUCCESS', 5]]);
-    expect(of('Bruno').filter((e) => e.reason === 'VICTIM').map((e) => e.delta)).toEqual([-10]);
+    expect(of('Bruno').filter((e) => e.reason === 'BOMBED').map((e) => e.delta)).toEqual([-10]);
     expect(of('Carla').filter((e) => e.targetId === 'Bruno').map((e) => [e.reason, e.delta])).toEqual([
       ['ATTACK_AWAY_BOMBED', 0],
     ]);
@@ -215,7 +251,7 @@ describe('CENARIOS.md, cenário extra A: bomba num alvo fora', () => {
   });
 
   it('ninguém ganha bónus: ninguém ficou em casa', () => {
-    expect(r.summary.players.filter((s) => s.homeBonus)).toEqual([]);
+    expect(r.ledger.filter((e) => e.reason === 'HOME_BONUS')).toEqual([]);
     expect(r.summary.players.every((s) => s.location === 'AWAY')).toBe(true);
   });
 });
@@ -235,14 +271,14 @@ describe('CENARIOS.md, cenário extra D: assalto em grupo', () => {
       ]);
     }
     expect(r.ledger.filter((e) => e.playerId === 'Eva' && e.reason === 'BURGLARY_VICTIM').map((e) => e.delta)).toEqual([-5]);
-    expect(r.summary.players.find((s) => s.playerId === 'Eva')).toMatchObject({ location: 'AWAY', attacks: 3, draw: false });
+    expect(r.summary.players.find((s) => s.playerId === 'Eva')).toEqual({ playerId: 'Eva', location: 'AWAY' });
   });
 
   it('Eva +10, Duarte -10; no total, Eva +5; ninguém ganha bónus', () => {
     const totals = Object.fromEntries(players.map((p) => [p, 0]));
     for (const e of r.ledger) totals[e.playerId] += e.delta;
     expect(totals).toEqual({ Ana: 1, Bruno: 1, Carla: 1, Duarte: -10, Eva: 5 });
-    expect(r.summary.players.filter((s) => s.homeBonus)).toEqual([]);
+    expect(r.ledger.filter((e) => e.reason === 'HOME_BONUS')).toEqual([]);
   });
 
   it('cada assalto que rendeu pontos conta como 1 acerto contra a Eva (desempate)', () => {
@@ -250,6 +286,63 @@ describe('CENARIOS.md, cenário extra D: assalto em grupo', () => {
     for (const p of ['Ana', 'Bruno', 'Carla']) {
       expect(ranking.find((x) => x.playerId === p)!.successfulAttacks).toBe(1);
     }
+  });
+});
+
+describe('CENARIOS.md, cenário extra E: Desaparecer', () => {
+  const players = ['Ana', 'Bruno', 'Carla', 'Duarte'];
+  const r = resolveNight(
+    { players, night: 1, pastActions: [] },
+    [desaparece('Ana'), ataca('Bruno', 'Ana'), ataca('Carla', 'Duarte'), folga('Duarte')],
+    1,
+  );
+  const totals = Object.fromEntries(players.map((p) => [p, 0]));
+  for (const e of r.ledger) totals[e.playerId] += e.delta;
+
+  it('Ana -5 e Bruno +5 (assalto à casa vazia); Carla +10 e Duarte -10; ninguém ganha bónus', () => {
+    expect(totals).toEqual({ Ana: -5, Bruno: 5, Carla: 10, Duarte: -10 });
+    expect(r.ledger.filter((e) => e.playerId === 'Ana').map((e) => e.reason)).toEqual(['BURGLARY_VICTIM']);
+    expect(r.ledger.filter((e) => e.reason === 'HOME_BONUS')).toEqual([]);
+  });
+
+  it('público: Ana, Bruno e Carla fora; Duarte em casa; ninguém apanhado', () => {
+    expect(r.summary).toEqual({
+      players: [
+        { playerId: 'Ana', location: 'AWAY' },
+        { playerId: 'Bruno', location: 'AWAY' },
+        { playerId: 'Carla', location: 'AWAY' },
+        { playerId: 'Duarte', location: 'HOME' },
+      ],
+      caught: [],
+    });
+  });
+});
+
+describe('CENARIOS.md, cenário extra F: validação de Desaparecer e do alvo repetido', () => {
+  const players = ['Ana', 'Bruno', 'Carla'];
+  const at = (night: number, past: Action[]): GameState => ({
+    players,
+    night,
+    pastActions: past.map((a, i) => ({ ...a, night: i + 1 })),
+  });
+
+  it('Desaparecer com alvo → rejeitado', () => {
+    expect(validateAction(at(1, []), { playerId: 'Ana', type: 'VANISH', targetId: 'Bruno' })).toEqual({
+      ok: false,
+      error: 'UNEXPECTED_TARGET',
+    });
+  });
+
+  it('terceiro Desaparecer no mesmo ciclo → rejeitado (quota de 2)', () => {
+    expect(validateAction(at(3, [desaparece('Ana'), desaparece('Ana')]), desaparece('Ana'))).toEqual({
+      ok: false,
+      error: 'QUOTA_EXHAUSTED',
+    });
+  });
+
+  it('atacar na noite 2 o alvo da noite 1 → rejeitado; na noite 3, depois de Desaparecer na 2 → aceite', () => {
+    expect(validateAction(at(2, [ataca('Ana', 'Bruno')]), ataca('Ana', 'Bruno'))).toEqual({ ok: false, error: 'SAME_TARGET' });
+    expect(validateAction(at(3, [ataca('Ana', 'Bruno'), desaparece('Ana')]), ataca('Ana', 'Bruno'))).toEqual({ ok: true });
   });
 });
 

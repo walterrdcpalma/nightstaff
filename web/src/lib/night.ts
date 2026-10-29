@@ -1,5 +1,5 @@
 // Lógica pura dos ecrãs Manhã e Bairro/Histórico (RULES.md §4). Testada em night.test.ts.
-import type { LedgerReason, NightSummary, PlayerNightSummary } from '../../../engine/index.ts';
+import type { LedgerReason, NightSummary } from '../../../engine/index.ts';
 
 type NameOf = (id: string) => string;
 
@@ -8,25 +8,12 @@ export function listNames(names: string[]): string {
   return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
 }
 
-const plural = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
-
 /**
- * O que o bairro viu de um jogador numa noite. Sem pontos (RULES.md §4):
- * em casa ou fora, ataques e bombas só com os números, defesa com os atacantes revelados, bónus de casa.
+ * Manchete pública dos apanhados (RULES.md §4), sem dizer em que casa, para não revelar quem se defendeu.
+ * Ex.: "🚨 A Segurança apanhou Carla e Eva a meio de uma visita."
  */
-export function playerLines(s: PlayerNightSummary, nameOf: NameOf): string[] {
-  const lines: string[] = [];
-  if (s.defended) {
-    lines.push(`🛡️ A Segurança apanhou ${listNames(s.revealedAttackers.map(nameOf))}.`);
-  } else {
-    if (s.attacks > 0) {
-      const visits = plural(s.attacks, 'Visita surpresa', 'Visitas surpresa');
-      lines.push(s.draw ? `🗡️ ${s.attacks} atacantes, houve sorteio.` : `🗡️ ${visits}.`);
-    }
-    if (s.bombs > 0) lines.push(`💣 ${plural(s.bombs, 'Reunião de emergência', 'Reuniões de emergência')}.`);
-  }
-  if (s.homeBonus) lines.push('✨ Noite tranquila: bónus de casa.');
-  return lines;
+export function caughtHeadline(summary: NightSummary, nameOf: NameOf): string | null {
+  return summary.caught.length === 0 ? null : `🚨 A Segurança apanhou ${listNames(summary.caught.map(nameOf))} a meio de uma visita.`;
 }
 
 /** Título da manhã, ex.: "Noite 3: 5 em casa, 3 fora." */
@@ -38,6 +25,7 @@ export function morningHeadline(night: number, summary: NightSummary): string {
 /** Movimentos do próprio jogador (só ele os vê, RULES.md §4). */
 export const REASON_TEXT: Record<LedgerReason, string> = {
   ATTACK_SUCCESS: '🗡️ Visita surpresa bem-sucedida',
+  ATTACK_DRAW_WON: '🗡️ Ganhaste o sorteio da Visita surpresa',
   ATTACK_LOST_DRAW: '🗡️ Perdeste o sorteio',
   ATTACK_BOMBED: '🗡️ Havia uma Reunião de emergência no alvo',
   ATTACK_DEFENDED: '🗡️ O alvo tinha Segurança',
@@ -45,9 +33,10 @@ export const REASON_TEXT: Record<LedgerReason, string> = {
   ATTACK_AWAY_BOMBED: '🗡️ Casa vazia, mas a Reunião de emergência levou tudo',
   BOMB_SUCCESS: '💣 Reunião de emergência',
   BOMB_DEFENDED: '💣 O alvo tinha Segurança',
-  VICTIM: '😵 Apanharam-te',
+  VICTIM: '😵 Atacaram-te em casa',
+  BOMBED: '💣 Uma Reunião de emergência apanhou-te',
   BURGLARY_VICTIM: '😵 Assaltaram-te a casa vazia',
-  DEFENSE: '🛡️ A tua Segurança apanhou alguém',
+  DEFENSE: '🛡️ A tua Segurança apanhou',
   HOME_BONUS: '✨ Bónus de casa',
 };
 
@@ -64,7 +53,11 @@ export function formatDelta(delta: number): string {
 
 /** Linhas do meu resultado, ex.: "🗡️ Visita surpresa bem-sucedida (Bruno): +10". */
 export function myResultLines(entries: MyEntry[], nameOf: NameOf): string[] {
-  return entries.map((e) => `${REASON_TEXT[e.reason]}${e.target_id ? ` (${nameOf(e.target_id)})` : ''}: ${formatDelta(e.delta)}`);
+  return entries.map((e) => {
+    // Na Segurança, o alvo é quem apanhei: "A tua Segurança apanhou Carla".
+    const who = !e.target_id ? '' : e.reason === 'DEFENSE' ? ` ${nameOf(e.target_id)}` : ` (${nameOf(e.target_id)})`;
+    return `${REASON_TEXT[e.reason]}${who}: ${formatDelta(e.delta)}`;
+  });
 }
 
 export type WindowLight = 'HOME' | 'AWAY' | null;

@@ -34,7 +34,7 @@ describe('STAY por defeito', () => {
     const r = run([]);
     for (const p of PLAYERS) {
       expect(r.totals[p]).toBe(2);
-      expect(r.summaryOf(p)).toMatchObject({ location: 'HOME', homeBonus: true, attacks: 0, bombs: 0 });
+      expect(r.summaryOf(p)).toEqual({ playerId: p, location: 'HOME' });
     }
   });
 
@@ -60,14 +60,12 @@ describe('bónus de casa', () => {
   it('quem está fora não ganha bónus, mesmo sem ser atacado', () => {
     const r = run([attack('A', 'C'), bomb('B', 'D')]);
     expect(r.ledger.some((e) => e.reason === 'HOME_BONUS' && (e.playerId === 'A' || e.playerId === 'B'))).toBe(false);
-    expect(r.summaryOf('A')).toMatchObject({ location: 'AWAY', homeBonus: false });
-    expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', homeBonus: false });
+    expect(r.summaryOf('A').location).toBe('AWAY');
+    expect(r.summaryOf('B').location).toBe('AWAY');
   });
 
   it('quem foi alvo não ganha bónus (STAY nem DEFEND)', () => {
     const r = run([attack('A', 'B'), defend('C'), attack('D', 'C')]);
-    expect(r.summaryOf('B').homeBonus).toBe(false);
-    expect(r.summaryOf('C').homeBonus).toBe(false);
     expect(r.ledger.filter((e) => e.reason === 'HOME_BONUS').map((e) => e.playerId)).toEqual(['E', 'F', 'G', 'H']);
   });
 });
@@ -82,7 +80,8 @@ describe('caso 1: alvo fora', () => {
       { delta: 10, reason: 'ATTACK_SUCCESS' },
       { delta: -5, reason: 'BURGLARY_VICTIM' },
     ]);
-    expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', attacks: 1, bombs: 0, draw: false, defended: false });
+    expect(r.summaryOf('B').location).toBe('AWAY');
+    expect(r.summary.caught).toEqual([]);
   });
 
   it('assalto com 2 atacantes: 5/2 arredonda para baixo (2 cada), sem sorteio nem perdedores', () => {
@@ -90,7 +89,7 @@ describe('caso 1: alvo fora', () => {
     expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: 2, reason: 'ATTACK_BURGLARY' }]);
     expect(entriesOf(r.ledger, 'C')).toEqual([{ delta: 2, reason: 'ATTACK_BURGLARY' }]);
     expect(entriesOf(r.ledger, 'B')).toContainEqual({ delta: -5, reason: 'BURGLARY_VICTIM' });
-    expect(r.summaryOf('B')).toMatchObject({ attacks: 2, draw: false });
+    expect(r.ledger.some((e) => e.reason === 'ATTACK_LOST_DRAW')).toBe(false);
   });
 
   it('assalto com 6 atacantes: 5/6 arredonda para 0, o alvo perde 5 na mesma', () => {
@@ -107,9 +106,9 @@ describe('caso 1: alvo fora', () => {
     // B perde 10 pela bomba e ganha 10 pelo ataque dele a C, que ficou em casa.
     expect(sortedEntriesOf(r.ledger, 'B')).toEqual([
       { delta: 10, reason: 'ATTACK_SUCCESS' },
-      { delta: -10, reason: 'VICTIM' },
+      { delta: -10, reason: 'BOMBED' },
     ]);
-    expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', bombs: 1, draw: false, defended: false });
+    expect(r.summaryOf('B').location).toBe('AWAY');
   });
 
   it('bomba + ataques a quem está fora: a bomba leva tudo, os ataques ficam a 0 (não "morrem") e o bolo é só 10', () => {
@@ -120,13 +119,13 @@ describe('caso 1: alvo fora', () => {
     // B: +10 pela bomba em H (em casa), -10 pela bomba de D, e não perde os 5 do assalto.
     expect(r.totals.B).toBe(0);
     expect(entriesOf(r.ledger, 'B').map((e) => e.reason)).not.toContain('BURGLARY_VICTIM');
-    expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', attacks: 2, bombs: 1, draw: false, defended: false });
+    expect(r.summaryOf('B').location).toBe('AWAY');
   });
 
   it('2 bombas a quem está fora: 5 para cada bombista', () => {
     const r = run([bomb('A', 'B'), bomb('C', 'B'), attack('B', 'D'), attack('E', 'B')]);
     expect(r.totals).toMatchObject({ A: 5, C: 5, E: 0 });
-    expect(entriesOf(r.ledger, 'B')).toContainEqual({ delta: -10, reason: 'VICTIM' });
+    expect(entriesOf(r.ledger, 'B')).toContainEqual({ delta: -10, reason: 'BOMBED' });
   });
 
   it('3 bombas a quem está fora: 10/3 arredonda para baixo (3 cada)', () => {
@@ -142,15 +141,15 @@ describe('caso 1: alvo fora', () => {
     ]);
     expect(r.totals.A).toBe(0);
     expect(r.totals.B).toBe(0);
-    expect(r.summaryOf('A')).toMatchObject({ location: 'AWAY', attacks: 1 });
-    expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', attacks: 1 });
+    expect(r.summaryOf('A').location).toBe('AWAY');
+    expect(r.summaryOf('B').location).toBe('AWAY');
   });
 
   it('bombas cruzadas (A→B, B→A): as duas acertam, cada um +10 e -10', () => {
     const r = run([bomb('A', 'B'), bomb('B', 'A')]);
     expect(sortedEntriesOf(r.ledger, 'A')).toEqual([
       { delta: 10, reason: 'BOMB_SUCCESS' },
-      { delta: -10, reason: 'VICTIM' },
+      { delta: -10, reason: 'BOMBED' },
     ]);
     expect(r.totals.A).toBe(0);
     expect(r.totals.B).toBe(0);
@@ -158,25 +157,33 @@ describe('caso 1: alvo fora', () => {
 });
 
 describe('caso 2: alvo defende-se', () => {
-  it('contra 1 atacante: atacante -5, defensor +10, atacante revelado', () => {
+  it('contra 1 atacante: atacante -5, defensor +10, atacante apanhado', () => {
     const r = run([defend('B'), attack('A', 'B')]);
     expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -5, reason: 'ATTACK_DEFENDED' }]);
-    expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: 10, reason: 'DEFENSE' }]);
-    expect(r.summaryOf('B')).toMatchObject({ location: 'HOME', defended: true, revealedAttackers: ['A'], homeBonus: false });
+    // Só o defensor sabe quem apanhou: vem no seu ledger.
+    expect(r.ledger.filter((e) => e.playerId === 'B')).toEqual([{ playerId: 'B', delta: 10, reason: 'DEFENSE', targetId: 'A' }]);
+    // O público sabe que A foi apanhado, mas não onde.
+    expect(r.summary.caught).toEqual(['A']);
+    expect(r.summaryOf('B')).toEqual({ playerId: 'B', location: 'HOME' });
   });
 
   it('contra N=3 atacantes: cada um -5, defensor +30, sem sorteio', () => {
     const r = run([defend('B'), attack('A', 'B'), attack('C', 'B'), attack('D', 'B')]);
     expect([r.totals.A, r.totals.C, r.totals.D]).toEqual([-5, -5, -5]);
     expect(r.totals.B).toBe(30);
-    expect(r.summaryOf('B')).toMatchObject({ draw: false, revealedAttackers: ['A', 'C', 'D'] });
+    expect(r.ledger.filter((e) => e.reason === 'DEFENSE').map((e) => [e.playerId, e.delta, e.targetId])).toEqual([
+      ['B', 10, 'A'],
+      ['B', 10, 'C'],
+      ['B', 10, 'D'],
+    ]);
+    expect(r.summary.caught).toEqual(['A', 'C', 'D']);
   });
 
   it('contra B=1 bomba: bombista -10, defensor +10', () => {
     const r = run([defend('B'), bomb('A', 'B')]);
     expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -10, reason: 'BOMB_DEFENDED' }]);
     expect(r.totals.B).toBe(10);
-    expect(r.summaryOf('B')).toMatchObject({ defended: true, bombs: 1, revealedAttackers: ['A'] });
+    expect(r.summary.caught).toEqual(['A']);
   });
 
   it('contra B=2 bombas: cada bombista -10, defensor +20', () => {
@@ -188,7 +195,7 @@ describe('caso 2: alvo defende-se', () => {
   it('contra N=2 e B=1: atacantes -5, bombista -10, defensor +30, todos revelados', () => {
     const r = run([defend('E'), bomb('A', 'E'), attack('H', 'E'), attack('C', 'E')]);
     expect(r.totals).toMatchObject({ A: -10, C: -5, H: -5, E: 30 });
-    expect(r.summaryOf('E')).toMatchObject({ attacks: 2, bombs: 1, defended: true, revealedAttackers: ['A', 'C', 'H'] });
+    expect(r.summary.caught).toEqual(['A', 'C', 'H']);
   });
 
   it('atacante travado pela defesa e assaltado enquanto está fora: perde os 5 da defesa e os 5 do assalto', () => {
@@ -203,7 +210,7 @@ describe('caso 3: em casa sem defesa, sem bombas', () => {
     const r = run([attack('A', 'B')]);
     expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: 10, reason: 'ATTACK_SUCCESS' }]);
     expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: -10, reason: 'VICTIM' }]);
-    expect(r.summaryOf('B')).toMatchObject({ attacks: 1, draw: false, defended: false, revealedAttackers: [] });
+    expect(r.summary.caught).toEqual([]);
   });
 
   it('sorteio com 2 atacantes: um ganha +10, o outro perde -10, alvo -10', () => {
@@ -211,17 +218,20 @@ describe('caso 3: em casa sem defesa, sem bombas', () => {
     const results = [r.totals.A, r.totals.C].sort((x, y) => x - y);
     expect(results).toEqual([-10, 10]);
     expect(r.totals.B).toBe(-10);
-    // Sorteio anónimo: só os números.
-    expect(r.summaryOf('B')).toMatchObject({ attacks: 2, draw: true, revealedAttackers: [] });
+    // Quem ganha e quem perde sabe-o pelo próprio ledger; o alvo só sabe que foi atacado.
+    expect(r.ledger.filter((e) => e.reason === 'ATTACK_DRAW_WON')).toHaveLength(1);
+    expect(r.ledger.filter((e) => e.reason === 'ATTACK_LOST_DRAW')).toHaveLength(1);
+    expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: -10, reason: 'VICTIM' }]);
+    // O público não sabe de nada.
+    expect(r.summary.caught).toEqual([]);
   });
 
   it('sorteio com 3 atacantes: 1 vencedor, 2 "morrem"', () => {
     const r = run([attack('A', 'B'), attack('C', 'B'), attack('D', 'B')]);
-    expect(r.ledger.filter((e) => e.reason === 'ATTACK_SUCCESS')).toHaveLength(1);
+    expect(r.ledger.filter((e) => e.reason === 'ATTACK_DRAW_WON')).toHaveLength(1);
     expect(r.ledger.filter((e) => e.reason === 'ATTACK_LOST_DRAW')).toHaveLength(2);
     expect(r.totals.A + r.totals.C + r.totals.D).toBe(-10);
     expect(r.totals.B).toBe(-10);
-    expect(r.summaryOf('B')).toMatchObject({ attacks: 3, draw: true });
   });
 
   it('sorteio com 3: cada atacante consegue ganhar, com frequências parecidas', () => {
@@ -229,7 +239,7 @@ describe('caso 3: em casa sem defesa, sem bombas', () => {
     const runs = 3000;
     for (let seed = 0; seed < runs; seed++) {
       const r = run([attack('A', 'B'), attack('C', 'B'), attack('D', 'B')], seed);
-      const winner = r.ledger.find((e) => e.reason === 'ATTACK_SUCCESS')!.playerId;
+      const winner = r.ledger.find((e) => e.reason === 'ATTACK_DRAW_WON')!.playerId;
       wins[winner]++;
     }
     for (const w of Object.values(wins)) expect(w).toBeGreaterThan(runs / 3 - 150);
@@ -238,7 +248,7 @@ describe('caso 3: em casa sem defesa, sem bombas', () => {
   it('sorteio com 2: ambos os resultados acontecem com seeds diferentes', () => {
     const winners = new Set<string>();
     for (let seed = 0; seed < 50; seed++) {
-      winners.add(run([attack('A', 'B'), attack('C', 'B')], seed).ledger.find((e) => e.reason === 'ATTACK_SUCCESS')!.playerId);
+      winners.add(run([attack('A', 'B'), attack('C', 'B')], seed).ledger.find((e) => e.reason === 'ATTACK_DRAW_WON')!.playerId);
     }
     expect(winners).toEqual(new Set(['A', 'C']));
   });
@@ -257,8 +267,7 @@ describe('caso 3: em casa sem defesa, com bombas', () => {
   it('bomba sozinha: bombista +10, alvo -10, sem sorteio', () => {
     const r = run([bomb('A', 'B')]);
     expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: 10, reason: 'BOMB_SUCCESS' }]);
-    expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: -10, reason: 'VICTIM' }]);
-    expect(r.summaryOf('B')).toMatchObject({ attacks: 0, bombs: 1, draw: false, revealedAttackers: [] });
+    expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: -10, reason: 'BOMBED' }]);
   });
 
   it('1 bomba + N=1: atacante morre (-10), bombista leva o bolo 10+10=20', () => {
@@ -270,7 +279,7 @@ describe('caso 3: em casa sem defesa, com bombas', () => {
   it('1 bomba + N=3: sem sorteio, atacantes -10 cada, bombista +40, alvo só -10', () => {
     const r = run([bomb('A', 'B'), attack('C', 'B'), attack('D', 'B'), attack('E', 'B')]);
     expect(r.totals).toMatchObject({ A: 40, B: -10, C: -10, D: -10, E: -10 });
-    expect(r.summaryOf('B')).toMatchObject({ attacks: 3, bombs: 1, draw: false });
+    expect(r.ledger.some((e) => e.reason === 'ATTACK_LOST_DRAW' || e.reason === 'ATTACK_DRAW_WON')).toBe(false);
   });
 
   it('2 bombas sem atacantes: bolo 10 dividido por 2 = 5 cada', () => {
@@ -306,6 +315,33 @@ describe('caso 3: em casa sem defesa, com bombas', () => {
   });
 });
 
+describe('Desaparecer (VANISH)', () => {
+  const vanish = (p: PlayerId): Action => ({ playerId: p, type: 'VANISH' });
+
+  it('fica fora, sem alvo e sem bónus de casa', () => {
+    const r = run([vanish('A')]);
+    expect(r.summaryOf('A')).toEqual({ playerId: 'A', location: 'AWAY' });
+    expect(entriesOf(r.ledger, 'A')).toEqual([]);
+    expect(r.totals.B).toBe(2);
+  });
+
+  it('quem desaparece e é atacado sofre um assalto à casa vazia (-5), não um ataque em casa', () => {
+    const r = run([vanish('A'), attack('B', 'A'), attack('C', 'A')]);
+    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -5, reason: 'BURGLARY_VICTIM' }]);
+    expect(r.totals).toMatchObject({ B: 2, C: 2 });
+  });
+
+  it('a bomba acerta na mesma em quem desaparece', () => {
+    const r = run([vanish('A'), bomb('B', 'A')]);
+    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -10, reason: 'BOMBED' }]);
+    expect(r.totals.B).toBe(10);
+  });
+
+  it('Desaparecer com alvo é inválido', () => {
+    expect(() => run([{ playerId: 'A', type: 'VANISH', targetId: 'B' }])).toThrow(/UNEXPECTED_TARGET/);
+  });
+});
+
 describe('noite completa', () => {
   it('várias situações em simultâneo', () => {
     // A bomba C (em casa) com D a atacar C também.
@@ -320,19 +356,18 @@ describe('noite completa', () => {
     expect(r.summary.players.map((s) => s.playerId)).toEqual(['Z', 'M', 'A']);
   });
 
-  it('o resumo não contém pontos', () => {
+  it('o resumo público só tem casa/fora e os apanhados (RULES.md §4)', () => {
     const r = run([bomb('A', 'C'), attack('D', 'C'), defend('B'), attack('E', 'B'), attack('F', 'G'), attack('H', 'G')]);
-    for (const s of r.summary.players) {
-      expect(Object.keys(s).sort()).toEqual(
-        ['attacks', 'bombs', 'defended', 'draw', 'homeBonus', 'location', 'playerId', 'revealedAttackers'],
-      );
-    }
-    expect(Object.keys(r.summary)).toEqual(['players']);
+    for (const s of r.summary.players) expect(Object.keys(s).sort()).toEqual(['location', 'playerId']);
+    expect(Object.keys(r.summary).sort()).toEqual(['caught', 'players']);
+    // Nem quem foi atacado, nem a defesa do B, nem o sorteio em G, nem a bomba em C, nem pontos.
+    expect(r.summary.caught).toEqual(['E']);
+    expect(JSON.stringify(r.summary)).not.toMatch(/delta|points|draw|bomb|attack|defend|bonus/i);
   });
 });
 
 describe('alvo no ledger', () => {
-  it('cada movimento de quem atacou guarda o alvo; os do alvo não revelam o atacante', () => {
+  it('cada movimento de quem atacou guarda o alvo; os do alvo não revelam o atacante, a não ser a quem se defendeu', () => {
     const r = run([bomb('A', 'C'), attack('D', 'C'), defend('B'), attack('E', 'B'), attack('F', 'G'), attack('H', 'G')]);
     for (const e of r.ledger) {
       if (e.reason.startsWith('ATTACK_') || e.reason.startsWith('BOMB_')) {
@@ -340,6 +375,8 @@ describe('alvo no ledger', () => {
           (x) => x.playerId === e.playerId,
         )!;
         expect(e.targetId).toBe(a.targetId);
+      } else if (e.reason === 'DEFENSE') {
+        expect(e).toMatchObject({ playerId: 'B', targetId: 'E' });
       } else {
         expect(e).not.toHaveProperty('targetId');
       }
@@ -370,7 +407,7 @@ describe('noite 9 a dobrar', () => {
 
   it('o sorteio da noite 9 é o mesmo que noutra noite com a mesma seed', () => {
     const actions = [attack('A', 'B'), attack('C', 'B'), attack('D', 'B')];
-    const winner = (night: number) => run(actions, 7, night).ledger.find((e) => e.reason === 'ATTACK_SUCCESS')!;
+    const winner = (night: number) => run(actions, 7, night).ledger.find((e) => e.reason === 'ATTACK_DRAW_WON')!;
     expect(winner(9)).toEqual({ ...winner(1), delta: 20 });
   });
 
@@ -389,7 +426,7 @@ describe('ações inválidas', () => {
   });
 
   it('quota esgotada lança erro', () => {
-    const s: GameState = { players: PLAYERS, night: 2, pastActions: [bomb('A', 'C')] };
+    const s: GameState = { players: PLAYERS, night: 2, pastActions: [{ ...bomb('A', 'C'), night: 1 }] };
     expect(() => resolveNight(s, [bomb('A', 'B')], 1)).toThrow(/QUOTA_EXHAUSTED/);
   });
 

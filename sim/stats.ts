@@ -77,13 +77,16 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
     let gameDraws = 0;
     for (const n of g.nights) {
       for (const e of n.ledger) if (SUCCESS_REASONS.includes(e.reason) && e.delta > 0) hits.set(e.reason, (hits.get(e.reason) ?? 0) + 1);
-      for (const a of n.actions) {
-        actions.set(a.type, actions.get(a.type)! + 1);
-        if (a.type !== 'BOMB') continue;
-        const t = n.summary.players.find((s) => s.playerId === a.targetId)!;
-        bombOutcomes[t.defended ? 'defended' : t.location === 'AWAY' ? 'away' : 'home']++;
+      for (const a of n.actions) actions.set(a.type, actions.get(a.type)! + 1);
+      // O resumo público só tem casa/fora: o destino das bombas e os sorteios vêm do ledger.
+      for (const e of n.ledger) {
+        if (e.reason === 'BOMB_DEFENDED') bombOutcomes.defended++;
+        if (e.reason === 'BOMB_SUCCESS') {
+          const t = n.summary.players.find((s) => s.playerId === e.targetId)!;
+          bombOutcomes[t.location === 'AWAY' ? 'away' : 'home']++;
+        }
+        if (e.reason === 'ATTACK_DRAW_WON') gameDraws++;
       }
-      gameDraws += n.summary.players.filter((s) => s.draw).length;
     }
     draws += gameDraws;
     if (gameDraws > 0) gamesWithDraw++;
@@ -119,10 +122,10 @@ export function summarize(games: GameResult[], kindOf: (p: PlayerId) => BotKind)
     games: games.length,
     players: games[0]?.players.length ?? 0,
     hitsPerGame: SUCCESS_REASONS.reduce((s, r) => s + count(r), 0) / games.length,
-    attackHitsPerGame: count('ATTACK_SUCCESS') / games.length,
+    attackHitsPerGame: (count('ATTACK_SUCCESS') + count('ATTACK_DRAW_WON')) / games.length,
     burglaryHitsPerGame: burglaryHits / games.length,
     bombHitsPerGame: count('BOMB_SUCCESS') / games.length,
-    attackHitPct: pct(count('ATTACK_SUCCESS') + burglaryHits, actions.get('ATTACK')!),
+    attackHitPct: pct(count('ATTACK_SUCCESS') + count('ATTACK_DRAW_WON') + burglaryHits, actions.get('ATTACK')!),
     points: spread(finals),
     noSalaryPct: pct(finals.filter((p) => p < 0).length, finals.length),
     drawsPerGame: draws / games.length,

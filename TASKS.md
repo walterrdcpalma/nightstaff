@@ -40,7 +40,7 @@
   - Resumo da noite (RULES.md §4) e histórico com uma casa por jogador e a janela acesa ou apagada, por noite.
 - [x] **T7 — Web: pontos e resolução**
   - Os meus pontos e movimentos durante o ciclo. No dia 11, ranking final e 🏆 Funcionário do Mês.
-- [ ] **T2d — Regras v5 no motor, na BD e no simulador**
+- [x] **T2d — Regras v5 no motor, na BD e no simulador**
   - Ação `VANISH` (🫥 Desaparecer): quota 2, fica fora, sem alvo e sem bónus de casa.
   - Validação "não atacar a mesma pessoa duas noites seguidas" (ATTACK e BOMB contam), no `validateAction` **e na BD** (mesma regra que o motor).
   - **Resumo público novo (RULES.md §4):** `nights.summary` só com casa/fora por jogador e a lista de apanhados. Tudo o resto sai do público: contagens de ataques, defesas, sorteios, bombas e bónus. O que é privado de cada jogador vem do seu próprio `ledger`, que tem de ter os `reason` suficientes para isso.

@@ -8,6 +8,7 @@ export type ValidationError =
   | 'UNEXPECTED_TARGET'
   | 'SELF_TARGET'
   | 'UNKNOWN_TARGET'
+  | 'SAME_TARGET'
   | 'QUOTA_EXHAUSTED';
 
 export type ValidationResult = { ok: true } | { ok: false; error: ValidationError };
@@ -21,6 +22,15 @@ export function remainingQuota(state: GameState, playerId: PlayerId): Record<Lim
   return remaining;
 }
 
+/**
+ * Alvo da Visita ou Reunião do jogador na noite anterior, se houve. Não o pode atacar outra vez esta noite
+ * (RULES.md §2). Uma noite sem ataque pelo meio volta a permitir.
+ */
+export function previousTarget(state: GameState, playerId: PlayerId): PlayerId | null {
+  const a = state.pastActions.find((p) => p.playerId === playerId && p.night === state.night - 1);
+  return a && (a.type === 'ATTACK' || a.type === 'BOMB') ? (a.targetId ?? null) : null;
+}
+
 /** Valida alvo e quota de uma ação, no momento de submeter (RULES.md §2). */
 export function validateAction(state: GameState, action: Action): ValidationResult {
   const fail = (error: ValidationError): ValidationResult => ({ ok: false, error });
@@ -32,6 +42,7 @@ export function validateAction(state: GameState, action: Action): ValidationResu
     if (action.targetId == null) return fail('TARGET_REQUIRED');
     if (action.targetId === action.playerId) return fail('SELF_TARGET');
     if (!state.players.includes(action.targetId)) return fail('UNKNOWN_TARGET');
+    if (action.targetId === previousTarget(state, action.playerId)) return fail('SAME_TARGET');
   } else if (action.targetId != null) {
     return fail('UNEXPECTED_TARGET');
   }

@@ -49,14 +49,15 @@ CLAUDE.md
 | `game_players` | game_id, player_id | Todos. Escrita só pelo próprio, só com `status = prep` |
 | `actions` | game_id, night, player_id, type, target_id; único (game_id, night, player_id) | **Só o próprio** |
 | `nights` | game_id, night, seed, resolved_at, summary jsonb | Todos, depois de resolvida |
-| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto) | **Só o próprio**; todos quando `games.status = finished` |
+| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio**; todos quando `games.status = finished` |
 
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
   - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00.
   - Nada mais é exposto.
 - O ranking é a soma do `ledger`. Durante o jogo, cada jogador só vê a sua soma, e o ranking completo só no dia 11.
-- O `nights.summary` **não pode conter pontos**: só casa/fora, ataques recebidos, defesas, revelações e contagens de sorteios e bombas.
+- O `nights.summary` é **público** (RULES.md §4 v5): só `players` (casa/fora de cada um) e `caught` (apanhados, sem dizer onde). Nada de pontos, ataques recebidos, defesas, sorteios, bombas, assaltos ou bónus.
+- O que aconteceu a cada jogador é **privado** e vem do seu próprio `ledger`. As razões chegam para isso: `VICTIM` (atacado em casa), `BOMBED`, `BURGLARY_VICTIM`, `ATTACK_DRAW_WON`/`ATTACK_LOST_DRAW` (sorteio), `DEFENSE` (uma linha por apanhado, com `target_id`) e `HOME_BONUS`.
 
 ## Resolução da noite
 - O `pg_cron` corre **de hora a hora** e chama `resolve-night`.
@@ -113,7 +114,7 @@ npm run demo:dia    # avança 1 dia (passagem de noite, dia 11, ciclo seguinte)
    - **`meio`** (noite 5 a decorrer, o Walter ainda não escolheu):
      - **Hoje:** escolha, quotas já gastas e contagem até às 23:59.
      - **Manhã:** a noite 4.
-     - **Bairro:** as janelas das noites 1 a 4, com sorteio, defesa com revelação, bomba e assalto a uma casa vazia.
+     - **Bairro:** as janelas das noites 1 a 4. Pelos bots, há sorteio, um apanhado, bomba e assalto a uma casa vazia, que cada um vê no seu resultado privado; o público só tem casa/fora e os apanhados.
      - **Pontos:** só os do Walter.
    - **`demo:noite`** resolve a noite 5 e abre a 6. Repetido, chega ao dia 11. **`demo:dia`** passa um dia sem preencher escolhas.
    - **`terminado`** (dia 11):

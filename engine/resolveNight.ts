@@ -9,7 +9,6 @@ import type {
   LedgerReason,
   NightResult,
   PlayerId,
-  PlayerNightSummary,
 } from './types.ts';
 import { validateAction } from './validateAction.ts';
 import type { ValidationError } from './validateAction.ts';
@@ -45,7 +44,7 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
   }
 
   const choice = (p: PlayerId): ActionType => byPlayer.get(p)?.type ?? 'STAY';
-  const isAway = (p: PlayerId) => choice(p) === 'ATTACK' || choice(p) === 'BOMB';
+  const isAway = (p: PlayerId) => choice(p) === 'ATTACK' || choice(p) === 'BOMB' || choice(p) === 'VANISH';
 
   // Ordem fixa, para que o sorteio não dependa da ordem de `actions`.
   const sorted = [...state.players].sort();
@@ -68,28 +67,15 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
   const add = (playerId: PlayerId, delta: number, reason: LedgerReason, targetId?: PlayerId) =>
     ledger.push({ playerId, delta: delta * multiplier, reason, ...(targetId && { targetId }) });
 
-  const summaries = new Map<PlayerId, PlayerNightSummary>();
+  /** Apanhados por uma Segurança: é tudo o que o público sabe dos ataques (RULES.md §4). */
+  const caught: PlayerId[] = [];
 
   for (const t of sorted) {
     const n = attackers.get(t) ?? [];
     const b = bombers.get(t) ?? [];
-    const s: PlayerNightSummary = {
-      playerId: t,
-      location: isAway(t) ? 'AWAY' : 'HOME',
-      attacks: n.length,
-      bombs: b.length,
-      defended: false,
-      revealedAttackers: [],
-      draw: false,
-      homeBonus: false,
-    };
-    summaries.set(t, s);
 
     if (n.length + b.length === 0) {
-      if (!isAway(t)) {
-        add(t, HOME_BONUS, 'HOME_BONUS');
-        s.homeBonus = true;
-      }
+      if (!isAway(t)) add(t, HOME_BONUS, 'HOME_BONUS');
       continue;
     }
 
@@ -101,7 +87,7 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
         for (const a of n) add(a, share, 'ATTACK_BURGLARY', t);
       } else {
         for (const a of n) add(a, 0, 'ATTACK_AWAY_BOMBED', t);
-        add(t, -POINTS, 'VICTIM');
+        add(t, -POINTS, 'BOMBED');
         const share = Math.floor(POINTS / b.length);
         for (const a of b) add(a, share, 'BOMB_SUCCESS', t);
       }
@@ -112,20 +98,19 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
     if (choice(t) === 'DEFEND') {
       for (const a of n) add(a, -DEFENDED_COST.ATTACK, 'ATTACK_DEFENDED', t);
       for (const a of b) add(a, -DEFENDED_COST.BOMB, 'BOMB_DEFENDED', t);
-      add(t, POINTS * (n.length + b.length), 'DEFENSE');
-      s.defended = true;
-      s.revealedAttackers = [...n, ...b].sort();
+      // Uma linha por apanhado: só o defensor sabe quem apanhou.
+      for (const a of [...n, ...b].sort()) add(t, POINTS, 'DEFENSE', a);
+      caught.push(...n, ...b);
       continue;
     }
 
     // Caso 3: T em casa sem defesa.
-    add(t, -POINTS, 'VICTIM');
+    add(t, -POINTS, b.length === 0 ? 'VICTIM' : 'BOMBED');
     if (b.length === 0) {
       const winner = n.length === 1 ? n[0] : n[randomIndex(rng, n.length)];
-      s.draw = n.length > 1;
       for (const a of n) {
-        if (a === winner) add(a, POINTS, 'ATTACK_SUCCESS', t);
-        else add(a, -POINTS, 'ATTACK_LOST_DRAW', t);
+        if (a !== winner) add(a, -POINTS, 'ATTACK_LOST_DRAW', t);
+        else add(a, POINTS, n.length === 1 ? 'ATTACK_SUCCESS' : 'ATTACK_DRAW_WON', t);
       }
     } else {
       for (const a of n) add(a, -POINTS, 'ATTACK_BOMBED', t);
@@ -136,6 +121,9 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
 
   return {
     ledger,
-    summary: { players: state.players.map((p) => summaries.get(p)!) },
+    summary: {
+      players: state.players.map((p) => ({ playerId: p, location: isAway(p) ? 'AWAY' : 'HOME' })),
+      caught: caught.sort(),
+    },
   };
 }
