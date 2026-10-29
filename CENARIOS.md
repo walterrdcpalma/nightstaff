@@ -1,11 +1,14 @@
-# Night Staff — Cenários de aceitação
+# Night Staff — Cenários de aceitação (regras v3)
 
-> Calculados à mão a partir do `RULES.md` e confirmados pelo Walter.
+> Calculados à mão a partir do `RULES.md` v3 e confirmados pelo Walter.
 > Agentes: cada cenário tem de virar um teste. Se o motor der um resultado diferente, **o motor está errado** (ou o `RULES.md` é ambíguo → perguntar).
+> Os resultados são **movimentos** de pontos. Os pontos finais são `50 (salário) + movimentos`.
 
-**Jogadores:** Ana, Bruno, Carla, Duarte, Eva, Filipe, Gil, Helena. Todos começam com 0.
+## Cenário principal: um ciclo, noites 1 a 5
 
-## Noite 1 — Básico
+**Jogadores:** Ana, Bruno, Carla, Duarte, Eva, Filipe, Gil, Helena.
+
+### Noite 1 — Básico
 | Jogador | Ação |
 |---|---|
 | Ana | Ataca Bruno |
@@ -19,13 +22,13 @@
 
 **Resultado:**
 - Ana **+10**, Bruno **−10**: ataque normal.
-- Carla **−10**, Duarte **+10**: Duarte defendeu e **Carla fica revelada**.
-- Eva **0**: Filipe estava fora, por isso o ataque falha.
+- Carla **−5**, Duarte **+10**: Duarte defendeu, por isso o ataque custa metade. **Carla fica revelada.**
+- Eva **0**: Filipe estava fora, e um ataque normal a quem está fora falha.
 - Filipe **+10**, Gil **−10**: ataque normal.
 - Helena **+2**: em casa e ninguém a atacou.
 - Duarte **não** ganha bónus: foi atacado.
 
-## Noite 2 — Sorteio, ataques cruzados e ação por defeito
+### Noite 2 — Sorteio, ataques cruzados e ação por defeito
 | Jogador | Ação |
 |---|---|
 | Ana | Ataca Helena |
@@ -40,12 +43,12 @@
 **Resultado** (assumindo que o sorteio dá **Bruno**):
 - Bruno **+10**, Helena **−10**.
 - Ana **−10**, Carla **−10**: perderam o sorteio e "morreram".
-- Duarte **0**, Eva **0**: estavam os dois fora, por isso os dois ataques falham.
+- Duarte **0**, Eva **0**: estavam os dois fora, por isso os dois ataques normais falham.
 - Filipe **+2**: defendeu sem ser atacado, ganha o bónus e a defesa fica gasta.
 - Gil **+2**: fica em Folga por defeito e ninguém o atacou.
 - O resumo mostra "3 atacantes na Helena, houve sorteio", **sem nomes**.
 
-## Noite 3 — Bombas
+### Noite 3 — Bombas
 | Jogador | Ação |
 |---|---|
 | Ana | Bomba em Gil |
@@ -60,11 +63,11 @@
 **Resultado:**
 - Gil **−10**, Bruno **−10**, Carla **−10**.
 - Ana **+30**: bolo = 10 + 10 × 2, sem sorteio.
-- Duarte **−20**, Helena **+10**: bomba contra defesa. **Duarte fica revelado.**
+- Duarte **−10**, Helena **+10**: bomba contra defesa custa 10. **Duarte fica revelado.**
 - Eva **+10**, Filipe **−10**: bomba sozinha conta como ataque normal.
 - Ninguém ganha bónus.
 
-## Noite 4 — Várias bombas, arredondamento e defesa contra 2 ataques
+### Noite 4 — Várias bombas, arredondamento e defesa contra 2 ataques
 | Jogador | Ação |
 |---|---|
 | Ana | Ataca Duarte |
@@ -79,17 +82,65 @@
 **Resultado:**
 - Filipe **−10**, Gil **−10**.
 - Bruno, Carla e Helena **+6** cada: bolo = 10 + 10 × 1 = 20, dividido por 3 e arredondado para baixo. Os 2 de resto perdem-se.
-- Ana **−10**, Eva **−10**, Duarte **+20**: +10 por cada atacante. **Ana e Eva ficam reveladas.**
+- Ana **−5**, Eva **−5**, Duarte **+20**: +10 por cada atacante. **Ana e Eva ficam reveladas.**
 - Ninguém ganha bónus.
 
-## Totais após 4 noites (com o sorteio da noite 2 = Bruno)
-| Ana | Bruno | Carla | Duarte | Eva | Filipe | Gil | Helena |
-|---|---|---|---|---|---|---|---|
-| +20 | −4 | −24 | +10 | 0 | −8 | −28 | +8 |
+### Totais após 4 noites (com o sorteio da noite 2 = Bruno)
+| | Ana | Bruno | Carla | Duarte | Eva | Filipe | Gil | Helena |
+|---|---|---|---|---|---|---|---|---|
+| Movimentos | +25 | −4 | −19 | +20 | +5 | −8 | −28 | +8 |
+| Pontos (50 + movimentos) | 75 | 46 | 31 | 70 | 55 | 42 | 22 | 58 |
 
-## Noite 5 — Validação (o `validateAction` tem de rejeitar)
+### Noite 5 — Validação (o `validateAction` tem de rejeitar)
 - Ana tenta **Atacar** → rejeitado: já usou os 3 ataques (noites 1, 2 e 4).
 - Duarte tenta **Segurança** → rejeitado: já usou as 2 defesas (noites 1 e 4).
 - Ana tenta **Bomba** → rejeitado: já usou a bomba (noite 3).
 - Gil tenta **Atacar Gil** → rejeitado: não pode ser alvo de si próprio.
 - Gil tenta **Atacar Ana** → aceite: só usou 1 ataque.
+
+## Cenário extra A — Bomba num alvo fora (noite 1, 4 jogadores)
+| Jogador | Ação |
+|---|---|
+| Ana | Bomba em Bruno |
+| Bruno | Ataca Carla |
+| Carla | Ataca Bruno |
+| Duarte | Bomba em Bruno |
+
+**Resultado:**
+- Bruno **−10**: estava fora, mas a bomba acerta na mesma.
+- Ana **+5**, Duarte **+5**: os 10 são divididos pelos 2 bombistas.
+- Carla **0**: Bruno estava fora, e o ataque normal dela falha.
+- Bruno **0** pelo ataque dele: Carla também estava fora.
+- Ninguém ganha bónus, porque ninguém ficou em casa.
+
+## Cenário extra B — Noite 9 a dobrar (noite 9, 5 jogadores)
+| Jogador | Ação |
+|---|---|
+| Ana | Ataca Bruno |
+| Bruno | Folga |
+| Carla | Ataca Duarte |
+| Duarte | Segurança |
+| Eva | Folga |
+
+**Resultado** (tudo ×2):
+- Ana **+20**, Bruno **−20**.
+- Carla **−10**, Duarte **+20**.
+- Eva **+4**: bónus de casa a dobrar.
+
+## Cenário extra C — Desempates
+**C1. Confronto direto:**
+- Ana e Bruno acabam com os mesmos pontos e com 3 ataques bem-sucedidos cada.
+- Ana acertou **2 vezes no Bruno** e o Bruno acertou **1 vez na Ana**.
+- → **Ganha a Ana**, pelo confronto direto.
+
+**C2. Mini-liga com 3 empatados:**
+- Ana, Bruno e Carla empatados em pontos e em ataques bem-sucedidos.
+- Ataques bem-sucedidos entre eles: Ana→Bruno 1, Bruno→Carla 2, Carla→Ana 1.
+- Os ataques contra jogadores fora do empate não contam.
+- → **Ganha o Bruno** (2), contra Ana 1 e Carla 1.
+
+**C3. Bomba conta como ataque:** uma Reunião de emergência que rendeu pontos no Bruno conta como 1 ataque bem-sucedido contra o Bruno. Isto vale para cada bombista.
+
+**C4. Sorteio:**
+- Dois jogadores empatados em tudo: pontos, ataques bem-sucedidos, confronto direto e pontos perdidos.
+- → O ranking tem **exatamente um** 1.º lugar. Com a mesma seed do ciclo, o vencedor é sempre o mesmo. Com seeds diferentes, os dois conseguem ganhar.

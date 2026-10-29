@@ -13,6 +13,12 @@
   - `cyclePhase(startDate, today)` → `{ phase: 'PREP' | 'NIGHT' | 'RESULTS', day, night? }`, com datas `YYYY-MM-DD` em hora de Lisboa (RULES.md §1).
   - `finalRanking(ledger)` com desempate (RULES.md §5) e vitória partilhada.
   - Testes: limites de cada fase, mudança de hora (fim de março e fim de outubro), empates.
+- [ ] **T2b — Regras v3 no motor e no simulador**
+  - `resolveNight`: atacar quem defende custa 5 (bomba 10); bomba num alvo fora acerta (T −10, os bombistas dividem 10); a noite 9 conta a dobrar. A função tem de saber o número da noite.
+  - Salário: constante `SALARY = 50`. Os pontos do jogador são `SALARY + soma do ledger`.
+  - Ranking: desempate pela ordem do RULES.md §5 (ataques bem-sucedidos, confronto direto/mini-liga, pontos perdidos, sorteio com a seed do ciclo). Nunca há vitória partilhada. O ledger tem de guardar o alvo de cada ataque bem-sucedido.
+  - Todos os testes atualizados. O `CENARIOS.md` v3 (noites 1 a 5 e cenários extra A, B e C) passa.
+  - Simulador e relatório atualizados para as regras v3 ("sem salário" em vez de "0 ou menos"), com o relatório na descrição do PR.
 - [ ] **T3 — Supabase: schema e RLS**
   - `supabase/` com `npx supabase init`. Migrações para as tabelas do CLAUDE.md.
   - RLS exatamente como no CLAUDE.md. Validação de quota, alvo e prazo **na BD** (função ou trigger), usando as mesmas regras do `validateAction`.
