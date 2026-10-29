@@ -4,7 +4,7 @@
 > Agentes: cada cenário tem de virar um teste. Se o motor der um resultado diferente, **o motor está errado** (ou o `RULES.md` é ambíguo → perguntar).
 > Os resultados são **movimentos** de pontos. Os pontos finais são `50 (salário) + movimentos`.
 
-## Cenário principal: um ciclo, noites 1 a 5
+## Cenário principal: uma partida, noites 1 a 5
 
 **Jogadores:** Ana, Bruno, Carla, Duarte, Eva, Filipe, Gil, Helena.
 
@@ -149,7 +149,7 @@
 
 ## Cenário extra F — Desaparecer não tem alvo (validação)
 - Desaparecer com alvo → rejeitado.
-- Terceiro Desaparecer no mesmo ciclo → rejeitado (quota de 2).
+- Terceiro Desaparecer na mesma partida → rejeitado (quota de 2).
 - Atacar na noite 2 o mesmo alvo atacado na noite 1 → rejeitado. Atacar esse alvo na noite 3, se a noite 2 foi Desaparecer → aceite.
 
 ## Cenário extra B — Noite 9 a dobrar (noite 9, 5 jogadores)
@@ -182,4 +182,4 @@
 
 **C4. Sorteio:**
 - Dois jogadores empatados em tudo: pontos, ataques bem-sucedidos, confronto direto e pontos perdidos.
-- → O ranking tem **exatamente um** 1.º lugar. Com a mesma seed do ciclo, o vencedor é sempre o mesmo. Com seeds diferentes, os dois conseguem ganhar.
+- → O ranking tem **exatamente um** 1.º lugar. Com a mesma seed da partida, o vencedor é sempre o mesmo. Com seeds diferentes, os dois conseguem ganhar.
