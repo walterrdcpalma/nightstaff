@@ -45,15 +45,15 @@ CLAUDE.md
 | Tabela | Campos | Leitura |
 |---|---|---|
 | `players` | id (= auth.users.id), name | Todos |
-| `games` | id (= um ciclo), start_date (dia 1), status: `prep` \| `running` \| `finished` | Todos |
+| `games` | id (= um ciclo), start_date (dia 1), status: `prep` \| `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Todos |
 | `game_players` | game_id, player_id | Todos. Escrita só pelo próprio, só com `status = prep` |
 | `actions` | game_id, night, player_id, type, target_id; único (game_id, night, player_id) | **Só o próprio** |
 | `nights` | game_id, night, seed, resolved_at, summary jsonb | Todos, depois de resolvida |
-| `ledger` | id, game_id, night, player_id, delta, reason | **Só o próprio**; todos quando `games.status = finished` |
+| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto) | **Só o próprio**; todos quando `games.status = finished` |
 
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
-  - Só pode escrever na noite atual e antes das 23:59 de Lisboa.
+  - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00.
   - Nada mais é exposto.
 - O ranking é a soma do `ledger`. Durante o jogo, cada jogador só vê a sua soma, e o ranking completo só no dia 11.
 - O `nights.summary` **não pode conter pontos**: só casa/fora, ataques recebidos, defesas, revelações e contagens de sorteios e bombas.
