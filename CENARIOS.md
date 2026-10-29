@@ -1,6 +1,6 @@
-# Night Staff — Cenários de aceitação (regras v4)
+# Night Staff — Cenários de aceitação (regras v5)
 
-> Calculados à mão a partir do `RULES.md` v4 e confirmados pelo Walter.
+> Calculados à mão a partir do `RULES.md` v5 e confirmados pelo Walter.
 > Agentes: cada cenário tem de virar um teste. Se o motor der um resultado diferente, **o motor está errado** (ou o `RULES.md` é ambíguo → perguntar).
 > Os resultados são **movimentos** de pontos. Os pontos finais são `50 (salário) + movimentos`.
 
@@ -22,7 +22,7 @@
 
 **Resultado:**
 - Ana **+10**, Bruno **−10**: ataque normal.
-- Carla **−5**, Duarte **+10**: Duarte defendeu, por isso o ataque custa metade. **Carla fica revelada.**
+- Carla **−5**, Duarte **+10**: Duarte defendeu, por isso o ataque custa metade. **Carla aparece como apanhada** (público, sem dizer onde). Só o Duarte sabe que a apanhou.
 - Eva **+5**, Filipe **−5**: Filipe estava fora, por isso foi **assalto à casa vazia** (metade).
 - Filipe **+10**, Gil **−10**: ataque normal.
 - Filipe fica com **+5** no total da noite.
@@ -47,7 +47,7 @@
 - Duarte e Eva assaltaram a casa vazia um do outro: cada um ganha +5 e perde −5. Ficam com **0** no total da noite.
 - Filipe **+2**: defendeu sem ser atacado, ganha o bónus e a defesa fica gasta.
 - Gil **+2**: fica em Folga por defeito e ninguém o atacou.
-- O resumo mostra "3 atacantes na Helena, houve sorteio", **sem nomes**.
+- **O público não vê nada disto:** só que Ana, Bruno, Carla, Duarte e Eva estavam fora. Cada um vê em privado o seu resultado (a Helena sabe que foi atacada, mas não por quem).
 
 ### Noite 3 — Bombas
 | Jogador | Ação |
@@ -64,7 +64,7 @@
 **Resultado:**
 - Gil **−10**, Bruno **−10**, Carla **−10**.
 - Ana **+30**: bolo = 10 + 10 × 2, sem sorteio.
-- Duarte **−10**, Helena **+10**: bomba contra defesa custa 10. **Duarte fica revelado.**
+- Duarte **−10**, Helena **+10**: bomba contra defesa custa 10. **Duarte aparece como apanhado.**
 - Eva **+10**, Filipe **−10**: bomba sozinha conta como ataque normal.
 - Ninguém ganha bónus.
 
@@ -83,7 +83,7 @@
 **Resultado:**
 - Filipe **−10**, Gil **−10**.
 - Bruno, Carla e Helena **+6** cada: bolo = 10 + 10 × 1 = 20, dividido por 3 e arredondado para baixo. Os 2 de resto perdem-se.
-- Ana **−5**, Eva **−5**, Duarte **+20**: +10 por cada atacante. **Ana e Eva ficam reveladas.**
+- Ana **−5**, Eva **−5**, Duarte **+20**: +10 por cada atacante. **Ana e Eva aparecem como apanhadas.**
 - Ninguém ganha bónus.
 
 ### Totais após 4 noites (com o sorteio da noite 2 = Bruno)
@@ -97,7 +97,10 @@
 - Duarte tenta **Segurança** → rejeitado: já usou as 2 defesas (noites 1 e 4).
 - Ana tenta **Bomba** → rejeitado: já usou a bomba (noite 3).
 - Gil tenta **Atacar Gil** → rejeitado: não pode ser alvo de si próprio.
-- Gil tenta **Atacar Ana** → aceite: só usou 1 ataque.
+- Gil tenta **Atacar Filipe** → rejeitado: atacou o Filipe na noite anterior (noite 4).
+- Bruno tenta **Atacar Filipe** → rejeitado: a Reunião da noite 4 foi no Filipe, e conta como ataque.
+- Gil tenta **Atacar Ana** → aceite: só usou 1 ataque e a Ana não foi o seu alvo na noite 4.
+- Ana tenta **Desaparecer** → aceite: ainda não usou nenhum dos 2.
 
 ## Cenário extra A — Bomba num alvo fora (noite 1, 4 jogadores)
 | Jogador | Ação |
@@ -129,6 +132,25 @@
 - Eva **+10**, Duarte **−10**: Duarte estava em casa sem defesa.
 - No total da noite: Eva **+5**.
 - Ninguém ganha bónus.
+
+## Cenário extra E — Desaparecer (noite 1, 4 jogadores)
+| Jogador | Ação |
+|---|---|
+| Ana | Desaparecer |
+| Bruno | Ataca Ana |
+| Carla | Ataca Duarte |
+| Duarte | Folga |
+
+**Resultado:**
+- Ana **−5**, Bruno **+5**: a Ana estava fora, por isso foi assalto à casa vazia.
+- Carla **+10**, Duarte **−10**: ataque normal.
+- Ninguém ganha bónus.
+- **Público:** Ana, Bruno e Carla fora; Duarte em casa; ninguém apanhado.
+
+## Cenário extra F — Desaparecer não tem alvo (validação)
+- Desaparecer com alvo → rejeitado.
+- Terceiro Desaparecer no mesmo ciclo → rejeitado (quota de 2).
+- Atacar na noite 2 o mesmo alvo atacado na noite 1 → rejeitado. Atacar esse alvo na noite 3, se a noite 2 foi Desaparecer → aceite.
 
 ## Cenário extra B — Noite 9 a dobrar (noite 9, 5 jogadores)
 | Jogador | Ação |
