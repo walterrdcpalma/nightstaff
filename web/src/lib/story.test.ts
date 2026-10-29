@@ -10,9 +10,9 @@ const summary = (home: string[], away: string[], caught: string[] = []): NightSu
 });
 
 describe('frases', () => {
-  it('cada categoria tem pelo menos 10 frases, sem repetidas, e todas com {nome}', () => {
+  it('cada categoria tem pelo menos 12 frases (T14), sem repetidas, e todas com {nome}', () => {
     for (const lines of [HOME_LINES, AWAY_LINES, CAUGHT_LINES]) {
-      expect(lines.length).toBeGreaterThanOrEqual(10);
+      expect(lines.length).toBeGreaterThanOrEqual(12);
       expect(new Set(lines).size).toBe(lines.length);
       for (const l of lines) expect(l).toContain('{nome}');
     }
@@ -30,6 +30,24 @@ describe('frases', () => {
     expect(forbiddenIn('{nome} trancou a porta e ficou de vigia')).toEqual(['vigia', 'tranc']);
     expect(forbiddenIn('{nome} desapareceu')).toEqual(['desaparec']);
     expect(plain('Reunião')).toBe('reuniao');
+  });
+
+  it('linhas vermelhas (T14): o humor é sobre as situações, nunca sobre quem as pessoas são', () => {
+    const redLines = [
+      'morte', 'morr', 'mort', 'suicid', 'enforc', 'automutil', 'cortou-se', 'doen', 'cancro', 'hospital', 'deficien',
+      'relig', 'igreja', 'deus', 'mesquita', 'cigan', 'imigr', 'preto', 'raca', 'gay', 'lesbic', 'trans', 'gord',
+      'feio', 'feia', 'careca', 'baixinh', 'bater', 'pancada', 'matar', 'facada',
+    ];
+    for (const l of [...HOME_LINES, ...AWAY_LINES, ...CAUGHT_LINES]) {
+      // No início de uma palavra, para "inspiração" não contar como "raça".
+      expect(redLines.filter((w) => new RegExp(`(^|[^a-z])${w}`).test(plain(l))), l).toEqual([]);
+    }
+  });
+
+  it('sem género: nenhuma frase diz "apanhado/apanhada", "sozinho/sozinha" e afins', () => {
+    for (const l of [...HOME_LINES, ...AWAY_LINES, ...CAUGHT_LINES]) {
+      expect(plain(l), l).not.toMatch(/\b(apanhad|sozinh|convidad|cansad|obrigad|perdid|visto|vista)[oa]?s?\b/);
+    }
   });
 
   it('o nome entra no lugar de {nome}', () => {
