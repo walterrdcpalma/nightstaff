@@ -1,9 +1,8 @@
-import { mulberry32, rankPlayers, remainingQuota, resolveNight } from '../engine/index.ts';
+import { NIGHTS, finalRanking, mulberry32, remainingQuota, resolveNight } from '../engine/index.ts';
 import type { Action, GameState, LedgerEntry, NightSummary, PlayerId, RankingEntry } from '../engine/index.ts';
 import type { Bot } from './bots.ts';
 
-/** Noites de jogo (RULES.md §1). */
-export const NIGHTS = 9;
+export { NIGHTS };
 
 export interface Seat {
   playerId: PlayerId;
@@ -40,5 +39,5 @@ export function playGame(seats: Seat[], seed: number): GameResult {
     pastActions.push(...actions);
   }
 
-  return { players, nights, ranking: rankPlayers(players, nights.flatMap((n) => n.ledger)) };
+  return { players, nights, ranking: finalRanking(players, nights.flatMap((n) => n.ledger)) };
 }

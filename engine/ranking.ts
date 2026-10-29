@@ -14,7 +14,7 @@ export interface RankingEntry {
 }
 
 /** Ranking final a partir do ledger de todas as noites (RULES.md §5). */
-export function rankPlayers(players: PlayerId[], ledger: LedgerEntry[]): RankingEntry[] {
+export function finalRanking(players: PlayerId[], ledger: LedgerEntry[]): RankingEntry[] {
   const rows = new Map<PlayerId, RankingEntry>(
     players.map((p) => [p, { playerId: p, points: 0, successfulAttacks: 0, pointsLost: 0, rank: 0 }]),
   );
