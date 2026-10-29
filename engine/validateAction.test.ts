@@ -79,7 +79,12 @@ describe('validateAction: quotas', () => {
 
 describe('remainingQuota', () => {
   it('começa com as quotas do RULES.md', () => {
-    expect(remainingQuota(fresh, 'A')).toEqual({ STAY: Infinity, DEFEND: 2, ATTACK: 3, BOMB: 1 });
+    expect(remainingQuota(fresh, 'A')).toEqual({ DEFEND: 2, ATTACK: 3, BOMB: 1 });
+  });
+
+  it('sobrevive a JSON sem perder valores (STAY não tem quota)', () => {
+    const q = remainingQuota(withPast([{ playerId: 'A', type: 'STAY' }]), 'A');
+    expect(JSON.parse(JSON.stringify(q))).toEqual(q);
   });
 
   it('desconta cada ação passada, independentemente do resultado', () => {
@@ -89,6 +94,6 @@ describe('remainingQuota', () => {
       { playerId: 'A', type: 'ATTACK', targetId: 'C' },
       { playerId: 'B', type: 'ATTACK', targetId: 'A' },
     ];
-    expect(remainingQuota(withPast(past), 'A')).toEqual({ STAY: Infinity, DEFEND: 1, ATTACK: 1, BOMB: 1 });
+    expect(remainingQuota(withPast(past), 'A')).toEqual({ DEFEND: 1, ATTACK: 1, BOMB: 1 });
   });
 });

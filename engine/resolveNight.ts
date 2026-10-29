@@ -11,17 +11,31 @@ import type {
   PlayerNightSummary,
 } from './types.ts';
 import { validateAction } from './validateAction.ts';
+import type { ValidationError } from './validateAction.ts';
+
+/** Ação que não devia ter chegado à resolução. Traz o jogador e o código para a `resolve-night` registar. */
+export class InvalidActionError extends Error {
+  readonly playerId: PlayerId;
+  readonly code: ValidationError | 'DUPLICATE';
+
+  constructor(playerId: PlayerId, code: ValidationError | 'DUPLICATE') {
+    super(code === 'DUPLICATE' ? `Ação duplicada para ${playerId}` : `Ação inválida de ${playerId}: ${code}`);
+    this.name = 'InvalidActionError';
+    this.playerId = playerId;
+    this.code = code;
+  }
+}
 
 /**
  * Resolve uma noite (RULES.md §3). Função pura: o mesmo input dá sempre o mesmo output.
- * Quem não tem ação em `actions` fica com STAY. Ações inválidas ou duplicadas lançam erro.
+ * Quem não tem ação em `actions` fica com STAY. Ações inválidas ou duplicadas lançam `InvalidActionError`.
  */
 export function resolveNight(state: GameState, actions: Action[], seed: number): NightResult {
   const byPlayer = new Map<PlayerId, Action>();
   for (const a of actions) {
-    if (byPlayer.has(a.playerId)) throw new Error(`Ação duplicada para ${a.playerId}`);
+    if (byPlayer.has(a.playerId)) throw new InvalidActionError(a.playerId, 'DUPLICATE');
     const v = validateAction(state, a);
-    if (!v.ok) throw new Error(`Ação inválida de ${a.playerId}: ${v.error}`);
+    if (!v.ok) throw new InvalidActionError(a.playerId, v.error);
     byPlayer.set(a.playerId, a);
   }
 

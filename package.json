@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "lint": "eslint . && tsc --noEmit"
+    "lint": "eslint . && tsc --noEmit",
+    "sim": "node sim/run.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
