@@ -2,8 +2,8 @@
 // Converte a hora para Lisboa e aplica os passos que faltam ao ciclo mais recente: arrancar ou adiar a
 // preparação, resolver noites, acabar o ciclo e criar o seguinte. Idempotente: correr 2 vezes não duplica nada.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
-import { cycleDay, lisbonDate, nextStep, prepareNight, resolveNight } from '../../../engine/index.ts';
-import type { CycleState, InvalidAction, Step, StoredAction } from '../../../engine/index.ts';
+import { cycleDay, finalRanking, lisbonDate, nextStep, prepareNight, resolveNight } from '../../../engine/index.ts';
+import type { CycleState, InvalidAction, LedgerEntry, PastAction, Step } from '../../../engine/index.ts';
 
 /** Limite de passos por chamada, para nunca ficar em ciclo infinito. Chega para recuperar vários ciclos. */
 const MAX_STEPS = 100;
@@ -59,7 +59,7 @@ async function resolve(game: Game, night: number): Promise<InvalidAction[]> {
     await db.from('actions').select('night, player_id, type, target_id').eq('game_id', game.id).lte('night', night),
     'ler as ações',
   );
-  const stored: StoredAction[] = rows.map((r) => ({ night: r.night, playerId: r.player_id, type: r.type, targetId: r.target_id }));
+  const stored: PastAction[] = rows.map((r) => ({ night: r.night, playerId: r.player_id, type: r.type, targetId: r.target_id }));
   const input = prepareNight(await players(game.id), stored, night);
   const seed = randomSeed();
   const { ledger, summary } = resolveNight(input.state, input.actions, seed);
@@ -74,6 +74,33 @@ async function resolve(game: Game, night: number): Promise<InvalidAction[]> {
     `gravar a noite ${night}`,
   );
   return input.invalid;
+}
+
+/**
+ * Acaba o ciclo: ranking final pelo motor (RULES.md §5), com a seed do desempate gerada só agora, para não
+ * ser conhecida durante o ciclo. Grava o ranking em `rankings`: o ledger de cada um continua privado.
+ */
+async function finish(game: Game) {
+  const rows = check(
+    await db.from('ledger').select('player_id, delta, reason, target_id').eq('game_id', game.id).order('id'),
+    'ler o ledger',
+  );
+  const ledger: LedgerEntry[] = rows.map((r) => ({
+    playerId: r.player_id,
+    delta: r.delta,
+    reason: r.reason,
+    ...(r.target_id && { targetId: r.target_id }),
+  }));
+  // Entra também quem saiu a meio do ciclo e tem movimentos.
+  const everyone = [...new Set([...(await players(game.id)), ...ledger.map((e) => e.playerId)])];
+  const seed = randomSeed();
+  const ranking = finalRanking(everyone, ledger, seed).map((r) => ({
+    player_id: r.playerId,
+    rank: r.rank,
+    points: r.points,
+    successful_attacks: r.successfulAttacks,
+  }));
+  check(await db.rpc('finish_game', { p_game_id: game.id, p_seed: seed, p_ranking: ranking }), 'acabar o ciclo');
 }
 
 async function apply(game: Game, step: Step): Promise<InvalidAction[]> {
@@ -95,11 +122,7 @@ async function apply(game: Game, step: Step): Promise<InvalidAction[]> {
     case 'RESOLVE':
       return resolve(game, step.night);
     case 'FINISH':
-      // A seed do desempate só se grava agora, para não ser conhecida durante o ciclo.
-      check(
-        await db.from('games').update({ status: 'finished', seed: randomSeed() }).eq('id', game.id).eq('status', 'running'),
-        'acabar',
-      );
+      await finish(game);
       return [];
     case 'NEXT_CYCLE':
       check(await db.rpc('next_cycle', { p_game_id: game.id, p_start_date: step.startDate }), 'criar o ciclo seguinte');

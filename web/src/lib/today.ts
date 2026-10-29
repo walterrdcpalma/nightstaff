@@ -71,3 +71,18 @@ export const ERROR_TEXT: Record<ValidationError | 'NIGHT_CLOSED' | 'KEY_CHANGED'
 export function errorText(message: string): string {
   return message in ERROR_TEXT ? ERROR_TEXT[message as keyof typeof ERROR_TEXT] : 'Algo correu mal. Tenta outra vez.';
 }
+
+export interface TargetOption {
+  id: string;
+  name: string;
+  /** Alvo da minha Visita ou Reunião de ontem: não o posso atacar esta noite (RULES.md §2). */
+  blocked: boolean;
+}
+
+/** Alvos possíveis esta noite: todos menos eu, com o de ontem bloqueado. */
+export function targetOptions(players: { id: string; name: string }[], me: string, lastTarget: string | null): TargetOption[] {
+  return players.filter((p) => p.id !== me).map((p) => ({ id: p.id, name: p.name, blocked: p.id === lastTarget }));
+}
+
+/** Motivo do alvo bloqueado, para mostrar no botão. */
+export const BLOCKED_TARGET_TEXT = 'foste lá ontem: só depois de uma noite sem ir';

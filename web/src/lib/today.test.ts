@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACTION_TYPES } from '../../../engine/index.ts';
-import { ACTION_NAMES, choiceText, errorText, formatCountdown, nextLisbonMidnight, todayPhase } from './today.ts';
+import { ACTION_NAMES, choiceText, errorText, formatCountdown, nextLisbonMidnight, targetOptions, todayPhase } from './today.ts';
 
 describe('todayPhase', () => {
   const start = '2026-11-02';
@@ -70,5 +70,24 @@ describe('textos', () => {
     expect(errorText('NIGHT_CLOSED')).toBe('O prazo desta noite já fechou.');
     expect(errorText('SAME_TARGET')).toBe('Não podes ir à mesma casa duas noites seguidas.');
     expect(errorText('new row violates row-level security policy')).toBe('Algo correu mal. Tenta outra vez.');
+  });
+});
+
+describe('alvos (RULES.md §2)', () => {
+  const players = [
+    { id: 'a', name: 'Ana' },
+    { id: 'b', name: 'Bruno' },
+    { id: 'c', name: 'Carla' },
+  ];
+
+  it('nunca eu; o alvo de ontem aparece bloqueado', () => {
+    expect(targetOptions(players, 'a', 'b')).toEqual([
+      { id: 'b', name: 'Bruno', blocked: true },
+      { id: 'c', name: 'Carla', blocked: false },
+    ]);
+  });
+
+  it('sem ataque ontem, nada bloqueado', () => {
+    expect(targetOptions(players, 'a', null).every((t) => !t.blocked)).toBe(true);
   });
 });

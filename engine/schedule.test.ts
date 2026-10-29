@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { addDays, cycleDay } from './cycle.ts';
 import { resolveNight } from './resolveNight.ts';
 import { prepareNight, nextStep } from './schedule.ts';
-import type { CycleState, StoredAction } from './schedule.ts';
+import type { CycleState } from './schedule.ts';
+import type { PastAction } from './types.ts';
 
 describe('cycleDay e addDays', () => {
   it('contam dias de calendário, também depois do dia 11 e na mudança de hora', () => {
@@ -93,7 +94,7 @@ describe('nextStep', () => {
 
 describe('prepareNight', () => {
   const players = ['ana', 'bruno', 'carla'];
-  const a = (night: number, playerId: string, type: StoredAction['type'], targetId?: string): StoredAction => ({
+  const a = (night: number, playerId: string, type: PastAction['type'], targetId?: string): PastAction => ({
     night,
     playerId,
     type,

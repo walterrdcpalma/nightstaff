@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
 import type { Action, LedgerReason } from '../../../engine/index.ts';
-import { REASON_TEXT, caughtHeadline, formatDelta, historyGrid, listNames, morningHeadline, myResultLines } from './night.ts';
+import { REASON_TEXT, caughtHeadline, formatDelta, historyGrid, listNames, morningHeadline, myResultLines, privateReport } from './night.ts';
 
 const P = ['ana', 'bruno', 'carla', 'duarte', 'eva', 'filipe', 'gil', 'helena'];
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
@@ -77,6 +77,25 @@ describe('o meu resultado', () => {
     ];
     for (const r of reasons) expect(REASON_TEXT[r]).toBeTruthy();
     expect(formatDelta(-20)).toBe('−20');
+  });
+});
+
+describe('relatório privado da manhã', () => {
+  it('CENARIOS.md noite 2 pelo motor: cada um vê só o seu resultado e os seus pontos da noite', () => {
+    const { ledger } = summaryOf([atk('ana', 'helena'), atk('bruno', 'helena'), atk('carla', 'helena')], 2);
+    const mine = (p: string) =>
+      ledger.filter((e) => e.playerId === p).map((e) => ({ delta: e.delta, reason: e.reason, target_id: e.targetId ?? null }));
+    // A Helena sabe que foi atacada, mas não por quem.
+    expect(privateReport(mine('helena'), nameOf)).toEqual({ lines: ['😵 Atacaram-te em casa: −10'], total: '−10' });
+    const winner = ['ana', 'bruno', 'carla'].find((p) => mine(p)[0].reason === 'ATTACK_DRAW_WON')!;
+    expect(privateReport(mine(winner), nameOf)).toEqual({
+      lines: ['🗡️ Ganhaste o sorteio da Visita surpresa (Helena): +10'],
+      total: '+10',
+    });
+  });
+
+  it('sem movimentos: noite tranquila e 0 pontos', () => {
+    expect(privateReport([], nameOf)).toEqual({ lines: ['🌙 Noite tranquila: nada a registar.'], total: '0' });
   });
 });
 

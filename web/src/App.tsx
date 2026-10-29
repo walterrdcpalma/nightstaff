@@ -41,7 +41,7 @@ export default function App() {
           </nav>
           {tab === 'today' && <Today userId={session.user.id} />}
           {tab === 'morning' && <Morning userId={session.user.id} />}
-          {tab === 'neighborhood' && <Neighborhood userId={session.user.id} />}
+          {tab === 'neighborhood' && <Neighborhood />}
           {tab === 'points' && <Points userId={session.user.id} />}
         </>
       ) : (

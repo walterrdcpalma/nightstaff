@@ -49,13 +49,14 @@ CLAUDE.md
 | `game_players` | game_id, player_id | Todos. Escrita só pelo próprio, só com `status = prep` |
 | `actions` | game_id, night, player_id, type, target_id; único (game_id, night, player_id) | **Só o próprio** |
 | `nights` | game_id, night, seed, resolved_at, summary jsonb | Todos, depois de resolvida |
-| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio**; todos quando `games.status = finished` |
+| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio, sempre** (também depois do dia 11) |
+| `rankings` | game_id, player_id, rank, points, successful_attacks | Todos, só quando `games.status = finished` |
 
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
   - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00.
   - Nada mais é exposto.
-- O ranking é a soma do `ledger`. Durante o jogo, cada jogador só vê a sua soma, e o ranking completo só no dia 11.
+- Os pontos são `50 + soma do ledger`. Cada jogador só vê os seus. O ranking completo só no dia 11: a `resolve-night` calcula-o no fim do ciclo (`finalRanking`) e grava-o em `rankings`, porque o ledger dos outros nunca chega ao browser.
 - O `nights.summary` é **público** (RULES.md §4 v5): só `players` (casa/fora de cada um) e `caught` (apanhados, sem dizer onde). Nada de pontos, ataques recebidos, defesas, sorteios, bombas, assaltos ou bónus.
 - O que aconteceu a cada jogador é **privado** e vem do seu próprio `ledger`. As razões chegam para isso: `VICTIM` (atacado em casa), `BOMBED`, `BURGLARY_VICTIM`, `ATTACK_DRAW_WON`/`ATTACK_LOST_DRAW` (sorteio), `DEFENSE` (uma linha por apanhado, com `target_id`) e `HOME_BONUS`.
 
@@ -68,7 +69,7 @@ CLAUDE.md
   - No dia a seguir à resolução, cria o próximo ciclo em `prep`, copiando os inscritos.
 - O cálculo da fase e do dia do ciclo a partir das datas é uma função pura no `engine/`: `nextStep` (próximo passo do ciclo mais recente, repetido até não haver nada a fazer) e `prepareNight` (ações inválidas → `STAY`, com log).
 - A função usa a `service_role`, que **só existe na Edge Function** e nunca no `web/`.
-- Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger) e `next_cycle` (novo ciclo + inscritos). O ciclo mais recente é o de maior `games.id`.
+- Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger), `finish_game` (fim do ciclo + seed do desempate + `rankings`) e `next_cycle` (novo ciclo + inscritos). O ciclo mais recente é o de maior `games.id`.
 - O `pg_cron` lê o URL e a chave de dois segredos do **Vault**, `project_url` e `service_role_key`, criados à mão pelo Walter em cada projeto.
 
 ## UI
@@ -77,8 +78,8 @@ CLAUDE.md
   - Janela/ouro `#F5C542`, perigo `#E5484D`, defesa `#4C8DFF`.
 - **Ecrãs:**
   - Hoje: escolha, quotas restantes, contagem até às 23:59.
-  - Manhã: resumo da noite.
-  - Bairro/Histórico: uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite.
+  - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As noites e os ciclos anteriores continuam consultáveis.
+  - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
   - Os meus pontos (durante o jogo) e o ranking final (só no dia 11).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
 - **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Reunião de emergência). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
@@ -88,7 +89,8 @@ CLAUDE.md
   - Tema: as variáveis do neobrutalism.dev em `web/src/index.css`, com a paleta acima. Contornos e sombras claros (`#F4F1E8`), para se verem no fundo escuro. Títulos em Archivo Black.
   - A lógica pura de cada ecrã fica em `web/src/lib/` e testa-se no Vitest. O web importa o `engine/` por caminho relativo.
   - Leituras partilhadas em `web/src/lib/data.ts`: um erro lança e o ecrã mostra `LoadError` ("Espreitar outra vez"), nunca um estado vazio. Ecrãs em abas (Hoje, Manhã, Bairro, Pontos), sem router. O `useLoad` ignora respostas de leituras antigas.
-  - Pontos: o ranking usa o `finalRanking` do `engine/` com a `games.seed`, e só aparece com `status = finished`. Durante a preparação do ciclo seguinte, mostra o ciclo anterior.
+  - Pontos: o ranking vem da tabela `rankings` (a RLS só a mostra com `status = finished`). Durante a preparação do ciclo seguinte, mostra o ciclo anterior.
+  - Hoje: o alvo da minha Visita ou Reunião de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
   - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
 - **Auth:** o registo fecha-se com `[auth] enable_signup = false`. Não pôr `false` em `[auth.email]`, que desliga também o magic link.
   - O magic link volta para `window.location.origin`: o URL do site (dev e produção) tem de estar em *Site URL* / *Redirect URLs* no painel do Supabase. No local já está no `config.toml` (`http://localhost:5173`).
@@ -113,8 +115,8 @@ npm run demo:dia    # avança 1 dia (passagem de noite, dia 11, ciclo seguinte)
 3. O que ver (6 jogadores: Walter, Ana, Bruno, Carla, Duarte e Eva; as noites são jogadas pelos bots do `sim/` e resolvidas pela `resolve-night`):
    - **`meio`** (noite 5 a decorrer, o Walter ainda não escolheu):
      - **Hoje:** escolha, quotas já gastas e contagem até às 23:59.
-     - **Manhã:** a noite 4.
-     - **Bairro:** as janelas das noites 1 a 4. Pelos bots, há sorteio, um apanhado, bomba e assalto a uma casa vazia, que cada um vê no seu resultado privado; o público só tem casa/fora e os apanhados.
+     - **Manhã:** o relatório privado do Walter na noite 4 e as manchetes; as noites 1 a 3 com um toque. Pelos bots, há sorteio, um apanhado, bomba e assalto a uma casa vazia, cada um no relatório de quem o viveu.
+     - **Bairro:** só as janelas (casa/fora) das noites 1 a 4.
      - **Pontos:** só os do Walter.
    - **`demo:noite`** resolve a noite 5 e abre a 6. Repetido, chega ao dia 11. **`demo:dia`** passa um dia sem preencher escolhas.
    - **`terminado`** (dia 11):

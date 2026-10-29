@@ -28,57 +28,83 @@ async function loadCycle(game: Game): Promise<Cycle> {
 /** "Ciclo de 3/11". */
 const cycleLabel = (g: Game) => `Ciclo de ${Number(g.start_date.slice(8))}/${Number(g.start_date.slice(5, 7))}`;
 
-/** Manhã: o resumo da última noite resolvida. */
-export function Morning({ userId }: { userId: string }) {
-  const { data, error, reload } = useLoad(useCallback(loadCycles, []));
-  const latest = data?.cycles[0];
-  const cycle = useLoad(useCallback(() => (latest ? loadCycle(latest) : Promise.resolve(null)), [latest]));
-
-  if (error || cycle.error) return <LoadError onRetry={error ? reload : cycle.reload} />;
-  if (!data || cycle.data === undefined) return <p>A abrir as persianas…</p>;
-  if (!cycle.data) return <Note title="Ainda é cedo">Ainda nenhuma noite foi resolvida. Volta amanhã de manhã.</Note>;
-  const last = cycle.data.nights[cycle.data.nights.length - 1];
-  return <NightView gameId={cycle.data.game.id} night={last} names={data.names} userId={userId} />;
+/** Botões de escolha do ciclo, quando há mais do que um com noites resolvidas. */
+function CyclePicker(props: { cycles: Game[]; current: number; onPick: (id: number) => void }) {
+  if (props.cycles.length < 2) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {props.cycles.map((g) => (
+        <Button key={g.id} size="sm" variant={g.id === props.current ? 'default' : 'neutral'} onClick={() => props.onPick(g.id)}>
+          {cycleLabel(g)}
+        </Button>
+      ))}
+    </div>
+  );
 }
 
-/** Bairro/Histórico: uma casa por jogador e a janela de cada noite; toca numa noite para ver o resumo. */
-export function Neighborhood({ userId }: { userId: string }) {
-  const { data, error, reload } = useLoad(useCallback(loadCycles, []));
+/** Ciclo escolhido (por omissão, o mais recente com noites) e as suas noites. */
+function useCycle() {
+  const cycles = useLoad(useCallback(loadCycles, []));
   const [gameId, setGameId] = useState<number | null>(null);
-  const game = data?.cycles.find((g) => g.id === gameId) ?? data?.cycles[0];
+  const game = cycles.data?.cycles.find((g) => g.id === gameId) ?? cycles.data?.cycles[0];
   const cycle = useLoad(useCallback(() => (game ? loadCycle(game) : Promise.resolve(null)), [game]));
+  return { cycles, cycle, setGameId };
+}
+
+/**
+ * Manhã: o meu relatório privado da noite e as manchetes públicas. Por omissão, a última noite resolvida;
+ * as anteriores (e os ciclos anteriores) continuam consultáveis, com as mesmas regras (RULES.md §4).
+ */
+export function Morning({ userId }: { userId: string }) {
+  const { cycles, cycle, setGameId } = useCycle();
   const [picked, setPicked] = useState<number | null>(null);
 
-  if (error || cycle.error) return <LoadError onRetry={error ? reload : cycle.reload} />;
-  if (!data || cycle.data === undefined) return <p>A percorrer a rua…</p>;
-  if (!cycle.data) return <Note title="Rua por estrear">Ainda nenhuma noite foi resolvida.</Note>;
+  if (cycles.error || cycle.error) return <LoadError onRetry={cycles.error ? cycles.reload : cycle.reload} />;
+  if (!cycles.data || cycle.data === undefined) return <p>A abrir as persianas…</p>;
+  if (!cycle.data) return <Note title="Ainda é cedo">Ainda nenhuma noite foi resolvida. Volta amanhã de manhã.</Note>;
 
-  const { nights, enrolled } = cycle.data;
-  const nameOf = (id: string) => data.names.get(id) ?? '?';
-  const grid = [...historyGrid(enrolled, nights)].sort(([a], [b]) => nameOf(a).localeCompare(nameOf(b)));
+  const { game, nights } = cycle.data;
   const shown = nights.find((n) => n.night === picked) ?? nights[nights.length - 1];
-
   return (
-    <div className="flex flex-col gap-6">
-      {data.cycles.length > 1 && (
+    <div className="flex flex-col gap-4">
+      <CyclePicker
+        cycles={cycles.data.cycles}
+        current={game.id}
+        onPick={(id) => {
+          setGameId(id);
+          setPicked(null);
+        }}
+      />
+      {nights.length > 1 && (
         <div className="flex flex-wrap gap-2">
-          {data.cycles.map((g) => (
-            <Button
-              key={g.id}
-              size="sm"
-              variant={g.id === cycle.data!.game.id ? 'default' : 'neutral'}
-              onClick={() => {
-                setGameId(g.id);
-                setPicked(null);
-              }}
-            >
-              {cycleLabel(g)}
+          {nights.map((n) => (
+            <Button key={n.night} size="sm" variant={n.night === shown.night ? 'default' : 'neutral'} onClick={() => setPicked(n.night)}>
+              Noite {n.night}
             </Button>
           ))}
         </div>
       )}
+      <NightView gameId={game.id} night={shown} names={cycles.data.names} userId={userId} />
+    </div>
+  );
+}
 
-      <Note title={`🏘️ O bairro · ${cycleLabel(cycle.data.game)}`}>
+/** Bairro/Histórico: só casa/fora. Uma casa por jogador e a janela de cada noite, nunca as ações (RULES.md §4). */
+export function Neighborhood() {
+  const { cycles, cycle, setGameId } = useCycle();
+
+  if (cycles.error || cycle.error) return <LoadError onRetry={cycles.error ? cycles.reload : cycle.reload} />;
+  if (!cycles.data || cycle.data === undefined) return <p>A percorrer a rua…</p>;
+  if (!cycle.data) return <Note title="Rua por estrear">Ainda nenhuma noite foi resolvida.</Note>;
+
+  const { game, nights, enrolled } = cycle.data;
+  const nameOf = (id: string) => cycles.data!.names.get(id) ?? '?';
+  const grid = [...historyGrid(enrolled, nights)].sort(([a], [b]) => nameOf(a).localeCompare(nameOf(b)));
+
+  return (
+    <div className="flex flex-col gap-6">
+      <CyclePicker cycles={cycles.data.cycles} current={game.id} onPick={setGameId} />
+      <Note title={`🏘️ O bairro · ${cycleLabel(game)}`}>
         <table className="w-full table-fixed border-separate border-spacing-0.5 text-sm">
           <colgroup>
             <col className="w-16" />
@@ -86,20 +112,11 @@ export function Neighborhood({ userId }: { userId: string }) {
           <thead>
             <tr>
               <th />
-              {Array.from({ length: 9 }, (_, i) => {
-                const resolved = nights.some((n) => n.night === i + 1);
-                return (
-                  <th key={i}>
-                    <button
-                      disabled={!resolved}
-                      onClick={() => setPicked(i + 1)}
-                      className={cn('w-full font-heading', shown.night === i + 1 && 'text-main', !resolved && 'opacity-40')}
-                    >
-                      {i + 1}
-                    </button>
-                  </th>
-                );
-              })}
+              {Array.from({ length: 9 }, (_, i) => (
+                <th key={i} className={cn('font-heading', !nights.some((n) => n.night === i + 1) && 'opacity-40')}>
+                  {i + 1}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -115,10 +132,8 @@ export function Neighborhood({ userId }: { userId: string }) {
             ))}
           </tbody>
         </table>
-        <p className="mt-3 text-xs">🟨 janela acesa: em casa · ⬛ apagada: fora</p>
+        <p className="mt-3 text-xs">🟨 janela acesa: em casa · ⬛ apagada: fora. O que cada um fez fica entre ele e a noite.</p>
       </Note>
-
-      <NightView gameId={cycle.data.game.id} night={shown} names={data.names} userId={userId} />
     </div>
   );
 }

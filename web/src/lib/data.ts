@@ -1,7 +1,7 @@
 // Leituras partilhadas pelos ecrãs, como o jogador com sessão (RLS). Um erro lança: o ecrã mostra-o.
 import type { NightSummary } from '../../../engine/index.ts';
 import type { MyEntry } from './night.ts';
-import type { LedgerRow } from './points.ts';
+import type { LedgerRow, RankingDbRow } from './points.ts';
 import { supabase } from './supabase.ts';
 import type { GameStatus } from './today.ts';
 
@@ -64,7 +64,12 @@ export async function loadMyEntries(gameId: number, night: number, userId: strin
   );
 }
 
-/** Ledger de um ciclo: a RLS só mostra o meu durante o ciclo, e o de todos com o ciclo acabado. */
+/** O meu ledger de um ciclo: a RLS só mostra o meu, sempre (RULES.md §4 v5). */
 export async function loadLedger(gameId: number): Promise<LedgerRow[]> {
   return ok(await supabase.from('ledger').select('night, player_id, delta, reason, target_id').eq('game_id', gameId).order('id'));
+}
+
+/** Ranking final de um ciclo acabado (a RLS esconde-o durante o ciclo). */
+export async function loadRanking(gameId: number): Promise<RankingDbRow[]> {
+  return ok(await supabase.from('rankings').select('player_id, rank, points, successful_attacks').eq('game_id', gameId));
 }

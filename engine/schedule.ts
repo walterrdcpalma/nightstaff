@@ -48,9 +48,6 @@ export function nextStep(game: CycleState, today: string): Step | null {
   }
 }
 
-/** Ação guardada, com a noite. */
-export type StoredAction = PastAction;
-
 export interface InvalidAction {
   night: number;
   action: Action;
@@ -70,7 +67,7 @@ export interface NightInput {
  * Uma ação inválida não bloqueia a noite: fica de fora (STAY) e vem em `invalid`.
  * As quotas contam só as ações válidas das noites anteriores, validadas noite a noite.
  */
-export function prepareNight(players: PlayerId[], stored: StoredAction[], night: number): NightInput {
+export function prepareNight(players: PlayerId[], stored: PastAction[], night: number): NightInput {
   if (!Number.isInteger(night) || night < 1 || night > NIGHTS) {
     throw new RangeError(`Noite inválida: ${night} (esperado 1 a ${NIGHTS})`);
   }

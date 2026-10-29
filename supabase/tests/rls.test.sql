@@ -2,7 +2,7 @@
 -- Jogadores: Ana (…a), Bruno (…b), Carla (…c) e Dina (…d, fora do jogo 1).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(61);
 
 -- Fixtures, como postgres (sem RLS).
 insert into auth.users (id, email) values
@@ -54,6 +54,12 @@ insert into public.ledger (game_id, night, player_id, delta, reason, target_id) 
   (1, 1, '00000000-0000-0000-0000-00000000000b', -10, 'VICTIM', null),
   (3, 1, '00000000-0000-0000-0000-00000000000a', 10, 'ATTACK_SUCCESS', '00000000-0000-0000-0000-00000000000b'),
   (3, 1, '00000000-0000-0000-0000-00000000000b', -10, 'VICTIM', null);
+
+-- Ranking final do ciclo acabado (3) e um ranking indevido num ciclo a correr (1), para a RLS o esconder.
+insert into public.rankings (game_id, player_id, rank, points, successful_attacks) values
+  (3, '00000000-0000-0000-0000-00000000000a', 1, 60, 1),
+  (3, '00000000-0000-0000-0000-00000000000b', 2, 40, 0),
+  (1, '00000000-0000-0000-0000-00000000000a', 1, 60, 1);
 
 -- ── Ana ──────────────────────────────────────────────────────────────────────
 set local role authenticated;
@@ -125,7 +131,13 @@ select is((select array_agg(night)::int[] from public.nights), '{1}'::int[], 's�
 select is((select count(*)::int from public.ledger where game_id = 1 and player_id <> auth.uid()), 0,
   'não vê pontos dos outros durante o ciclo');
 select is((select sum(delta)::int from public.ledger where game_id = 1), 10, 'vê os seus pontos');
-select is((select count(*)::int from public.ledger where game_id = 3), 2, 'vê os pontos de todos no fim do ciclo');
+select is((select count(*)::int from public.ledger where game_id = 3 and player_id <> auth.uid()), 0,
+  'nem no fim do ciclo vê o ledger dos outros (privado para sempre)');
+select is((select count(*)::int from public.rankings where game_id = 3), 2, 'vê o ranking final de um ciclo acabado');
+select is((select count(*)::int from public.rankings where game_id = 1), 0, 'não vê o ranking de um ciclo a correr');
+select throws_ok(
+  $$insert into public.rankings values (1, '00000000-0000-0000-0000-00000000000a', 1, 100, 9)$$,
+  '42501', null, 'não escreve rankings');
 -- Só os jogadores deste teste: o seed.sql pode ter outros.
 select is((select count(*)::int from public.players where id in (
   '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b',
