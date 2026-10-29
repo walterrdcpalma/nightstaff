@@ -3,7 +3,7 @@
 Webapp para um grupo de amigos (número variável, mínimo 3), em ciclos de 11 dias (RULES.md §1). Regras em **`RULES.md`**, que é a fonte da verdade. Objetivo: **a solução mais simples que funcione.** Não adicionar features, abstrações nem dependências que não sejam pedidas.
 
 ## Stack
-- **Frontend:** React + Vite + TypeScript + Tailwind + **8bitcn** (componentes pixel-art sobre shadcn/ui). Fonte dos títulos: Press Start 2P.
+- **Frontend:** React + Vite + TypeScript + Tailwind + **neobrutalism.dev** (componentes neo-brutalistas sobre shadcn/ui: contornos grossos, sombras duras, cores fortes). Instalar os componentes pela CLI do shadcn, como indicado em neobrutalism.dev. Sem fontes pixel; usar uma fonte sans-serif forte nos títulos.
 - **Backend:** Supabase.
   - Postgres + Auth (magic link, registo público desligado, os 8 jogadores são convidados).
   - RLS.
