@@ -1,5 +1,8 @@
 {
   "permissions": {
     "deny": ["Edit(RULES.md)", "Write(RULES.md)", "Bash(git push origin main*)"]
+  },
+  "sandbox": {
+    "excludedCommands": ["git *", "gh *", "docker *", "npx supabase *"]
   }
 }
