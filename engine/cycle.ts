@@ -21,13 +21,23 @@ function dayNumber(date: string): number {
   return ms / DAY_MS;
 }
 
+/** Dia do ciclo que começa em `startDate` (dia 1). Sem limites: dá 12 no dia a seguir à resolução. */
+export function cycleDay(startDate: string, today: string): number {
+  return dayNumber(today) - dayNumber(startDate) + 1;
+}
+
+/** `date` mais `days` dias, em `YYYY-MM-DD`. */
+export function addDays(date: string, days: number): string {
+  return new Date((dayNumber(date) + days) * DAY_MS).toISOString().slice(0, 10);
+}
+
 /**
  * Fase e dia do ciclo (RULES.md §1). `startDate` é o dia 1 (preparação) e `today` o dia atual,
  * ambos `YYYY-MM-DD` em hora de Lisboa (ver `lisbonDate`).
  * Fora do ciclo (antes do dia 1 ou depois do dia 11) lança erro: o ciclo seguinte é outro jogo.
  */
 export function cyclePhase(startDate: string, today: string): CyclePhase {
-  const day = dayNumber(today) - dayNumber(startDate) + 1;
+  const day = cycleDay(startDate, today);
   if (day < 1 || day > CYCLE_DAYS) {
     throw new RangeError(`${today} está fora do ciclo que começa a ${startDate} (dia ${day})`);
   }

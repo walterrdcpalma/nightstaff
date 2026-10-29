@@ -6,7 +6,7 @@
     "test": "vitest run",
     "lint": "eslint . && tsc --noEmit",
     "sim": "node sim/run.ts",
-    "test:db": "supabase test db"
+    "test:db": "supabase test db && SUPABASE_E2E=1 vitest run supabase"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
