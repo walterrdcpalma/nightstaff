@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { loadGames, loadLedger, loadNames, loadRanking } from '@/lib/data';
 import type { Game } from '@/lib/data';
-import { attacksText, movementsByNight, points, rankingRows, rankingVisible } from '@/lib/points';
+import { TIEBREAK_TEXT, attacksText, movementsByNight, points, rankingRows, rankingVisible } from '@/lib/points';
 import type { LedgerRow, RankingDbRow } from '@/lib/points';
 import { cn } from '@/lib/utils';
 import { LoadError, Note, useLoad } from './Note.tsx';
@@ -16,18 +16,18 @@ interface Data {
   ranking: RankingDbRow[];
 }
 
-/** A partida a mostrar: a mais recente das minhas salas (a escolha da sala chega com a T10). */
-async function load(): Promise<Data> {
-  const [games, names] = await Promise.all([loadGames(), loadNames()]);
+/** A partida a mostrar: a mais recente que joguei nesta sala (depois de Reiniciar, a anterior até Começar). */
+async function load(roomId: number): Promise<Data> {
+  const [games, names] = await Promise.all([loadGames(roomId), loadNames()]);
   const game = games[0] ?? null;
   if (!game) return { game: null, names, ledger: [], ranking: [] };
   const [ledger, ranking] = await Promise.all([loadLedger(game.id), loadRanking(game.id)]);
   return { game, names, ledger, ranking };
 }
 
-/** Os meus pontos e movimentos; no dia 11, o ranking final e o Funcionário do Mês. */
-export default function Points({ userId }: { userId: string }) {
-  const { data, error, reload } = useLoad(useCallback(load, []));
+/** Os meus pontos e movimentos; com a partida acabada, o ranking final e o Funcionário do Mês. */
+export default function Points({ userId, roomId }: { userId: string; roomId: number }) {
+  const { data, error, reload } = useLoad(useCallback(() => load(roomId), [roomId]));
   if (error) return <LoadError onRetry={reload} />;
   if (!data) return <p>A fazer as contas…</p>;
   if (!data.game) {
@@ -79,7 +79,7 @@ function Ranking(props: { ranking: RankingDbRow[]; userId: string; nameOf: (id: 
         <p className="font-heading text-3xl text-main">{winner.name}</p>
         <p>
           {winner.points} pontos, {attacksText(winner.successfulAttacks)}.
-          {winner.tiebreak && ' Decidido no desempate.'}
+          {winner.tiebreak && ` Decidido no desempate (${TIEBREAK_TEXT[winner.tiebreak]}).`}
         </p>
       </Note>
       <Note title="📋 Ranking final">
@@ -96,7 +96,7 @@ function Ranking(props: { ranking: RankingDbRow[]; userId: string; nameOf: (id: 
                 {r.rank}. {r.name}
               </span>
               <span className="flex items-center gap-2">
-                {r.tiebreak && <Badge variant="neutral">desempate</Badge>}
+                {r.tiebreak && <Badge variant="neutral">{r.tiebreak === 'ATTACKS' ? 'desempate: ataques' : 'desempate'}</Badge>}
                 <span className="tabular-nums">{r.points}</span>
               </span>
             </li>
