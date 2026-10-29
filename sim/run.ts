@@ -51,7 +51,7 @@ export function formatTable(players: number, reports: { name: string; report: Re
     row('Bombas: alvo em casa / alvo fora / defesa', (r) => `${f1(r.bombOutcomePct.home)} / ${f1(r.bombOutcomePct.away)} / ${f1(r.bombOutcomePct.defended)} %`),
     row('Funcionário do Mês decidido no desempate', (r) => fp(r.tiebreakWinPct)),
     row('Viragem na noite 9 (o vencedor não liderava antes)', (r) => fp(r.lastNightSwingPct)),
-    row('Ações: Folga / Segurança / Visita / Reunião', (r) => `${f1(r.actionPct.STAY)} / ${f1(r.actionPct.DEFEND)} / ${f1(r.actionPct.ATTACK)} / ${f1(r.actionPct.BOMB)} %`),
+    row('Ações: Folga / Segurança / Visita / Reunião / Desaparecer', (r) => `${f1(r.actionPct.STAY)} / ${f1(r.actionPct.DEFEND)} / ${f1(r.actionPct.ATTACK)} / ${f1(r.actionPct.BOMB)} / ${f1(r.actionPct.VANISH)} %`),
   ];
 
   for (const { name, report } of reports) {

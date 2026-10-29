@@ -45,6 +45,7 @@ export const ACTION_NAMES: Record<ActionType, string> = {
   DEFEND: '🛡️ Segurança',
   ATTACK: '🗡️ Visita surpresa',
   BOMB: '💣 Reunião de emergência',
+  VANISH: '🫥 Desaparecer',
 };
 
 /** Texto da escolha feita, ex.: "🗡️ Visita surpresa a Bruno". */
@@ -60,6 +61,7 @@ export const ERROR_TEXT: Record<ValidationError | 'NIGHT_CLOSED' | 'KEY_CHANGED'
   UNEXPECTED_TARGET: 'Essa ação não tem alvo.',
   SELF_TARGET: 'Não podes ir a tua própria casa.',
   UNKNOWN_TARGET: 'Essa pessoa não está neste ciclo.',
+  SAME_TARGET: 'Não podes ir à mesma casa duas noites seguidas.',
   QUOTA_EXHAUSTED: 'Já gastaste essa ação neste ciclo.',
   NIGHT_CLOSED: 'O prazo desta noite já fechou.',
   KEY_CHANGED: 'Não se pode mudar a noite de uma escolha.',

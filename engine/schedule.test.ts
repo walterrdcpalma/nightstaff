@@ -103,7 +103,11 @@ describe('prepareNight', () => {
   it('passa as ações válidas da noite e as anteriores como pastActions', () => {
     const stored = [a(1, 'ana', 'ATTACK', 'bruno'), a(2, 'ana', 'DEFEND'), a(2, 'bruno', 'STAY')];
     const input = prepareNight(players, stored, 2);
-    expect(input.state).toEqual({ players, night: 2, pastActions: [{ playerId: 'ana', type: 'ATTACK', targetId: 'bruno' }] });
+    expect(input.state).toEqual({
+      players,
+      night: 2,
+      pastActions: [{ playerId: 'ana', type: 'ATTACK', targetId: 'bruno', night: 1 }],
+    });
     expect(input.actions.map((x) => x.playerId)).toEqual(['ana', 'bruno']);
     expect(input.invalid).toEqual([]);
   });
@@ -127,12 +131,19 @@ describe('prepareNight', () => {
     const stored = [
       a(1, 'ana', 'ATTACK', 'dina'), // inválida: não gasta quota
       a(2, 'ana', 'ATTACK', 'bruno'),
-      a(3, 'ana', 'ATTACK', 'bruno'),
+      a(3, 'ana', 'ATTACK', 'carla'),
       a(4, 'ana', 'ATTACK', 'bruno'),
-      a(5, 'ana', 'ATTACK', 'bruno'),
+      a(5, 'ana', 'ATTACK', 'carla'),
     ];
     expect(prepareNight(players, stored, 4).invalid).toEqual([]);
     expect(prepareNight(players, stored, 5).invalid.map((x) => x.error)).toEqual(['QUOTA_EXHAUSTED']);
+  });
+
+  it('alvo repetido em noites seguidas: a ação é inválida (STAY), e a seguinte volta a poder atacá-lo', () => {
+    const stored = [a(1, 'ana', 'ATTACK', 'bruno'), a(2, 'ana', 'ATTACK', 'bruno'), a(3, 'ana', 'ATTACK', 'bruno')];
+    expect(prepareNight(players, stored, 2).invalid.map((x) => x.error)).toEqual(['SAME_TARGET']);
+    // A da noite 2 ficou STAY, por isso na noite 3 a Ana pode voltar ao Bruno.
+    expect(prepareNight(players, stored, 3).invalid).toEqual([]);
   });
 
   it('ação duplicada: fica a primeira', () => {

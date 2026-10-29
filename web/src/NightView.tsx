@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { loadMyEntries } from '@/lib/data';
 import type { ResolvedNight } from '@/lib/data';
-import { morningHeadline, myResultLines, playerLines } from '@/lib/night';
+import { caughtHeadline, morningHeadline, myResultLines } from '@/lib/night';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
-/** Resumo público de uma noite (RULES.md §4) e o meu resultado, que só eu vejo. */
+/** Resumo público de uma noite (RULES.md §4: casa/fora e apanhados) e o meu resultado, que só eu vejo. */
 export function NightView(props: { gameId: number; night: ResolvedNight; names: Map<string, string>; userId: string }) {
   const { gameId, night, names, userId } = props;
   const nameOf = (id: string) => names.get(id) ?? '?';
@@ -27,6 +27,8 @@ export function NightView(props: { gameId: number; night: ResolvedNight; names: 
         )}
       </Note>
 
+      {caughtHeadline(night.summary, nameOf) && <p className="font-heading text-danger">{caughtHeadline(night.summary, nameOf)}</p>}
+
       <ul className="flex flex-col gap-3">
         {players.map((s) => (
           <li key={s.playerId} className="rounded-base border-2 border-border bg-secondary-background p-3 shadow-shadow">
@@ -34,11 +36,6 @@ export function NightView(props: { gameId: number; night: ResolvedNight; names: 
               {s.location === 'HOME' ? '🪟' : '🌑'} {nameOf(s.playerId)}{' '}
               <span className="font-base text-sm">{s.location === 'HOME' ? 'em casa' : 'fora'}</span>
             </p>
-            {playerLines(s, nameOf).map((l) => (
-              <p key={l} className="text-sm">
-                {l}
-              </p>
-            ))}
           </li>
         ))}
       </ul>

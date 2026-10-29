@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
-import type { Action, LedgerReason, PlayerNightSummary } from '../../../engine/index.ts';
-import { REASON_TEXT, formatDelta, historyGrid, listNames, morningHeadline, myResultLines, playerLines } from './night.ts';
+import type { Action, LedgerReason } from '../../../engine/index.ts';
+import { REASON_TEXT, caughtHeadline, formatDelta, historyGrid, listNames, morningHeadline, myResultLines } from './night.ts';
 
 const P = ['ana', 'bruno', 'carla', 'duarte', 'eva', 'filipe', 'gil', 'helena'];
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
@@ -10,14 +10,13 @@ const bomb = (playerId: string, targetId: string): Action => ({ playerId, type: 
 
 /** Resumo real do motor para uma noite. */
 function summaryOf(actions: Action[], night = 1) {
-  const { summary } = resolveNight({ players: P, night, pastActions: [] }, actions, 1);
-  const of = (id: string) => summary.players.find((s) => s.playerId === id)!;
-  return { summary, lines: (id: string) => playerLines(of(id), nameOf) };
+  const { summary, ledger } = resolveNight({ players: P, night, pastActions: [] }, actions, 1);
+  return { summary, ledger };
 }
 
-describe('resumo da manhã (RULES.md §4, cenários do CENARIOS.md)', () => {
-  it('noite 1: ataque anónimo, defesa revela o atacante, bónus de casa', () => {
-    const { summary, lines } = summaryOf([
+describe('resumo público da manhã (RULES.md §4 v5, cenários do CENARIOS.md)', () => {
+  it('noite 1: casa/fora e a Carla apanhada, sem dizer onde', () => {
+    const { summary } = summaryOf([
       atk('ana', 'bruno'),
       atk('carla', 'duarte'),
       { playerId: 'duarte', type: 'DEFEND' },
@@ -25,48 +24,29 @@ describe('resumo da manhã (RULES.md §4, cenários do CENARIOS.md)', () => {
       atk('filipe', 'gil'),
     ]);
     expect(morningHeadline(1, summary)).toBe('Noite 1: 4 em casa, 4 fora.');
-    expect(lines('bruno')).toEqual(['🗡️ 1 Visita surpresa.']);
-    expect(lines('duarte')).toEqual(['🛡️ A Segurança apanhou Carla.']);
-    expect(lines('filipe')).toEqual(['🗡️ 1 Visita surpresa.']); // assaltado fora de casa
-    expect(lines('helena')).toEqual(['✨ Noite tranquila: bónus de casa.']);
-    expect(lines('ana')).toEqual([]); // não se diz quem atacou quem
+    expect(caughtHeadline(summary, nameOf)).toBe('🚨 A Segurança apanhou Carla a meio de uma visita.');
   });
 
-  it('noite 2: sorteio só com os números, sem nomes', () => {
-    const { lines } = summaryOf([atk('ana', 'helena'), atk('bruno', 'helena'), atk('carla', 'helena')]);
-    expect(lines('helena')).toEqual(['🗡️ 3 atacantes, houve sorteio.']);
+  it('noite 2: sorteio, assaltos e bónus não aparecem no público', () => {
+    const { summary } = summaryOf([atk('ana', 'helena'), atk('bruno', 'helena'), atk('carla', 'helena')]);
+    expect(caughtHeadline(summary, nameOf)).toBeNull();
+    expect(morningHeadline(2, summary)).toBe('Noite 2: 5 em casa, 3 fora.');
   });
 
-  it('noite 3: bombas só com os números; defesa revela também o bombista', () => {
-    const { lines } = summaryOf([
-      bomb('ana', 'gil'),
-      atk('bruno', 'gil'),
-      atk('carla', 'gil'),
-      bomb('duarte', 'helena'),
-      { playerId: 'helena', type: 'DEFEND' },
-    ]);
-    expect(lines('gil')).toEqual(['🗡️ 2 Visitas surpresa.', '💣 1 Reunião de emergência.']);
-    expect(lines('helena')).toEqual(['🛡️ A Segurança apanhou Duarte.']);
+  it('noite 4: vários apanhados na mesma manchete', () => {
+    const { summary } = summaryOf([atk('ana', 'duarte'), { playerId: 'duarte', type: 'DEFEND' }, atk('eva', 'duarte')]);
+    expect(caughtHeadline(summary, nameOf)).toBe('🚨 A Segurança apanhou Ana e Eva a meio de uma visita.');
   });
 
-  it('defesa contra vários revela todos', () => {
-    const s: PlayerNightSummary = {
-      playerId: 'duarte',
-      location: 'HOME',
-      attacks: 2,
-      bombs: 1,
-      defended: true,
-      revealedAttackers: ['ana', 'eva', 'gil'],
-      draw: false,
-      homeBonus: false,
-    };
-    expect(playerLines(s, nameOf)).toEqual(['🛡️ A Segurança apanhou Ana, Eva e Gil.']);
+  it('Desaparecer conta como fora', () => {
+    const { summary } = summaryOf([{ playerId: 'ana', type: 'VANISH' }]);
+    expect(morningHeadline(1, summary)).toBe('Noite 1: 7 em casa, 1 fora.');
   });
 
-  it('o resumo nunca mostra pontos', () => {
+  it('nada do público tem pontos nem ações', () => {
     const { summary } = summaryOf([bomb('ana', 'gil'), atk('bruno', 'gil'), atk('carla', 'duarte')], 9);
-    const all = summary.players.flatMap((s) => playerLines(s, nameOf)).join(' ');
-    expect(all).not.toMatch(/[+−-]\d|pontos/);
+    const text = [morningHeadline(9, summary), caughtHeadline(summary, nameOf) ?? ''].join(' ');
+    expect(text).not.toMatch(/[+−-]\d|pontos|Reunião|sorteio/);
   });
 });
 
@@ -78,6 +58,7 @@ describe('o meu resultado', () => {
           { delta: 10, reason: 'ATTACK_SUCCESS', target_id: 'bruno' },
           { delta: -5, reason: 'BURGLARY_VICTIM', target_id: null },
           { delta: 0, reason: 'ATTACK_AWAY_BOMBED', target_id: 'gil' },
+          { delta: 10, reason: 'DEFENSE', target_id: 'carla' },
         ],
         nameOf,
       ),
@@ -85,13 +66,14 @@ describe('o meu resultado', () => {
       '🗡️ Visita surpresa bem-sucedida (Bruno): +10',
       '😵 Assaltaram-te a casa vazia: −5',
       '🗡️ Casa vazia, mas a Reunião de emergência levou tudo (Gil): 0',
+      '🛡️ A tua Segurança apanhou Carla: +10',
     ]);
   });
 
   it('tem texto para todas as razões do ledger', () => {
     const reasons: LedgerReason[] = [
-      'ATTACK_SUCCESS', 'ATTACK_LOST_DRAW', 'ATTACK_BOMBED', 'ATTACK_DEFENDED', 'ATTACK_BURGLARY', 'ATTACK_AWAY_BOMBED',
-      'BOMB_SUCCESS', 'BOMB_DEFENDED', 'VICTIM', 'BURGLARY_VICTIM', 'DEFENSE', 'HOME_BONUS',
+      'ATTACK_SUCCESS', 'ATTACK_DRAW_WON', 'ATTACK_LOST_DRAW', 'ATTACK_BOMBED', 'ATTACK_DEFENDED', 'ATTACK_BURGLARY',
+      'ATTACK_AWAY_BOMBED', 'BOMB_SUCCESS', 'BOMB_DEFENDED', 'VICTIM', 'BOMBED', 'BURGLARY_VICTIM', 'DEFENSE', 'HOME_BONUS',
     ];
     for (const r of reasons) expect(REASON_TEXT[r]).toBeTruthy();
     expect(formatDelta(-20)).toBe('−20');

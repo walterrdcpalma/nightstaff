@@ -2,7 +2,7 @@
 import { CYCLE_DAYS, NIGHTS, addDays, cycleDay } from './cycle.ts';
 import { validateAction } from './validateAction.ts';
 import type { ValidationError } from './validateAction.ts';
-import type { Action, GameState, PlayerId } from './types.ts';
+import type { Action, GameState, PastAction, PlayerId } from './types.ts';
 
 /** Mínimo de inscritos para o ciclo arrancar (RULES.md §1). */
 export const MIN_PLAYERS = 3;
@@ -49,9 +49,7 @@ export function nextStep(game: CycleState, today: string): Step | null {
 }
 
 /** Ação guardada, com a noite. */
-export interface StoredAction extends Action {
-  night: number;
-}
+export type StoredAction = PastAction;
 
 export interface InvalidAction {
   night: number;
@@ -76,7 +74,7 @@ export function prepareNight(players: PlayerId[], stored: StoredAction[], night:
   if (!Number.isInteger(night) || night < 1 || night > NIGHTS) {
     throw new RangeError(`Noite inválida: ${night} (esperado 1 a ${NIGHTS})`);
   }
-  const past: Action[] = [];
+  const past: PastAction[] = [];
   for (let n = 1; ; n++) {
     const state: GameState = { players, night: n, pastActions: [...past] };
     const actions: Action[] = [];
@@ -90,6 +88,6 @@ export function prepareNight(players: PlayerId[], stored: StoredAction[], night:
       else invalid.push({ night: n, action, error: check.error });
     }
     if (n === night) return { state, actions, invalid };
-    past.push(...actions);
+    past.push(...actions.map((a) => ({ ...a, night: n })));
   }
 }

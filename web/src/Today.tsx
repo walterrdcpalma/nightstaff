@@ -146,7 +146,7 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
     night,
     pastActions: data.mine
       .filter((a) => a.night < night)
-      .map((a) => ({ playerId: userId, type: a.type, targetId: a.target_id })),
+      .map((a) => ({ night: a.night, playerId: userId, type: a.type, targetId: a.target_id })),
   };
   const quota = remainingQuota(state, userId);
   const nameOf = (id: string | null) => data.players.find((p) => p.id === id)?.name;
