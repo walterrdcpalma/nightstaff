@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { visibleResult } from '@/lib/load';
+import type { LoadResult } from '@/lib/load';
 
 /** Cartão com título e texto do narrador. */
 export function Note({ title, children }: { title: string; children: React.ReactNode }) {
@@ -34,7 +36,7 @@ export function LoadError({ onRetry }: { onRetry: () => void }) {
  * deixam de se ver e as respostas atrasadas de leituras antigas são ignoradas.
  */
 export function useLoad<T>(load: () => Promise<T>) {
-  const [result, setResult] = useState<{ load: () => Promise<T>; data?: T; error?: boolean } | null>(null);
+  const [result, setResult] = useState<LoadResult<() => Promise<T>, T> | null>(null);
   const [attempt, setAttempt] = useState(0);
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
   useEffect(() => {
@@ -47,6 +49,5 @@ export function useLoad<T>(load: () => Promise<T>) {
       ignore = true;
     };
   }, [load, attempt]);
-  const current = result?.load === load ? result : null;
-  return { data: current?.data, error: !!current?.error, reload };
+  return { ...visibleResult(result, load), reload };
 }

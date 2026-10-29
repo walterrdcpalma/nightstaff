@@ -16,6 +16,7 @@
   },
   "include": [
     "engine",
-    "sim"
+    "sim",
+    "scripts"
   ]
 }

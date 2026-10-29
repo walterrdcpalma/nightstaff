@@ -40,7 +40,7 @@
   - Resumo da noite (RULES.md §4) e histórico com uma casa por jogador e a janela acesa ou apagada, por noite.
 - [x] **T7 — Web: pontos e resolução**
   - Os meus pontos e movimentos durante o ciclo. No dia 11, ranking final e 🏆 Funcionário do Mês.
-- [ ] **T7b — Dados de demonstração para testar no browser** (só Supabase local)
+- [x] **T7b — Dados de demonstração para testar no browser** (só Supabase local)
   - Script `npm run demo` (por exemplo `scripts/demo.ts`). Limpa a BD local e cria 6 jogadores (o Walter incluído, com o email do `seed.sql`) e **3 ciclos ao mesmo tempo**:
     - **Ciclo terminado** (dia 11): 9 noites jogadas, com ranking final e Funcionário do Mês.
     - **Ciclo a meio** (noite 5 a decorrer): noites 1 a 4 já resolvidas, com pelo menos um sorteio, uma defesa com revelação, uma bomba e um assalto a uma casa vazia. O Walter ainda não escolheu esta noite.

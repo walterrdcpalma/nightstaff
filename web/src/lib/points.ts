@@ -65,3 +65,8 @@ export function rankingRows(enrolled: string[], ledger: LedgerRow[], seed: numbe
     tiebreak: ranking[i - 1]?.points === r.points || ranking[i + 1]?.points === r.points,
   }));
 }
+
+/** "1 ataque bem-sucedido", "3 ataques bem-sucedidos". */
+export function attacksText(n: number): string {
+  return n === 1 ? '1 ataque bem-sucedido' : `${n} ataques bem-sucedidos`;
+}

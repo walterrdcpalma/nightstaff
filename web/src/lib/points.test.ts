@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
 import type { Action, LedgerReason } from '../../../engine/index.ts';
-import { movementsByNight, points, rankingRows, rankingVisible } from './points.ts';
+import { attacksText, movementsByNight, points, rankingRows, rankingVisible } from './points.ts';
 import type { LedgerRow } from './points.ts';
 
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
@@ -97,5 +97,13 @@ describe('ranking final (dia 11)', () => {
   it('quem saiu a meio do ciclo e tem movimentos entra no ranking', () => {
     const rows = rankingRows(['ana'], [row(1, 'dina', 2, 'HOME_BONUS')], 1, nameOf);
     expect(rows.map((r) => r.name).sort()).toEqual(['Ana', 'Dina']);
+  });
+});
+
+describe('textos', () => {
+  it('ataques bem-sucedidos no singular e no plural', () => {
+    expect(attacksText(0)).toBe('0 ataques bem-sucedidos');
+    expect(attacksText(1)).toBe('1 ataque bem-sucedido');
+    expect(attacksText(3)).toBe('3 ataques bem-sucedidos');
   });
 });
