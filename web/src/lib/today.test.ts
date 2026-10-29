@@ -5,23 +5,18 @@ import { ACTION_NAMES, choiceText, errorText, formatCountdown, nextLisbonMidnigh
 describe('todayPhase', () => {
   const start = '2026-11-02';
 
-  it('dia 1 em preparação: entrar ou sair', () => {
-    expect(todayPhase(start, 'prep', '2026-11-02')).toEqual({ kind: 'PREP' });
+  it('a correr: a noite 1 é o dia de Começar, a 9 é o dia 9', () => {
+    expect(todayPhase(start, 'running', '2026-11-02')).toEqual({ kind: 'NIGHT', night: 1 });
+    expect(todayPhase(start, 'running', '2026-11-10')).toEqual({ kind: 'NIGHT', night: 9 });
   });
 
-  it('dias 2 a 10 a correr: noites 1 a 9', () => {
-    expect(todayPhase(start, 'running', '2026-11-03')).toEqual({ kind: 'NIGHT', night: 1 });
-    expect(todayPhase(start, 'running', '2026-11-11')).toEqual({ kind: 'NIGHT', night: 9 });
-  });
-
-  it('dia 11 acabado: resolução', () => {
-    expect(todayPhase(start, 'finished', '2026-11-12')).toEqual({ kind: 'RESULTS' });
+  it('acabada: resolução, em qualquer dia', () => {
+    expect(todayPhase(start, 'finished', '2026-11-11')).toEqual({ kind: 'RESULTS' });
+    expect(todayPhase(start, 'finished', '2026-12-25')).toEqual({ kind: 'RESULTS' });
   });
 
   it('entre as 00:00 e a resolve-night, o bairro está a acordar', () => {
-    expect(todayPhase(start, 'prep', '2026-11-03')).toEqual({ kind: 'WAKING' }); // ainda não arrancou
-    expect(todayPhase(start, 'running', '2026-11-12')).toEqual({ kind: 'WAKING' }); // noite 9 por resolver
-    expect(todayPhase(start, 'finished', '2026-11-13')).toEqual({ kind: 'WAKING' }); // ciclo seguinte a chegar
+    expect(todayPhase(start, 'running', '2026-11-11')).toEqual({ kind: 'WAKING' }); // noite 9 por resolver
   });
 });
 
@@ -66,7 +61,7 @@ describe('textos', () => {
   });
 
   it('traduz os códigos da validação e da BD, e tem uma mensagem genérica', () => {
-    expect(errorText('QUOTA_EXHAUSTED')).toBe('Já gastaste essa ação neste ciclo.');
+    expect(errorText('QUOTA_EXHAUSTED')).toBe('Já gastaste essa ação nesta partida.');
     expect(errorText('NIGHT_CLOSED')).toBe('O prazo desta noite já fechou.');
     expect(errorText('SAME_TARGET')).toBe('Não podes ir à mesma casa duas noites seguidas.');
     expect(errorText('new row violates row-level security policy')).toBe('Algo correu mal. Tenta outra vez.');

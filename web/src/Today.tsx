@@ -48,7 +48,7 @@ function useNow(): Date {
   return now;
 }
 
-/** Um erro numa leitura lança, para o ecrã não confundir uma falha de rede com "não há ciclo". */
+/** Um erro numa leitura lança, para o ecrã não confundir uma falha de rede com "não há partida". */
 function ok<T>(res: { data: T; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return res.data;
@@ -75,24 +75,23 @@ export default function Today({ userId }: { userId: string }) {
 
   if (error) return <LoadError onRetry={reload} />;
   if (!data) return <p>A acender as luzes da rua…</p>;
-  if (!data.me) return <Note title="Ainda não és do bairro">Pede ao Walter para te pôr na lista de jogadores.</Note>;
-  if (!data.game) return <Note title="Rua sossegada">Ainda não há nenhum ciclo. Volta mais logo.</Note>;
+  // O nome no primeiro login e as salas (lobby, Começar) chegam com a T10.
+  if (!data.me) return <Note title="Ainda não és do bairro">Ainda não escolheste o nome que os outros vão ver.</Note>;
+  if (!data.game) return <Note title="Rua sossegada">Ainda não estás em nenhuma partida a decorrer.</Note>;
 
   const phase = todayPhase(data.game.start_date, data.game.status, today);
   const enrolled = data.players.some((p) => p.id === userId);
   const countdown = formatCountdown(nextLisbonMidnight(now).getTime() - now.getTime());
 
   switch (phase.kind) {
-    case 'PREP':
-      return <Prep game={data.game} players={data.players} enrolled={enrolled} userId={userId} countdown={countdown} onChange={reload} />;
     case 'NIGHT':
       if (!enrolled) {
-        return <Note title={`Noite ${phase.night} de 9`}>Este ciclo começou sem ti. Volta no próximo dia de preparação.</Note>;
+        return <Note title={`Noite ${phase.night} de 9`}>Esta partida começou sem ti.</Note>;
       }
       // A `key` repõe a escolha quando muda a noite sem desmontar o ecrã.
       return <Night key={phase.night} data={data} night={phase.night} userId={userId} countdown={countdown} onChange={reload} />;
     case 'RESULTS':
-      return <Note title="🏆 Dia de resolução">Não há ações hoje. Chegou a hora de conhecer o Funcionário do Mês.</Note>;
+      return <Note title="🏆 Dia de resolução">A partida acabou. Chegou a hora de conhecer o Funcionário do Mês.</Note>;
     case 'WAKING':
       return (
         <Note title="O bairro está a acordar…">
@@ -110,35 +109,6 @@ function Deadline({ countdown }: { countdown: string }) {
     <p>
       Fecha às 23:59. Faltam <span className="font-heading text-main tabular-nums">{countdown}</span>.
     </p>
-  );
-}
-
-function Prep(props: { game: Game; players: Player[]; enrolled: boolean; userId: string; countdown: string; onChange: () => void }) {
-  const [error, setError] = useState<string | null>(null);
-
-  async function toggle() {
-    setError(null);
-    const { error } = props.enrolled
-      ? await supabase.from('game_players').delete().eq('game_id', props.game.id).eq('player_id', props.userId)
-      : await supabase.from('game_players').insert({ game_id: props.game.id, player_id: props.userId });
-    if (error) setError(errorText(error.message));
-    props.onChange();
-  }
-
-  return (
-    <Note title="📝 Dia de preparação">
-      <div className="flex flex-col gap-4">
-        <p>Quem entra no turno deste ciclo? São precisos pelo menos 3.</p>
-        <Deadline countdown={props.countdown} />
-        <p>
-          Inscritos ({props.players.length}): {props.players.map((p) => p.name).join(', ') || 'ninguém, por agora'}.
-        </p>
-        <Button onClick={toggle} variant={props.enrolled ? 'neutral' : 'default'}>
-          {props.enrolled ? 'Sair do ciclo' : 'Entrar no ciclo'}
-        </Button>
-        {error && <p className="text-danger">{error}</p>}
-      </div>
-    </Note>
   );
 }
 

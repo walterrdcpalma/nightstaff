@@ -9,26 +9,20 @@ import { LoadError, Note, useLoad } from './Note.tsx';
 
 interface Data {
   game: Game | null;
-  /** Há um ciclo novo em preparação e este é o anterior. */
-  previous: boolean;
   names: Map<string, string>;
   /** Só o meu (RLS). */
   ledger: LedgerRow[];
-  /** Vazio enquanto o ciclo não acaba (RLS). */
+  /** Vazio enquanto a partida não acaba (RLS). */
   ranking: RankingDbRow[];
 }
 
-/**
- * O ciclo a mostrar: o mais recente; se estiver em preparação, o anterior (que já acabou),
- * para o ranking do último ciclo continuar consultável.
- */
+/** A partida a mostrar: a mais recente das minhas salas (a escolha da sala chega com a T10). */
 async function load(): Promise<Data> {
   const [games, names] = await Promise.all([loadGames(), loadNames()]);
-  const previous = games[0]?.status === 'prep';
-  const game = previous ? (games[1] ?? null) : (games[0] ?? null);
-  if (!game) return { game: null, previous, names, ledger: [], ranking: [] };
+  const game = games[0] ?? null;
+  if (!game) return { game: null, names, ledger: [], ranking: [] };
   const [ledger, ranking] = await Promise.all([loadLedger(game.id), loadRanking(game.id)]);
-  return { game, previous, names, ledger, ranking };
+  return { game, names, ledger, ranking };
 }
 
 /** Os meus pontos e movimentos; no dia 11, o ranking final e o Funcionário do Mês. */
@@ -37,7 +31,7 @@ export default function Points({ userId }: { userId: string }) {
   if (error) return <LoadError onRetry={reload} />;
   if (!data) return <p>A fazer as contas…</p>;
   if (!data.game) {
-    return <Note title="Folha de pagamentos em branco">Ainda não houve nenhum ciclo. Todos começam com 50 de salário.</Note>;
+    return <Note title="Folha de pagamentos em branco">Ainda não houve nenhuma partida. Todos começam com 50 de salário.</Note>;
   }
 
   const nameOf = (id: string) => data.names.get(id) ?? '?';
@@ -46,7 +40,6 @@ export default function Points({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {data.previous && <p className="text-sm">Há um ciclo novo em preparação: lá, todos começam com 50. Isto é o ciclo anterior.</p>}
       {showRanking && <Ranking ranking={data.ranking} userId={userId} nameOf={nameOf} />}
       {rankingVisible(data.game.status) && !showRanking && (
         <Note title="🏆 Funcionário do Mês">O ranking ainda está a ser apurado. Espreita daqui a pouco.</Note>
@@ -55,7 +48,7 @@ export default function Points({ userId }: { userId: string }) {
       <Note title="💰 Os teus pontos">
         <p className="font-heading text-4xl text-main">{points(mine)}</p>
         <p className="mb-4 text-sm">
-          Salário de 50 + os teus movimentos. Só tu os vês; no fim do ciclo, o bairro só fica a saber o ranking.
+          Salário de 50 + os teus movimentos. Só tu os vês; no fim da partida, o bairro só fica a saber o ranking.
         </p>
         {mine.length === 0 && <p>Ainda sem movimentos.</p>}
         <ul className="flex flex-col gap-3">

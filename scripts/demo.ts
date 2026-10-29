@@ -1,11 +1,11 @@
-// Dados de demonstração para testar no browser (T7b). Só no Supabase LOCAL.
-//   npm run demo [-- meio|terminado|prep]   limpa a BD local e cria um ciclo nesse estado (por omissão: meio)
+// Dados de demonstração para testar no browser (T7b, salas na T9). Só no Supabase LOCAL.
+//   npm run demo [-- meio|terminado|lobby]  limpa a BD local e cria uma sala nesse estado (por omissão: meio)
 //   npm run demo:noite                       resolve já a noite atual (quem não escolheu joga com os bots)
-//   npm run demo:dia                         avança 1 dia (passagem de noite, dia 11, ciclo seguinte)
-// Os dias passam recuando o `start_date` do ciclo; cada passagem chama a Edge Function `resolve-night`,
+//   npm run demo:dia                         avança 1 dia (passagem de noite, fim da partida)
+// Os dias passam recuando o `start_date` da partida; cada passagem chama a Edge Function `resolve-night`,
 // que resolve com o `resolveNight` do engine/ e grava como em produção.
 import { createClient } from '@supabase/supabase-js';
-import { NIGHTS, addDays, cycleDay, lisbonDate, mulberry32 } from '../engine/index.ts';
+import { NIGHTS, addDays, lisbonDate, mulberry32, nightOn } from '../engine/index.ts';
 import type { Action, NightSummary, PastAction } from '../engine/index.ts';
 import { DEMO_PLAYERS, WALTER, botActions, findDemoSeed, isLocalUrl, playNights } from './demo-plan.ts';
 
@@ -57,11 +57,11 @@ interface Game {
 }
 async function latestGame(): Promise<Game | null> {
   const res = await db.from('games').select('id, start_date, status').order('id', { ascending: false }).limit(1).maybeSingle();
-  if (res.error) throw new Error(`ler o ciclo: ${res.error.message}`);
+  if (res.error) throw new Error(`ler a partida: ${res.error.message}`);
   return res.data;
 }
 
-/** Passa um dia: recua o dia 1 do ciclo mais recente e chama a resolve-night. */
+/** Passa um dia: recua a noite 1 da partida mais recente e chama a resolve-night. */
 async function nextDay(): Promise<string[]> {
   const g = (await latestGame())!;
   ok(await db.from('games').update({ start_date: addDays(g.start_date, -1) }).eq('id', g.id), 'avançar o dia');
@@ -79,7 +79,7 @@ async function choose(gameId: number, night: number, actions: Action[]) {
 
 /** Limpa a BD local e cria os 6 jogadores (o Walter com o email do seed.sql). */
 async function reset() {
-  ok(await db.from('games').delete().gte('id', 0), 'apagar ciclos');
+  ok(await db.from('rooms').delete().gte('id', 0), 'apagar salas e partidas');
   const { data } = await db.auth.admin.listUsers();
   for (const u of data.users) authOk(await db.auth.admin.deleteUser(u.id), 'apagar utilizadores');
   for (const p of DEMO_PLAYERS) {
@@ -88,19 +88,36 @@ async function reset() {
   ok(await db.from('players').insert(DEMO_PLAYERS.map(({ id, name }) => ({ id, name }))), 'criar jogadores');
 }
 
-/** Ciclo novo em preparação hoje, com os inscritos dados. */
-async function newCycle(enrolled: string[]): Promise<Game> {
-  const g = ok(await db.from('games').insert({ start_date: today() }).select().single(), 'criar o ciclo') as Game;
-  ok(await db.from('game_players').insert(enrolled.map((p) => ({ game_id: g.id, player_id: p }))), 'inscrever');
+/** Sala de pessoas com o admin e os jogadores dados, por esta ordem de entrada. */
+async function newRoom(admin: string, members: string[], status: 'lobby' | 'running'): Promise<{ id: number; code: string }> {
+  const room = ok(await db.from('rooms').insert({ admin_id: admin, status }).select('id, code').single(), 'criar a sala') as {
+    id: number;
+    code: string;
+  };
+  const joined = Date.now();
+  ok(
+    await db.from('room_players').insert(
+      members.map((p, i) => ({ room_id: room.id, player_id: p, joined_at: new Date(joined + i * 1000).toISOString() })),
+    ),
+    'entrar na sala',
+  );
+  return room;
+}
+
+/** Como o `start_room`: sala dos 6 (o Walter é admin) e a noite 1 abre hoje, com a lista fixa. */
+async function startedRoom(): Promise<Game> {
+  const room = await newRoom(WALTER, players, 'running');
+  const g = ok(await db.from('games').insert({ room_id: room.id, start_date: today() }).select().single(), 'começar') as Game;
+  ok(await db.from('game_players').insert(players.map((p) => ({ game_id: g.id, player_id: p }))), 'fixar os jogadores');
+  console.log(`  sala ${room.code}, começada pelo Walter.`);
   return g;
 }
 
-/** Arranca um ciclo com os 6 e joga as noites 1 a `upTo` com os bots. */
-async function playCycle(upTo: number): Promise<Game> {
+/** Começa a partida com os 6 e joga as noites 1 a `upTo` com os bots. */
+async function playGame(upTo: number): Promise<Game> {
   const seed = findDemoSeed(players);
   const nights = playNights(players, NIGHTS, seed);
-  const g = await newCycle(players);
-  console.log(`  dia 2: ${await nextDay()}`);
+  const g = await startedRoom();
   for (let n = 1; n <= upTo; n++) {
     await choose(g.id, n, nights[n - 1]);
     console.log(`  noite ${n}: ${await nextDay()}`);
@@ -111,7 +128,7 @@ async function playCycle(upTo: number): Promise<Game> {
 /** Os jogadores que ainda não escolheram a noite atual jogam com os bots, e a noite resolve-se já. */
 async function resolveNow() {
   const g = await latestGame();
-  const night = g && g.status === 'running' ? cycleDay(g.start_date, today()) - 1 : 0;
+  const night = g && g.status === 'running' ? nightOn(g.start_date, today()) : 0;
   if (!g || night < 1 || night > NIGHTS) throw new Error('Não há nenhuma noite a decorrer (npm run demo -- meio).');
   const enrolled = ok(await db.from('game_players').select('player_id').eq('game_id', g.id), 'inscritos').map((r) => r.player_id);
   const stored = ok(await db.from('actions').select('night, player_id, type, target_id').eq('game_id', g.id), 'ações');
@@ -136,8 +153,8 @@ try {
   switch (command) {
     case 'meio': {
       await reset();
-      console.log('Ciclo a meio:');
-      const g = await playCycle(4);
+      console.log('Partida a meio:');
+      const g = await playGame(4);
       const night5 = playNights(players, 5, findDemoSeed(players))[4].filter((a) => a.playerId !== WALTER);
       await choose(g.id, 5, night5);
       console.log('  noite 5 a decorrer: todos escolheram menos o Walter.');
@@ -145,15 +162,16 @@ try {
     }
     case 'terminado':
       await reset();
-      console.log('Ciclo terminado:');
-      await playCycle(NIGHTS);
-      console.log('  dia 11: ranking final e Funcionário do Mês.');
+      console.log('Partida terminada:');
+      await playGame(NIGHTS);
+      console.log('  sala acabada: ranking final e Funcionário do Mês.');
       break;
-    case 'prep':
+    case 'lobby': {
       await reset();
-      await newCycle(players.filter((p) => p !== WALTER));
-      console.log('Ciclo em preparação (dia 1): 5 inscritos; o Walter pode entrar.');
+      const room = await newRoom(players[1], players.slice(1), 'lobby');
+      console.log(`Sala ${room.code} em lobby: 5 jogadores, a Ana é admin; o Walter pode entrar com o código.`);
       break;
+    }
     case 'noite':
       await resolveNow();
       break;
@@ -161,9 +179,9 @@ try {
       console.log(`Mais um dia: ${(await nextDay()).join(', ') || 'nada a resolver'}.`);
       break;
     default:
-      throw new Error(`Comando desconhecido: ${command} (meio, terminado, prep, noite, dia)`);
+      throw new Error(`Comando desconhecido: ${command} (meio, terminado, lobby, noite, dia)`);
   }
-  if (['meio', 'terminado', 'prep'].includes(command)) {
+  if (['meio', 'terminado', 'lobby'].includes(command)) {
     console.log(`Entra como walter@nightstaff.local; o magic link chega ao Mailpit (${MAILPIT}).`);
   }
 } catch (e) {
