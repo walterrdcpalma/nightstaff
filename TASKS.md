@@ -33,7 +33,7 @@
   - `pg_cron` de hora a hora. Idempotente: correr 2 vezes não duplica nada.
   - Uma ação inválida não pode bloquear a noite: é registada e tratada como `STAY`, com log visível.
   - Teste: simular um ciclo inteiro (preparação, 9 noites, resolução, novo ciclo) no Supabase local.
-- [ ] **T5 — Web: base e "Hoje"**
+- [x] **T5 — Web: base e "Hoje"**
   - `web/` com Vite, React, Tailwind e neobrutalism.dev, com o tema do CLAUDE.md.
   - Login por magic link. Ecrã Hoje: fase atual, escolha da ação com os nomes da app, quotas restantes, contagem até às 23:59. No dia de preparação, botão para entrar ou sair.
 - [ ] **T6 — Web: "Manhã" e "Bairro/Histórico"**

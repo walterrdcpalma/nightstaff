@@ -2,7 +2,7 @@
 // Converte a hora para Lisboa e aplica os passos que faltam ao ciclo mais recente: arrancar ou adiar a
 // preparação, resolver noites, acabar o ciclo e criar o seguinte. Idempotente: correr 2 vezes não duplica nada.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
-import { lisbonDate, nextStep, prepareNight, resolveNight } from '../../../engine/index.ts';
+import { cycleDay, lisbonDate, nextStep, prepareNight, resolveNight } from '../../../engine/index.ts';
 import type { CycleState, InvalidAction, Step, StoredAction } from '../../../engine/index.ts';
 
 /** Limite de passos por chamada, para nunca ficar em ciclo infinito. Chega para recuperar vários ciclos. */
@@ -31,6 +31,8 @@ async function latestGame(): Promise<Game | null> {
     await db
       .from('games')
       .select('id, start_date, status, game_players(count), nights(count)')
+      // Filtro sobre o recurso embebido: conta só as noites resolvidas, sem filtrar o ciclo.
+      // Não trocar por `nights!inner`, que esconderia os ciclos ainda sem noites resolvidas.
       .not('nights.resolved_at', 'is', null)
       .order('id', { ascending: false })
       .limit(1),
@@ -109,10 +111,18 @@ Deno.serve(async () => {
   const today = lisbonDate(new Date());
   const done: (Step & { game: number; invalid: InvalidAction[] })[] = [];
   try {
-    for (let i = 0; i < MAX_STEPS; i++) {
+    for (let i = 0; ; i++) {
       const game = await latestGame();
       const step = game && nextStep(game, today);
       if (!game || !step) break;
+      if (i === MAX_STEPS) {
+        console.warn(`resolve-night parou ao fim de ${MAX_STEPS} passos; falta: ${JSON.stringify(step)}`);
+        break;
+      }
+      if (step.kind === 'START' && cycleDay(game.startDate, today) > 2) {
+        // O cron falhou: as noites já passadas resolvem-se agora, todos em STAY.
+        console.warn(`Arranque tardio do ciclo ${game.id} no dia ${cycleDay(game.startDate, today)}`);
+      }
       const invalid = await apply(game, step);
       if (invalid.length > 0) {
         // Uma ação inválida não bloqueia a noite: fica como STAY e fica no log.
