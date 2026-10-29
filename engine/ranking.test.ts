@@ -53,9 +53,22 @@ describe('finalRanking', () => {
     expect(finalRanking(['A', 'B'], ledger, 1).map((x) => x.successfulAttacks)).toEqual([1, 1]);
   });
 
+  it('assaltos à casa vazia que renderam pontos contam como ataque bem-sucedido contra o alvo', () => {
+    const ledger = [e('A', 2, 'ATTACK_BURGLARY', 'B'), e('B', 2, 'ATTACK_BURGLARY', 'A'), e('B', -5, 'BURGLARY_VICTIM')];
+    expect(finalRanking(['A', 'B'], ledger, 1).map((x) => [x.playerId, x.successfulAttacks])).toEqual([
+      ['A', 1],
+      ['B', 1],
+    ]);
+  });
+
   it('movimentos com 0 pontos não contam como acerto nem como perda', () => {
-    const r = finalRanking(['A'], [e('A', 0, 'ATTACK_TARGET_AWAY', 'B'), e('A', 0, 'BOMB_SUCCESS', 'B')], 1);
+    const ledger = [e('A', 0, 'ATTACK_AWAY_BOMBED', 'B'), e('A', 0, 'ATTACK_BURGLARY', 'B'), e('A', 0, 'BOMB_SUCCESS', 'B')];
+    const r = finalRanking(['A'], ledger, 1);
     expect(r[0]).toMatchObject({ points: 50, successfulAttacks: 0, pointsLost: 0 });
+  });
+
+  it('um acerto sem alvo no ledger lança erro (dados mal gravados)', () => {
+    expect(() => finalRanking(['A'], [e('A', 10, 'ATTACK_SUCCESS')], 1)).toThrow(/sem alvo/);
   });
 
   it('desempate 2: confronto direto entre 2 empatados', () => {

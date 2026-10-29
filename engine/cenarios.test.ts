@@ -1,4 +1,4 @@
-// Cenários de aceitação do CENARIOS.md (regras v3). Se o motor der outro resultado, o motor está errado.
+// Cenários de aceitação do CENARIOS.md (regras v4). Se o motor der outro resultado, o motor está errado.
 import { describe, expect, it } from 'vitest';
 import { finalRanking } from './ranking.ts';
 import { resolveNight } from './resolveNight.ts';
@@ -30,7 +30,7 @@ const NIGHTS: { actions: Action[]; seed: number; deltas: Record<PlayerId, number
       folga('Helena'),
     ],
     seed: 1,
-    deltas: { Ana: 10, Bruno: -10, Carla: -5, Duarte: 10, Eva: 0, Filipe: 10, Gil: -10, Helena: 2 },
+    deltas: { Ana: 10, Bruno: -10, Carla: -5, Duarte: 10, Eva: 5, Filipe: 5, Gil: -10, Helena: 2 },
   },
   {
     // Noite 2 — Sorteio, ataques cruzados e ação por defeito (Gil não escolheu)
@@ -113,6 +113,19 @@ describe('CENARIOS.md', () => {
     expect(bonusWinners(1)).toEqual(['Helena']);
   });
 
+  it('noite 1: Eva assalta a casa vazia do Filipe (+5 / -5); Filipe acerta no Gil (+10)', () => {
+    const of = (p: PlayerId) => results[0].ledger.filter((e) => e.playerId === p).map((e) => [e.reason, e.delta]);
+    expect(of('Eva')).toEqual([['ATTACK_BURGLARY', 5]]);
+    expect(of('Filipe').sort()).toEqual([['ATTACK_SUCCESS', 10], ['BURGLARY_VICTIM', -5]]);
+  });
+
+  it('noite 2: Duarte e Eva assaltam a casa vazia um do outro (+5 e -5 cada)', () => {
+    for (const p of ['Duarte', 'Eva']) {
+      const of = results[1].ledger.filter((e) => e.playerId === p).map((e) => [e.reason, e.delta]);
+      expect(of.sort()).toEqual([['ATTACK_BURGLARY', 5], ['BURGLARY_VICTIM', -5]]);
+    }
+  });
+
   it('noite 2: sorteio dá Bruno; resumo diz "3 atacantes na Helena, houve sorteio", sem nomes', () => {
     expect(results[1].ledger.find((e) => e.reason === 'ATTACK_SUCCESS')?.playerId).toBe('Bruno');
     expect(summaryOf(2, 'Helena')).toMatchObject({ attacks: 3, bombs: 0, draw: true, revealedAttackers: [] });
@@ -137,14 +150,14 @@ describe('CENARIOS.md', () => {
   it('totais após 4 noites', () => {
     const totals = Object.fromEntries(PLAYERS.map((p) => [p, 0]));
     for (const r of results) for (const e of r.ledger) totals[e.playerId] += e.delta;
-    expect(totals).toEqual({ Ana: 25, Bruno: -4, Carla: -19, Duarte: 20, Eva: 5, Filipe: -8, Gil: -28, Helena: 8 });
+    expect(totals).toEqual({ Ana: 25, Bruno: -4, Carla: -19, Duarte: 20, Eva: 10, Filipe: -13, Gil: -28, Helena: 8 });
   });
 
   it('pontos após 4 noites (50 de salário + movimentos)', () => {
     const points = Object.fromEntries(
       finalRanking(PLAYERS, results.flatMap((r) => r.ledger), 1).map((r) => [r.playerId, r.points]),
     );
-    expect(points).toEqual({ Ana: 75, Bruno: 46, Carla: 31, Duarte: 70, Eva: 55, Filipe: 42, Gil: 22, Helena: 58 });
+    expect(points).toEqual({ Ana: 75, Bruno: 46, Carla: 31, Duarte: 70, Eva: 60, Filipe: 37, Gil: 22, Helena: 58 });
     expect(SALARY).toBe(50);
   });
 
@@ -179,20 +192,64 @@ describe('CENARIOS.md, cenário extra A: bomba num alvo fora', () => {
   );
   const of = (p: PlayerId) => r.ledger.filter((e) => e.playerId === p);
 
-  it('Bruno -10, Ana +5, Duarte +5, Carla 0; o ataque do Bruno também falha', () => {
+  it('Bruno -10 pela bomba, Ana +5, Duarte +5; Carla 0 na casa do Bruno (a bomba leva tudo)', () => {
+    expect(of('Ana').map((e) => [e.reason, e.delta])).toEqual([['BOMB_SUCCESS', 5]]);
+    expect(of('Duarte').map((e) => [e.reason, e.delta])).toEqual([['BOMB_SUCCESS', 5]]);
+    expect(of('Bruno').filter((e) => e.reason === 'VICTIM').map((e) => e.delta)).toEqual([-10]);
+    expect(of('Carla').filter((e) => e.targetId === 'Bruno').map((e) => [e.reason, e.delta])).toEqual([
+      ['ATTACK_AWAY_BOMBED', 0],
+    ]);
+  });
+
+  it('Bruno +5 / Carla -5: assalto à casa vazia da Carla, onde não havia bomba', () => {
+    expect(of('Bruno').filter((e) => e.targetId === 'Carla').map((e) => [e.reason, e.delta])).toEqual([
+      ['ATTACK_BURGLARY', 5],
+    ]);
+    expect(of('Carla').filter((e) => e.reason === 'BURGLARY_VICTIM').map((e) => e.delta)).toEqual([-5]);
+  });
+
+  it('no total da noite: Bruno -5, Ana +5, Duarte +5, Carla -5', () => {
     const totals = Object.fromEntries(['Ana', 'Bruno', 'Carla', 'Duarte'].map((p) => [p, 0]));
     for (const e of r.ledger) totals[e.playerId] += e.delta;
-    expect(totals).toEqual({ Ana: 5, Bruno: -10, Carla: 0, Duarte: 5 });
-    expect(of('Bruno').map((e) => [e.reason, e.delta]).sort()).toEqual([
-      ['ATTACK_TARGET_AWAY', 0],
-      ['VICTIM', -10],
-    ]);
-    expect(of('Carla').map((e) => [e.reason, e.delta])).toEqual([['ATTACK_TARGET_AWAY', 0]]);
+    expect(totals).toEqual({ Ana: 5, Bruno: -5, Carla: -5, Duarte: 5 });
   });
 
   it('ninguém ganha bónus: ninguém ficou em casa', () => {
     expect(r.summary.players.filter((s) => s.homeBonus)).toEqual([]);
     expect(r.summary.players.every((s) => s.location === 'AWAY')).toBe(true);
+  });
+});
+
+describe('CENARIOS.md, cenário extra D: assalto em grupo', () => {
+  const players = ['Ana', 'Bruno', 'Carla', 'Duarte', 'Eva'];
+  const r = resolveNight(
+    { players, night: 1, pastActions: [] },
+    [ataca('Ana', 'Eva'), ataca('Bruno', 'Eva'), ataca('Carla', 'Eva'), folga('Duarte'), ataca('Eva', 'Duarte')],
+    1,
+  );
+
+  it('Eva -5 pelo assalto; Ana, Bruno e Carla +1 cada (5 ÷ 3, os 2 de resto perdem-se)', () => {
+    for (const p of ['Ana', 'Bruno', 'Carla']) {
+      expect(r.ledger.filter((e) => e.playerId === p)).toEqual([
+        { playerId: p, delta: 1, reason: 'ATTACK_BURGLARY', targetId: 'Eva' },
+      ]);
+    }
+    expect(r.ledger.filter((e) => e.playerId === 'Eva' && e.reason === 'BURGLARY_VICTIM').map((e) => e.delta)).toEqual([-5]);
+    expect(r.summary.players.find((s) => s.playerId === 'Eva')).toMatchObject({ location: 'AWAY', attacks: 3, draw: false });
+  });
+
+  it('Eva +10, Duarte -10; no total, Eva +5; ninguém ganha bónus', () => {
+    const totals = Object.fromEntries(players.map((p) => [p, 0]));
+    for (const e of r.ledger) totals[e.playerId] += e.delta;
+    expect(totals).toEqual({ Ana: 1, Bruno: 1, Carla: 1, Duarte: -10, Eva: 5 });
+    expect(r.summary.players.filter((s) => s.homeBonus)).toEqual([]);
+  });
+
+  it('cada assalto que rendeu pontos conta como 1 acerto contra a Eva (desempate)', () => {
+    const ranking = finalRanking(players, r.ledger, 1);
+    for (const p of ['Ana', 'Bruno', 'Carla']) {
+      expect(ranking.find((x) => x.playerId === p)!.successfulAttacks).toBe(1);
+    }
   });
 });
 

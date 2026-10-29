@@ -1,4 +1,4 @@
-import { ACTION_TYPES, DEFENDED_COST, HOME_BONUS, POINTS, QUOTAS, randomIndex } from '../engine/index.ts';
+import { ACTION_TYPES, BURGLARY_POINTS, DEFENDED_COST, HOME_BONUS, POINTS, QUOTAS, randomIndex } from '../engine/index.ts';
 import type { Action, ActionType, LimitedActionType, NightSummary, PlayerId, PlayerNightSummary } from '../engine/index.ts';
 
 /** O que um jogador sabe numa noite: o resumo público das noites anteriores e as suas quotas. */
@@ -38,6 +38,7 @@ const NOISE = 6;
  * - saídas que lhe restam (3 + 1 − noites fora) e defesas que lhe podem restar (2 − defesas reveladas);
  * - P(fora) e P(defende) = o que lhe resta a dividir pelas noites que faltam (gastar tudo até ao fim);
  * - atacantes esperados em cada alvo = soma de P(fora) dos outros, com alvo uniforme.
+ * Sair de casa também tem risco: se alguém me atacar, assalta-me a casa vazia.
  */
 export const smartBot: Bot = (v, rng) => {
   const nightsLeft = v.nights - v.night + 1;
@@ -56,6 +57,7 @@ export const smartBot: Bot = (v, rng) => {
 
   const lambdaMe = others.reduce((sum, o) => sum + pAway.get(o)! / (v.players.length - 1), 0);
   const pAttacked = 1 - Math.exp(-lambdaMe);
+  const awayRisk = pAttacked * BURGLARY_POINTS;
 
   // Gastar quota agora tira a hipótese de a usar mais tarde; só deixa de custar quando sobra quota.
   const reserve = (t: LimitedActionType) => (v.quota[t] >= nightsLeft ? 0 : RESERVE * (1 - v.quota[t] / nightsLeft));
@@ -74,13 +76,15 @@ export const smartBot: Bot = (v, rng) => {
     const k = expectedAttackers(t);
     if (v.quota.ATTACK > 0) {
       // Com K ~ Poisson(k) outros atacantes, P(ganhar o sorteio) = E[1/(1+K)] = (1 − e^−k)/k.
+      // A mesma fração dá a minha parte do assalto, se o alvo estiver fora.
       const pWin = k === 0 ? 1 : (1 - Math.exp(-k)) / k;
-      const ev = pStay * POINTS * (2 * pWin - 1) - pDef * DEFENDED_COST.ATTACK;
+      const ev =
+        pStay * POINTS * (2 * pWin - 1) + pAway.get(t)! * BURGLARY_POINTS * pWin - pDef * DEFENDED_COST.ATTACK - awayRisk;
       options.push({ action: { playerId: v.me, type: 'ATTACK', targetId: t }, score: ev - reserve('ATTACK') + noise() });
     }
     if (v.quota.BOMB > 0) {
       // A bomba também acerta em quem está fora, mas aí o bolo é só POINTS.
-      const ev = pStay * POINTS * (1 + k) + pAway.get(t)! * POINTS - pDef * DEFENDED_COST.BOMB;
+      const ev = pStay * POINTS * (1 + k) + pAway.get(t)! * POINTS - pDef * DEFENDED_COST.BOMB - awayRisk;
       options.push({ action: { playerId: v.me, type: 'BOMB', targetId: t }, score: ev - reserve('BOMB') + noise() });
     }
   }
