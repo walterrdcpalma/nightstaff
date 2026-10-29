@@ -94,6 +94,7 @@ supabase start      # Supabase local
 4. **Feito = `npm test` passa + lint limpo + descrição do PR com o que mudou e o que ficou por fazer.**
 5. **Não alterar o `RULES.md`.** Se uma regra for ambígua, parar e perguntar.
 6. Não adicionar dependências sem justificar no PR.
+7. **Antes de começares uma tarefa**, lê os comentários de revisão do teu último PR com merge (`gh pr list --state merged --limit 1`, depois `gh pr view <n> --comments`). Trata das 🟡 sugestões que ainda estiverem pendentes ou explica no PR porque não o fizeste.
 
 ## Tarefas por agente
 - **Agente 1 — Motor:** `engine/` + testes, depois `sim/`. O simulador corre jogos com bots aleatórios e "espertos" (que leem o histórico) e reporta:
