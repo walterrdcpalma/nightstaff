@@ -24,7 +24,7 @@
   - O bot esperto passa a ter em conta que assaltar casas vazias rende pontos.
   - Todos os testes atualizados. O `CENARIOS.md` v4 passa (incluindo o cenário extra D).
   - Relatório do simulador v4 na descrição do PR. Assinalar se a viragem na última noite continuar perto de 0%.
-- [ ] **T3 — Supabase: schema e RLS**
+- [x] **T3 — Supabase: schema e RLS**
   - `supabase/` com `npx supabase init`. Migrações para as tabelas do CLAUDE.md.
   - RLS exatamente como no CLAUDE.md. Validação de quota, alvo e prazo **na BD** (função ou trigger), usando as mesmas regras do `validateAction`.
   - Testes de RLS com 2 utilizadores no Supabase local (Docker): não ver ações de outros antes da resolução, nem pontos de outros antes do dia 11, e só entrar ou sair com `status = prep`.

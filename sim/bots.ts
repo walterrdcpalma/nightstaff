@@ -38,7 +38,7 @@ const NOISE = 6;
  * - saídas que lhe restam (3 + 1 − noites fora) e defesas que lhe podem restar (2 − defesas reveladas);
  * - P(fora) e P(defende) = o que lhe resta a dividir pelas noites que faltam (gastar tudo até ao fim);
  * - atacantes esperados em cada alvo = soma de P(fora) dos outros, com alvo uniforme.
- * Sair de casa também tem risco: se alguém me atacar, assalta-me a casa vazia.
+ * Sair de casa também tem risco: se alguém me atacar, assalta-me a casa vazia, e uma bomba acerta na mesma.
  */
 export const smartBot: Bot = (v, rng) => {
   const nightsLeft = v.nights - v.night + 1;
@@ -57,7 +57,12 @@ export const smartBot: Bot = (v, rng) => {
 
   const lambdaMe = others.reduce((sum, o) => sum + pAway.get(o)! / (v.players.length - 1), 0);
   const pAttacked = 1 - Math.exp(-lambdaMe);
-  const awayRisk = pAttacked * BURGLARY_POINTS;
+  // Fora de casa, uma bomba acerta na mesma (−POINTS); sem bomba, um assalto custa BURGLARY_POINTS.
+  // Cada saída de um adversário é uma Reunião na proporção das quotas.
+  const bombShare = QUOTAS.BOMB / (QUOTAS.ATTACK + QUOTAS.BOMB);
+  const pBombed = 1 - Math.exp(-lambdaMe * bombShare);
+  const pBurgled = (1 - pBombed) * (1 - Math.exp(-lambdaMe * (1 - bombShare)));
+  const awayRisk = pBombed * POINTS + pBurgled * BURGLARY_POINTS;
 
   // Gastar quota agora tira a hipótese de a usar mais tarde; só deixa de custar quando sobra quota.
   const reserve = (t: LimitedActionType) => (v.quota[t] >= nightsLeft ? 0 : RESERVE * (1 - v.quota[t] / nightsLeft));

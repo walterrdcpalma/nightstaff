@@ -5,11 +5,13 @@
   "scripts": {
     "test": "vitest run",
     "lint": "eslint . && tsc --noEmit",
-    "sim": "node sim/run.ts"
+    "sim": "node sim/run.ts",
+    "test:db": "supabase test db"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.13.0",
+    "supabase": "^2.122.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.5"
