@@ -98,5 +98,57 @@
     - as cenas saem na ordem certa, e sem apanhados não há cena de apanhados.
   - Animações só com **CSS/Tailwind**, sem dependências novas. Mobile-first, tema escuro de sempre.
   - O Bairro/Histórico não muda. O texto das manchetes públicas existentes pode ser reaproveitado.
+- [ ] **T12b — Renomear a ação das bombas: 🔥 Despedimento coletivo**
+  - O `RULES.md` v7 (§2) chama-lhe agora **🔥 Despedimento coletivo** (antes 💣 Reunião de emergência). Só muda o **nome na app**: o código `BOMB`, as regras e as migrações já aplicadas não mudam. Esta tarefa só corre depois do PR de regras v7 estar em `main`; se o `RULES.md` ainda disser "Reunião de emergência", parar e avisar.
+  - Trocar o nome em **tudo o que o jogador lê** em `web/` (hoje em `web/src/lib/today.ts` e `web/src/lib/night.ts`, e nos componentes e textos que o usarem), com a **concordância certa**: passou de feminino a masculino.
+    - "💣 Reunião de emergência" → "🔥 Despedimento coletivo"
+    - "Havia uma Reunião de emergência no alvo" → "Havia um Despedimento coletivo no alvo"
+    - "Casa vazia, mas a Reunião de emergência levou tudo" → "…mas o Despedimento coletivo levou tudo"
+    - "Uma Reunião de emergência apanhou-te" → "Um Despedimento coletivo apanhou-te"
+    - "Visita ou Reunião de ontem" → "Visita ou Despedimento de ontem"
+  - Atualizar os testes que usam o nome (`night.test.ts`, `today.test.ts`, …) e os comentários e nomes de testes que digam "Reunião" (`engine/`, `sim/`, `scripts/`, `supabase/tests/`). **Não** editar migrações já aplicadas.
+  - Se a T12 já tiver a lista de palavras proibidas em `story.ts`, acrescentar `despedimento` (e manter `reunião`). Procurar no `web/` qualquer outra frase que mencione o nome.
+  - No `CLAUDE.md`, secção UI, "Nomes na UI": trocar "Reunião de emergência" por "Despedimento coletivo" (regra 8).
+  - Teste de regressão: nenhuma string visível ao jogador no `web/` contém "Reunião de emergência".
+- [ ] **T13 — Ajuda: como funciona o jogo**
+  - Botão **❓ Ajuda** no cabeçalho da app, visível em todos os ecrãs (As minhas salas, lobby, dentro de uma sala, primeiro login). Abre um ecrã de ajuda por cima, com **Fechar**, sem router (estado do `App`, como o resto).
+  - Para quem **nunca ouviu falar do jogo**. Duas partes, por esta ordem:
+    1. **Como funciona, em 1 minuto:**
+       - A ideia: és funcionário do bairro; todas as noites escolhes o que fazes; são 9 noites; começas com o salário de 50 pontos; quem tiver mais pontos no fim é o 🏆 Funcionário do Mês.
+       - **Em casa ou fora:** o que quer dizer, e que quem está fora não pode ser atacado (a Visita falha).
+       - **Cada ação, em linguagem simples, com o nome da app, a quota e se deixa em casa ou fora:** Folga, Segurança, Visita surpresa, a ação das bombas (o nome que estiver no `RULES.md` §2) e Desaparecer.
+       - Como se ganham e perdem pontos (10 por ataque, bónus de casa de 2, o sorteio quando há vários atacantes no mesmo alvo, a noite 9 a dobrar).
+       - **Prazo** às 23:59 e o que acontece a quem não escolhe (Folga).
+       - **O que os outros vêem e o que só tu vês** (RULES.md §4): ninguém vê as ações dos outros; só se sabe quem estava em casa ou fora, e quem foi apanhado.
+       - Salas: o código, o admin, Começar, Reiniciar, e a sala contra bots com **Passar o dia**.
+    2. **FAQ com cenários**, em perguntas que abrem e fecham (`<details>`, sem dependências). Cada resposta tem um mini-cenário com nomes inventados (Ana, Bruno…) e os pontos certos. Pelo menos:
+       - "O Bruno e a Carla atacam a Ana ao mesmo tempo. O que acontece?" (sorteio)
+       - "Ataquei alguém que estava fora. E agora?"
+       - "O que acontece se atacarem alguém com Segurança?"
+       - "Para que serve a ação das bombas e porque só a posso usar uma vez?"
+       - "Para que serve o Desaparecer?"
+       - "Posso atacar a mesma pessoa duas noites seguidas?"
+       - "Não escolhi nada. E agora?"
+       - "Posso mudar a escolha?" (sim, até às 23:59)
+       - "Porque tenho pontos negativos?"
+       - "Quem vê as minhas ações?"
+       - "Como se desempata?"
+       - "Como funciona uma sala contra bots?"
+  - **Os números e os nomes não se escrevem à mão:** vêm das constantes do `engine/` (`SALARY`, `POINTS`, `HOME_BONUS`, `QUOTAS`) e dos nomes da UI do `RULES.md` §2. Se mudarem, a ajuda muda sozinha.
+  - O texto vive em `web/src/lib/help.ts` (dados puros) e o ecrã em `web/src/Help.tsx`. Testes no Vitest:
+    - todos os nomes das ações da app (RULES.md §2) aparecem na ajuda, e nenhum código (`STAY`, `DEFEND`, `ATTACK`, `BOMB`, `VANISH`);
+    - os números do texto batem com as constantes do `engine/`;
+    - as perguntas da lista acima existem, sem repetidas.
+  - Tom de narrador e de português de Portugal, com o humor de sempre mas **sem sacrificar a clareza**: quem lê tem de perceber as regras. Mobile-first. Só a ajuda é estática: não lê nada da BD, por isso não revela nada privado.
+  - O texto tem de bater certo com o `RULES.md`. Se algo estiver ambíguo, parar e perguntar (regra 5).
+- [ ] **T14 — Frases da Manhã com mais humor negro**
+  - Reescrever as frases de `web/src/lib/story.ts` (T12) com **humor negro de bairro**: a vida, não as pessoas. Temas à vontade: a ex, o ex, stories às 3 da manhã, ressaca, dívidas, o chefe, a mãe a ligar, crises existenciais a meio do supermercado, ensaiar discursos que nunca se vão dizer.
+    - Em casa: "{nome} ficou em casa a ver o perfil da ex pela 14.ª vez. Só para ter a certeza de que continua feliz."
+    - Fora: "{nome} saiu sem dizer para onde. Passar pela rua da ex não foi de propósito."
+    - Apanhado: "{nome} foi apanhado a espreitar uma janela alheia. Garante que era para ver as estrelas."
+  - Pelo menos **12 frases por categoria**, todas diferentes das atuais.
+  - **Linhas vermelhas:** nada sobre morte, suicídio ou automutilação; nada sobre violência a pessoas reais; nada sobre doenças, origens, religião, orientação sexual, aparência ou qualquer grupo de pessoas; o jogador nunca é humilhado por ser quem é, só pelas escolhas que o narrador inventa. O humor negro é sobre as situações.
+  - **Regra de ouro mantém-se (RULES.md §4):** as frases de *em casa* servem para Folga e Segurança, e as de *fora* para Visita surpresa, a ação das bombas e Desaparecer; nenhuma revela a ação. Os testes da T12 têm de continuar a passar (lista de palavras proibidas, mínimo, sem repetidas).
+  - Sem dependências novas, sem mexer na lógica.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
