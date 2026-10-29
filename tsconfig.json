@@ -7,7 +7,15 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": [
+        "./web/src/*"
+      ]
+    }
   },
-  "include": ["engine", "sim"]
+  "include": [
+    "engine",
+    "sim"
+  ]
 }

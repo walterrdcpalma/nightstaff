@@ -28,6 +28,7 @@ export type Step =
  * Próximo passo do ciclo mais recente em `today` (data de Lisboa), ou `null` se não há nada a fazer.
  * Aplica-se um passo de cada vez e volta-se a chamar até dar `null`: assim recupera noites em atraso.
  * - Preparação, a partir do dia 2: arranca com `MIN_PLAYERS` ou mais; senão, adia o dia 1 para o dia seguinte.
+ *   Se o cron falhar vários dias, o arranque é tardio e as noites que já passaram resolvem-se logo, todos em STAY.
  * - A correr: a noite N resolve-se às 00:00 do dia N + 2 (a escolha é no dia N + 1). Depois da 9, acaba.
  * - Acabado: no dia a seguir à resolução (dia 12) cria o ciclo seguinte, que começa nesse dia.
  */

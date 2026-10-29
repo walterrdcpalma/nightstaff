@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+
+/* Tema neobrutalism.dev com a paleta "noite de bairro" do CLAUDE.md. Só tema escuro. */
+:root {
+  --background: #0b1020;
+  --secondary-background: #151b33;
+  --foreground: #f4f1e8;
+  /* Janela/ouro */
+  --main: #f5c542;
+  --main-foreground: #0b1020;
+  --danger: #e5484d;
+  --defense: #4c8dff;
+  /* Contornos e sombras claros, para se verem no fundo escuro. */
+  --border: #f4f1e8;
+  --ring: #f5c542;
+  --shadow: 4px 4px 0px 0px var(--border);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-secondary-background: var(--secondary-background);
+  --color-foreground: var(--foreground);
+  --color-main: var(--main);
+  --color-main-foreground: var(--main-foreground);
+  --color-danger: var(--danger);
+  --color-defense: var(--defense);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  --spacing-boxShadowX: 4px;
+  --spacing-boxShadowY: 4px;
+  --spacing-reverseBoxShadowX: -4px;
+  --spacing-reverseBoxShadowY: -4px;
+  --radius-base: 6px;
+  --shadow-shadow: var(--shadow);
+  --font-weight-base: 500;
+  --font-weight-heading: 800;
+  --font-heading: 'Archivo Black', system-ui, sans-serif;
+}
+
+body {
+  @apply bg-background text-foreground font-base;
+  font-family: system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+}

@@ -81,13 +81,22 @@ CLAUDE.md
   - Os meus pontos (durante o jogo) e o ranking final (só no dia 11).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
 - **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Reunião de emergência). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
+- **Convenções do `web/`:**
+  - Um só `package.json`, o da raiz: o `npm ci` da CI instala tudo e o `npm run lint` também verifica o `web/` (`tsc -p web`).
+  - O `components.json` do shadcn está na raiz. Os componentes vão para `web/src/components/ui/`: são gerados pela CLI e não se editam à mão. O ESLint ignora essa pasta, mas o `tsc` não.
+  - Tema: as variáveis do neobrutalism.dev em `web/src/index.css`, com a paleta acima. Contornos e sombras claros (`#F4F1E8`), para se verem no fundo escuro. Títulos em Archivo Black.
+  - A lógica pura de cada ecrã fica em `web/src/lib/` e testa-se no Vitest. O web importa o `engine/` por caminho relativo.
+  - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
+- **Auth:** o registo fecha-se com `[auth] enable_signup = false`. Não pôr `false` em `[auth.email]`, que desliga também o magic link.
 
 ## Comandos
 ```
 npm test            # vitest (engine + sim)
 npm run sim         # simulação de N jogos com bots
-npm run dev         # web
-supabase start      # Supabase local
+npm run dev         # web (Vite)
+npm run build       # build do web/
+supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste)
+supabase stop --no-backup  # obrigatório depois de mudar o config.toml: com backup, o auth arranca com a config antiga
 npm run test:db     # testes SQL (pgTAP) + ciclo inteiro na resolve-night (precisa do Supabase local)
 ```
 
