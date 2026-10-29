@@ -3,10 +3,15 @@ import type { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import Login from './Login.tsx';
+import { Morning, Neighborhood } from './Neighborhood.tsx';
 import Today from './Today.tsx';
+
+const TABS = { today: '🌙 Hoje', morning: '☀️ Manhã', neighborhood: '🏘️ Bairro' } as const;
+type Tab = keyof typeof TABS;
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [tab, setTab] = useState<Tab>('today');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -24,7 +29,22 @@ export default function App() {
           </Button>
         )}
       </header>
-      {session === undefined ? null : session ? <Today userId={session.user.id} /> : <Login />}
+      {session === undefined ? null : session ? (
+        <>
+          <nav className="grid grid-cols-3 gap-2">
+            {(Object.keys(TABS) as Tab[]).map((t) => (
+              <Button key={t} size="sm" variant={tab === t ? 'default' : 'neutral'} onClick={() => setTab(t)} className="px-1">
+                {TABS[t]}
+              </Button>
+            ))}
+          </nav>
+          {tab === 'today' && <Today userId={session.user.id} />}
+          {tab === 'morning' && <Morning userId={session.user.id} />}
+          {tab === 'neighborhood' && <Neighborhood userId={session.user.id} />}
+        </>
+      ) : (
+        <Login />
+      )}
     </main>
   );
 }
