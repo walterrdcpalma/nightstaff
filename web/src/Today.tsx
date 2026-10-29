@@ -3,6 +3,9 @@ import { ACTION_TYPES, QUOTAS, lisbonDate, previousTarget, remainingQuota, valid
 import type { Action, ActionType, GameState } from '../../engine/index.ts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { loadGames, loadRoom, loadRoomPlayers } from '@/lib/data';
+import type { Player, Room } from '@/lib/data';
+import { roomErrorText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 import {
   ACTION_NAMES,
@@ -15,6 +18,7 @@ import {
   todayPhase,
 } from '@/lib/today';
 import type { GameStatus } from '@/lib/today';
+import { Lobby } from './Lobby.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
 interface Game {
@@ -22,18 +26,18 @@ interface Game {
   start_date: string;
   status: GameStatus;
 }
-interface Player {
-  id: string;
-  name: string;
-}
 interface MyAction {
   night: number;
   type: ActionType;
   target_id: string | null;
 }
 interface Data {
-  me: Player | null;
+  room: Room | null;
+  /** Jogadores da sala, por ordem de entrada (para o lobby). */
+  roomPlayers: Player[];
+  /** Partida mais recente da sala que joguei. */
   game: Game | null;
+  /** Jogadores dessa partida, por nome. */
   players: Player[];
   mine: MyAction[];
 }
@@ -54,30 +58,32 @@ function ok<T>(res: { data: T; error: { message: string } | null }): T {
   return res.data;
 }
 
-async function load(userId: string): Promise<Data> {
-  const me = ok(await supabase.from('players').select('id, name').eq('id', userId).maybeSingle());
-  const game = ok(
-    await supabase.from('games').select('id, start_date, status').order('id', { ascending: false }).limit(1).maybeSingle(),
-  );
-  if (!game) return { me, game: null, players: [], mine: [] };
+async function load(roomId: number): Promise<Data> {
+  const [room, roomPlayers, games] = await Promise.all([loadRoom(roomId), loadRoomPlayers(roomId), loadGames(roomId)]);
+  const game = games[0] ?? null;
+  if (!game) return { room, roomPlayers, game: null, players: [], mine: [] };
   const enrolled = ok(await supabase.from('game_players').select('players(id, name)').eq('game_id', game.id)) ?? [];
   // RLS: só vêm as minhas ações.
   const mine = ok(await supabase.from('actions').select('night, type, target_id').eq('game_id', game.id)) ?? [];
   const players = enrolled.map((r) => r.players as unknown as Player).sort((a, b) => a.name.localeCompare(b.name));
-  return { me, game, players, mine };
+  return { room, roomPlayers, game, players, mine };
 }
 
-export default function Today({ userId }: { userId: string }) {
+/** Hoje numa sala: o lobby, a escolha da noite ou a resolução (com Reiniciar para o admin). */
+export default function Today(props: { userId: string; roomId: number; onLeft: () => void }) {
+  const { userId, roomId } = props;
   const now = useNow();
   // `today` nas dependências: ao passar a meia-noite de Lisboa, volta a ler (fase nova).
   const today = lisbonDate(now);
-  const { data, error, reload } = useLoad(useCallback(() => load(userId), [userId, today]));
+  const { data, error, reload } = useLoad(useCallback(() => load(roomId), [roomId, today]));
 
   if (error) return <LoadError onRetry={reload} />;
   if (!data) return <p>A acender as luzes da rua…</p>;
-  // O nome no primeiro login e as salas (lobby, Começar) chegam com a T10.
-  if (!data.me) return <Note title="Ainda não és do bairro">Ainda não escolheste o nome que os outros vão ver.</Note>;
-  if (!data.game) return <Note title="Rua sossegada">Ainda não estás em nenhuma partida a decorrer.</Note>;
+  if (!data.room) return <Note title="Porta fechada">Já não estás nesta sala.</Note>;
+  if (data.room.status === 'lobby') {
+    return <Lobby room={data.room} players={data.roomPlayers} userId={userId} onChange={reload} onLeft={props.onLeft} />;
+  }
+  if (!data.game) return <Waking onRetry={reload} />;
 
   const phase = todayPhase(data.game.start_date, data.game.status, today);
   const enrolled = data.players.some((p) => p.id === userId);
@@ -91,17 +97,48 @@ export default function Today({ userId }: { userId: string }) {
       // A `key` repõe a escolha quando muda a noite sem desmontar o ecrã.
       return <Night key={phase.night} data={data} night={phase.night} userId={userId} countdown={countdown} onChange={reload} />;
     case 'RESULTS':
-      return <Note title="🏆 Dia de resolução">A partida acabou. Chegou a hora de conhecer o Funcionário do Mês.</Note>;
+      return <Results room={data.room} userId={userId} onChange={reload} />;
     case 'WAKING':
-      return (
-        <Note title="O bairro está a acordar…">
-          <p className="mb-4">O turno está a mudar. Daqui a nada abre o dia.</p>
-          <Button variant="neutral" onClick={reload}>
-            Espreitar outra vez
-          </Button>
-        </Note>
-      );
+      return <Waking onRetry={reload} />;
   }
+}
+
+function Waking({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Note title="O bairro está a acordar…">
+      <p className="mb-4">O turno está a mudar. Daqui a nada abre o dia.</p>
+      <Button variant="neutral" onClick={onRetry}>
+        Espreitar outra vez
+      </Button>
+    </Note>
+  );
+}
+
+/** Partida acabada. O admin pode reiniciar a sala: volta ao lobby, com o mesmo código (RULES.md §1.1). */
+function Results(props: { room: Room; userId: string; onChange: () => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const isAdmin = props.room.admin_id === props.userId;
+
+  async function restart() {
+    setError(null);
+    const { error } = await supabase.rpc('restart_room', { p_room_id: props.room.id });
+    if (error) setError(roomErrorText(error.message));
+    props.onChange();
+  }
+
+  return (
+    <Note title="🏆 Dia de resolução">
+      <div className="flex flex-col gap-4">
+        <p>A partida acabou. Vê o Funcionário do Mês nos Pontos.</p>
+        {isAdmin ? (
+          <Button onClick={restart}>🔁 Reiniciar a sala</Button>
+        ) : (
+          <p className="text-sm">Se o admin reiniciar a sala, volta ao lobby com o mesmo código.</p>
+        )}
+        {error && <p className="text-danger">{error}</p>}
+      </div>
+    </Note>
+  );
 }
 
 function Deadline({ countdown }: { countdown: string }) {

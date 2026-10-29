@@ -3,7 +3,7 @@
 -- Jogadores: Ana (…1a1), Bruno (…1b1), Carla (…1c1), Dina (…1d1) e Fábio (…1f1, conta nova sem nome).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(46);
+select plan(56);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000001a1', 'ana@rooms.test'),
@@ -90,6 +90,7 @@ select throws_ok(format($$select public.join_room('%s')$$, :'code'), 'P0001', 'R
 
 -- ── Fim da partida (resolve-night) e reinício ────────────────────────────────
 reset role;
+insert into public.nights (game_id, night, seed, resolved_at, summary) values (:game, 1, 1, now(), '{"players": [], "caught": []}');
 select public.finish_game(:game, 1,
   '[{"player_id": "00000000-0000-0000-0000-0000000001b1", "rank": 1, "points": 50, "successful_attacks": 0}]');
 set local role authenticated;
@@ -106,9 +107,20 @@ select is((select status from public.games where id = :game), 'finished', 'a par
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001d1", "role": "authenticated"}', true);
 select is(public.join_room(:'code'), :room::bigint, 'depois de reiniciar, entra gente nova');
+select is((select count(*)::int from public.games where room_id = :room), 0, 'quem entra não vê as partidas onde não jogou');
+select is((select count(*)::int from public.nights where game_id = :game), 0, 'nem as suas noites');
+select is((select count(*)::int from public.rankings where game_id = :game), 0, 'nem o ranking');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001c1", "role": "authenticated"}', true);
 select lives_ok(format($$select public.leave_room(%s)$$, :room), 'e sai quem quiser');
+select is((select count(*)::int from public.rooms where id = :room), 0, 'quem saiu já não vê a sala');
+select is((select count(*)::int from public.games where id = :game), 1, 'mas continua a ver a partida que jogou');
+select is((select count(*)::int from public.nights where game_id = :game), 1, 'as noites');
+select is((select count(*)::int from public.rankings where game_id = :game), 1, 'o ranking');
+select is((select name from public.players where id = '00000000-0000-0000-0000-0000000001b1'), 'Bruno',
+  'e os nomes de quem jogou com ela');
+select is((select count(*)::int from public.players where id = '00000000-0000-0000-0000-0000000001d1'), 0,
+  'mas não o de quem entrou depois');
 
 -- ── O último a sair apaga a sala ─────────────────────────────────────────────
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001d1", "role": "authenticated"}', true);
@@ -122,6 +134,16 @@ insert into public.rooms (admin_id, kind) values ('00000000-0000-0000-0000-00000
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001b1", "role": "authenticated"}', true);
 select throws_ok(format($$select public.join_room('%s')$$, :'bots'), 'P0001', 'ROOM_NOT_FOUND', 'não se entra numa sala contra bots');
+
+-- ── Uma sala contra bots não começa pelo start_room (T11) ────────────────────
+reset role;
+insert into public.rooms (admin_id, kind) values ('00000000-0000-0000-0000-0000000001b1', 'bots') returning id as botsroom \gset
+insert into public.room_players (room_id, player_id) values
+  (:botsroom, '00000000-0000-0000-0000-0000000001a1'),
+  (:botsroom, '00000000-0000-0000-0000-0000000001b1'),
+  (:botsroom, '00000000-0000-0000-0000-0000000001c1');
+set local role authenticated;
+select throws_ok(format($$select public.start_room(%s)$$, :botsroom), 'P0001', 'NOT_PEOPLE_ROOM', 'sala contra bots');
 
 -- ── Funções internas ─────────────────────────────────────────────────────────
 select throws_ok($$select public.new_room_code()$$, '42501', null, 'authenticated não sorteia códigos');

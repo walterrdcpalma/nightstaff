@@ -44,22 +44,22 @@ CLAUDE.md
 ## Dados (Supabase)
 | Tabela | Campos | Leitura |
 |---|---|---|
-| `players` | id (= auth.users.id), name (1 a 24 caracteres, sem espaços nas pontas) | O próprio e quem partilha uma sala com ele. Cada um cria e muda só o seu (nome escolhido no primeiro login) |
+| `players` | id (= auth.users.id), name (1 a 24 caracteres, sem espaços nas pontas) | O próprio e quem partilha com ele uma sala ou uma partida. Cada um cria e muda só o seu (nome escolhido no primeiro login) |
 | `rooms` | id, code (6 caracteres sem 0/O/1/I/L, único), admin_id, kind: `people` \| `bots`, status: `lobby` \| `running` \| `finished`, created_at | Os jogadores da sala. Escrita só pelas funções da sala |
 | `room_players` | room_id, player_id, joined_at (se o admin sair, passa a admin quem entrou há mais tempo) | Os jogadores da sala. Escrita só pelas funções da sala |
-| `games` | id (= uma partida), room_id, start_date (dia da noite 1 = dia do Começar), status: `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Os jogadores da sala |
-| `game_players` | game_id, player_id (lista fixa, copiada da sala no Começar) | Os jogadores da sala. Escrita só pelo `start_room` |
+| `games` | id (= uma partida), room_id, start_date (dia da noite 1 = dia do Começar), status: `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Quem a jogou (`game_players`) |
+| `game_players` | game_id, player_id (lista fixa, copiada da sala no Começar) | Quem jogou a partida. Escrita só pelo `start_room` |
 | `actions` | game_id, night, player_id, type, target_id; único (game_id, night, player_id) | **Só o próprio** |
-| `nights` | game_id, night, seed, resolved_at, summary jsonb | Os jogadores da sala, depois de resolvida |
+| `nights` | game_id, night, seed, resolved_at, summary jsonb | Quem jogou a partida, depois de resolvida |
 | `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio, sempre** (também depois de a partida acabar) |
-| `rankings` | game_id, player_id, rank, points, successful_attacks | Os jogadores da sala, só quando `games.status = finished` |
+| `rankings` | game_id, player_id, rank, points, successful_attacks | Quem jogou a partida, só quando `games.status = finished` |
 
-- **RLS por sala:** quem não está na sala não vê nada dela (nem a sala, nem as partidas, noites, rankings ou jogadores). As funções `is_room_member`, `is_game_member` e `shares_room` (`security definer`) servem as políticas. Dentro da sala, as regras de visibilidade v5 não mudam.
-- **Funções da sala** (`security definer`, para quem tem sessão; erros como códigos, ex.: `NO_NAME`, `ROOM_NOT_FOUND`, `ROOM_NOT_IN_LOBBY`, `NOT_ADMIN`, `TOO_FEW_PLAYERS`, `ROOM_NOT_FINISHED`):
+- **RLS por sala e por partida:** a sala (código, lobby, jogadores) é de quem lá está agora; cada partida (noites, rankings, lista de jogadores) é de quem a jogou, também depois de sair da sala (RULES.md §4: o histórico fica sempre consultável). Quem entra numa sala reiniciada não vê as partidas onde não jogou. Quem não está na sala nem jogou nela não vê nada. As funções `is_room_member`, `is_game_player`, `shares_room` e `shares_game` (`security definer`) servem as políticas. Dentro da partida, as regras de visibilidade v5 não mudam.
+- **Funções da sala** (`security definer`, para quem tem sessão; erros como códigos, ex.: `NO_NAME`, `ROOM_NOT_FOUND`, `ROOM_NOT_IN_LOBBY`, `NOT_ADMIN`, `TOO_FEW_PLAYERS`, `ROOM_NOT_FINISHED`, `NOT_PEOPLE_ROOM`):
   - `create_room()`: sala de pessoas em lobby; quem cria é o admin e o primeiro jogador.
   - `join_room(code)`: só em lobby; numa sala contra bots dá `ROOM_NOT_FOUND`.
   - `leave_room(room)`: só em lobby. Se for o admin, o admin passa para quem entrou há mais tempo; se não sobrar ninguém, a sala é apagada.
-  - `start_room(room)`: só o admin, com 3 ou mais. Cria a partida com `start_date` = hoje (Lisboa): a noite 1 abre já e fecha às 23:59.
+  - `start_room(room)`: só o admin, só salas de pessoas, com 3 ou mais. Cria a partida com `start_date` = hoje (Lisboa): a noite 1 abre já e fecha às 23:59.
   - `restart_room(room)`: só o admin, com a sala acabada. Volta ao lobby, com o mesmo código e os mesmos jogadores; as partidas anteriores ficam no histórico.
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
@@ -85,10 +85,13 @@ CLAUDE.md
   - Fundo `#0B1020`, cartas `#151B33`.
   - Janela/ouro `#F5C542`, perigo `#E5484D`, defesa `#4C8DFF`.
 - **Ecrãs:**
-  - Hoje: escolha, quotas restantes, contagem até às 23:59.
-  - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As noites e as partidas anteriores continuam consultáveis.
-  - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
-  - Os meus pontos (durante a partida) e o ranking final (só na resolução).
+  - **As minhas salas** (ecrã inicial): código, estado e o que falta fazer em cada sala (as que estão à minha espera primeiro), **Criar sala** e **Entrar com código**.
+  - Primeiro login: o nome que os outros vão ver (cria o meu `players`).
+  - Dentro de uma sala, as abas só com dados dessa sala:
+    - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin.
+    - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As noites e as partidas anteriores continuam consultáveis.
+    - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
+    - Os meus pontos (durante a partida) e o ranking final (só na resolução).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
 - **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Reunião de emergência). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
 - **Convenções do `web/`:**
@@ -98,10 +101,11 @@ CLAUDE.md
   - A lógica pura de cada ecrã fica em `web/src/lib/` e testa-se no Vitest. O web importa o `engine/` por caminho relativo.
   - Leituras partilhadas em `web/src/lib/data.ts`: um erro lança e o ecrã mostra `LoadError` ("Espreitar outra vez"), nunca um estado vazio. Ecrãs em abas (Hoje, Manhã, Bairro, Pontos), sem router. O `useLoad` ignora respostas de leituras antigas.
   - Pontos: o ranking vem da tabela `rankings` (a RLS só a mostra com `status = finished`).
-  - Até à T10, os ecrãs mostram a partida mais recente das minhas salas (sem lobby nem escolha de sala).
+  - Ecrã inicial: As minhas salas (sem router: a sala escolhida é estado do `App`). Os ecrãs de uma sala recebem `roomId` e mostram a partida mais recente que joguei nela; o Manhã e o Bairro deixam escolher as partidas anteriores.
+  - Ranking: quem ficou empatado em pontos mostra o critério do desempate, se os ataques bem-sucedidos chegaram; senão, "confronto direto, pontos perdidos ou sorteio" (sem o ledger dos outros não se distingue).
   - Hoje: o alvo da minha Visita ou Reunião de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
   - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
-- **Auth:** registo aberto (`[auth] enable_signup = true`, login com `shouldCreateUser: true`). Não pôr `false` em `[auth.email]`, que desliga também o magic link. Uma conta nova não tem `players`: o nome pede-se no primeiro login (T10), e sem nome as funções da sala dão `NO_NAME`.
+- **Auth:** registo aberto (`[auth] enable_signup = true`, login com `shouldCreateUser: true`). Não pôr `false` em `[auth.email]`, que desliga também o magic link. Uma conta nova não tem `players`: o nome pede-se no primeiro login, e sem nome as funções da sala dão `NO_NAME`.
   - O magic link volta para `window.location.origin`: o URL do site (dev e produção) tem de estar em *Site URL* / *Redirect URLs* no painel do Supabase. No local já está no `config.toml` (`http://localhost:5173`).
 
 ## Comandos
@@ -132,8 +136,8 @@ npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
      - **Pontos:** 🏆 Funcionário do Mês e ranking final.
      - **Bairro:** as 9 noites.
      - **Hoje:** "Dia de resolução".
-     - Não há partida seguinte: o admin reinicia a sala (botão na T10).
-   - **`lobby`**: uma sala em lobby com 5 jogadores (a Ana é admin); o script mostra o código para o Walter entrar (ecrã na T10).
+     - Não há partida seguinte: o Walter (admin) vê **Reiniciar** no Hoje, e a sala volta ao lobby.
+   - **`lobby`**: uma sala em lobby com 5 jogadores (a Ana é admin); o script mostra o código para o Walter entrar em **Entrar com código**.
 
 ## Regras para agentes (obrigatório)
 1. Trabalhar **só em branches** e entregar por **Pull Request**. Nunca fazer push para `main`.

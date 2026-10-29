@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
 import type { Action, LedgerReason } from '../../../engine/index.ts';
-import { attacksText, movementsByNight, points, rankingRows, rankingVisible } from './points.ts';
+import { TIEBREAK_TEXT, attacksText, movementsByNight, points, rankingRows, rankingVisible } from './points.ts';
 import type { LedgerRow, RankingDbRow } from './points.ts';
 
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
@@ -68,20 +68,30 @@ describe('ranking final (dia 11)', () => {
   it('ordena pela posição gravada; o 1.º é o Funcionário do Mês', () => {
     const rows = rankingRows([db('carla', 3, 40), db('bruno', 1, 60, 1), db('ana', 2, 50)], nameOf);
     expect(rows.map((r) => [r.rank, r.name, r.points, r.tiebreak])).toEqual([
-      [1, 'Bruno', 60, false],
-      [2, 'Ana', 50, false],
-      [3, 'Carla', 40, false],
+      [1, 'Bruno', 60, null],
+      [2, 'Ana', 50, null],
+      [3, 'Carla', 40, null],
     ]);
     expect(rows[0].successfulAttacks).toBe(1);
   });
 
-  it('marca "desempate" quem está empatado em pontos com o de cima ou o de baixo', () => {
+  it('empatados em pontos e em ataques: desempate por confronto direto, pontos perdidos ou sorteio', () => {
     const rows = rankingRows([db('ana', 1, 50, 3), db('bruno', 2, 50, 3), db('carla', 3, 40)], nameOf);
     expect(rows.map((r) => [r.name, r.tiebreak])).toEqual([
-      ['Ana', true],
-      ['Bruno', true],
-      ['Carla', false],
+      ['Ana', 'LATER'],
+      ['Bruno', 'LATER'],
+      ['Carla', null],
     ]);
+  });
+
+  it('empatados em pontos com ataques diferentes: desempate pelos ataques bem-sucedidos', () => {
+    const rows = rankingRows([db('ana', 1, 50, 3), db('bruno', 2, 50, 1), db('carla', 3, 50, 1)], nameOf);
+    expect(rows.map((r) => [r.name, r.tiebreak])).toEqual([
+      ['Ana', 'ATTACKS'],
+      ['Bruno', 'LATER'],
+      ['Carla', 'LATER'],
+    ]);
+    expect(TIEBREAK_TEXT.ATTACKS).toBe('ataques bem-sucedidos');
   });
 
   it('o ranking não precisa do ledger dos outros: só da tabela rankings', () => {

@@ -71,7 +71,7 @@
   - A `resolve-night` resolve todas as salas de pessoas a decorrer, à meia-noite, com a mesma idempotência de antes. As salas de bots ficam de fora.
   - Atualizar o `seed.sql`, o `npm run demo` e os testes de RLS (2 utilizadores, 2 salas: não se vê nada da sala onde não se está).
   - Atualizar o CLAUDE.md (Dados, Resolução, Comandos) — regra 8.
-- [ ] **T10 — Salas: web**
+- [x] **T10 — Salas: web**
   - Ecrã inicial **As minhas salas**: lista das salas com o estado e o que falta fazer ("escolhe até às 23:59"), mais os botões **Criar sala** e **Entrar com código**.
   - Lobby: código grande com botão para copiar e lista de jogadores. O admin vê **Começar** (desligado com menos de 3) e, com a sala acabada, **Reiniciar**.
   - Dentro de uma sala, as abas de sempre (Hoje, Manhã, Bairro, Pontos), só com dados dessa sala.
