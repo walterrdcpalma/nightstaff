@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabase';
 
-/** Login por magic link. Só para quem foi convidado: não cria contas (registo público desligado). */
+/** Login por magic link. O registo é aberto (RULES.md §1 v6): o primeiro link cria a conta. */
 export default function Login() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -15,7 +15,7 @@ export default function Login() {
     setState('sending');
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
+      options: { shouldCreateUser: true, emailRedirectTo: window.location.origin },
     });
     setState(error ? 'error' : 'sent');
   }

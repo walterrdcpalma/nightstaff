@@ -1,24 +1,22 @@
 // Lógica pura do ecrã Hoje: fase do dia, prazo das 23:59 e textos. Testada em today.test.ts.
-import { addDays, cycleDay, lisbonDate } from '../../../engine/index.ts';
+import { NIGHTS, addDays, lisbonDate, nightOn } from '../../../engine/index.ts';
 import type { ActionType, ValidationError } from '../../../engine/index.ts';
 
-export type GameStatus = 'prep' | 'running' | 'finished';
+export type GameStatus = 'running' | 'finished';
 
 export type TodayPhase =
-  | { kind: 'PREP' } // dia 1: entrar ou sair
-  | { kind: 'NIGHT'; night: number } // dias 2 a 10: escolher a ação
-  | { kind: 'RESULTS' } // dia 11
-  | { kind: 'WAKING' }; // entre as 00:00 e a passagem da resolve-night (ou ciclo adiado/seguinte a chegar)
+  | { kind: 'NIGHT'; night: number } // noites 1 a 9: escolher a ação
+  | { kind: 'RESULTS' } // partida acabada
+  | { kind: 'WAKING' }; // entre as 00:00 e a passagem da resolve-night
 
 /**
  * O que o ecrã Hoje mostra, a partir do estado gravado e da data de Lisboa.
  * Se a data e o estado não baterem (a resolve-night ainda não passou), o bairro "está a acordar".
  */
 export function todayPhase(startDate: string, status: GameStatus, today: string): TodayPhase {
-  const day = cycleDay(startDate, today);
-  if (status === 'prep') return day === 1 ? { kind: 'PREP' } : { kind: 'WAKING' };
-  if (status === 'running') return day >= 2 && day <= 10 ? { kind: 'NIGHT', night: day - 1 } : { kind: 'WAKING' };
-  return day === 11 ? { kind: 'RESULTS' } : { kind: 'WAKING' };
+  if (status === 'finished') return { kind: 'RESULTS' };
+  const night = nightOn(startDate, today);
+  return night >= 1 && night <= NIGHTS ? { kind: 'NIGHT', night } : { kind: 'WAKING' };
 }
 
 /** Próximas 00:00 de Lisboa depois de `now`: o fim do prazo das 23:59 (RULES.md §2). Trata a mudança de hora. */
@@ -55,14 +53,14 @@ export function choiceText(type: ActionType, targetName?: string): string {
 
 /** Erros do `validateAction` e do trigger da BD (T3), em português de Portugal. */
 export const ERROR_TEXT: Record<ValidationError | 'NIGHT_CLOSED' | 'KEY_CHANGED', string> = {
-  UNKNOWN_PLAYER: 'Não estás inscrito neste ciclo.',
+  UNKNOWN_PLAYER: 'Não estás nesta partida.',
   UNKNOWN_TYPE: 'Essa ação não existe.',
   TARGET_REQUIRED: 'Escolhe a casa de alguém.',
   UNEXPECTED_TARGET: 'Essa ação não tem alvo.',
   SELF_TARGET: 'Não podes ir a tua própria casa.',
-  UNKNOWN_TARGET: 'Essa pessoa não está neste ciclo.',
+  UNKNOWN_TARGET: 'Essa pessoa não está nesta partida.',
   SAME_TARGET: 'Não podes ir à mesma casa duas noites seguidas.',
-  QUOTA_EXHAUSTED: 'Já gastaste essa ação neste ciclo.',
+  QUOTA_EXHAUSTED: 'Já gastaste essa ação nesta partida.',
   NIGHT_CLOSED: 'O prazo desta noite já fechou.',
   KEY_CHANGED: 'Não se pode mudar a noite de uma escolha.',
 };

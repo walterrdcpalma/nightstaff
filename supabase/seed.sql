@@ -1,5 +1,5 @@
 -- Dados do Supabase local (só `supabase db reset`; nunca corre em dev nem em produção).
--- O Walter e 3 jogadores de teste. Entra-se por magic link; os emails chegam ao Mailpit (http://127.0.0.1:54324).
+-- O Walter e 3 jogadores de teste, numa sala em lobby (código NSTAFF) de que o Walter é admin. Entra-se por magic link; os emails chegam ao Mailpit (http://127.0.0.1:54324).
 
 insert into auth.users (
   instance_id, id, aud, role, email, email_confirmed_at,
@@ -28,3 +28,16 @@ insert into public.players (id, name) values
   ('00000000-0000-0000-0000-0000000000a1', 'Ana'),
   ('00000000-0000-0000-0000-0000000000b2', 'Bruno'),
   ('00000000-0000-0000-0000-0000000000c3', 'Carla');
+
+-- Sala em lobby com os 4: o Walter pode carregar em Começar.
+insert into public.rooms (code, admin_id) values ('NSTAFF', '00000000-0000-0000-0000-000000000001');
+insert into public.room_players (room_id, player_id, joined_at)
+select r.id, p.id, now() + p.ord * interval '1 second'
+from public.rooms r,
+  (values
+    ('00000000-0000-0000-0000-000000000001'::uuid, 0),
+    ('00000000-0000-0000-0000-0000000000a1'::uuid, 1),
+    ('00000000-0000-0000-0000-0000000000b2'::uuid, 2),
+    ('00000000-0000-0000-0000-0000000000c3'::uuid, 3)
+  ) as p (id, ord)
+where r.code = 'NSTAFF';

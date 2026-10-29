@@ -1,51 +1,32 @@
-// O que a `resolve-night` faz a seguir num ciclo (RULES.md §1, CLAUDE.md "Resolução da noite"). Funções puras.
-import { CYCLE_DAYS, NIGHTS, addDays, cycleDay } from './cycle.ts';
+// O que a `resolve-night` faz a seguir numa partida a decorrer (RULES.md §1.1, CLAUDE.md "Resolução da noite").
+// Funções puras.
+import { NIGHTS, nightOn } from './cycle.ts';
 import { validateAction } from './validateAction.ts';
 import type { ValidationError } from './validateAction.ts';
 import type { Action, GameState, PastAction, PlayerId } from './types.ts';
 
-/** Mínimo de inscritos para o ciclo arrancar (RULES.md §1). */
+/** Mínimo de jogadores para o admin poder começar (RULES.md §1.1). A BD verifica-o no `start_room`. */
 export const MIN_PLAYERS = 3;
 
-export interface CycleState {
-  /** Dia 1 (preparação), `YYYY-MM-DD` em Lisboa. */
+export interface GameSchedule {
+  /** Dia da noite 1 (o dia em que o admin carregou em Começar), `YYYY-MM-DD` em Lisboa. */
   startDate: string;
-  status: 'prep' | 'running' | 'finished';
-  /** Inscritos no ciclo. */
-  players: number;
   /** Noites já resolvidas, seguidas a partir da 1. */
   resolvedNights: number;
 }
 
-export type Step =
-  | { kind: 'START' }
-  | { kind: 'POSTPONE'; startDate: string }
-  | { kind: 'RESOLVE'; night: number }
-  | { kind: 'FINISH' }
-  | { kind: 'NEXT_CYCLE'; startDate: string };
+export type Step = { kind: 'RESOLVE'; night: number } | { kind: 'FINISH' };
 
 /**
- * Próximo passo do ciclo mais recente em `today` (data de Lisboa), ou `null` se não há nada a fazer.
+ * Próximo passo de uma partida a decorrer em `today` (data de Lisboa), ou `null` se não há nada a fazer.
  * Aplica-se um passo de cada vez e volta-se a chamar até dar `null`: assim recupera noites em atraso.
- * - Preparação, a partir do dia 2: arranca com `MIN_PLAYERS` ou mais; senão, adia o dia 1 para o dia seguinte.
- *   Se o cron falhar vários dias, o arranque é tardio e as noites que já passaram resolvem-se logo, todos em STAY.
- * - A correr: a noite N resolve-se às 00:00 do dia N + 2 (a escolha é no dia N + 1). Depois da 9, acaba.
- * - Acabado: no dia a seguir à resolução (dia 12) cria o ciclo seguinte, que começa nesse dia.
+ * - A noite N escolhe-se no dia N da partida e resolve-se às 00:00 seguintes.
+ * - Depois da noite 9, acaba (resolução). Não há partida seguinte: o admin reinicia a sala, se quiser.
  */
-export function nextStep(game: CycleState, today: string): Step | null {
-  const day = cycleDay(game.startDate, today);
-  switch (game.status) {
-    case 'prep':
-      if (day < 2) return null;
-      return game.players >= MIN_PLAYERS ? { kind: 'START' } : { kind: 'POSTPONE', startDate: addDays(game.startDate, 1) };
-    case 'running': {
-      if (game.resolvedNights >= NIGHTS) return { kind: 'FINISH' };
-      const night = game.resolvedNights + 1;
-      return day >= night + 2 ? { kind: 'RESOLVE', night } : null;
-    }
-    case 'finished':
-      return day > CYCLE_DAYS ? { kind: 'NEXT_CYCLE', startDate: addDays(game.startDate, CYCLE_DAYS) } : null;
-  }
+export function nextStep(game: GameSchedule, today: string): Step | null {
+  if (game.resolvedNights >= NIGHTS) return { kind: 'FINISH' };
+  const night = game.resolvedNights + 1;
+  return nightOn(game.startDate, today) > night ? { kind: 'RESOLVE', night } : null;
 }
 
 export interface InvalidAction {
@@ -63,7 +44,7 @@ export interface NightInput {
 }
 
 /**
- * Prepara a resolução da noite `night` a partir das ações guardadas do ciclo (noites 1 a `night`).
+ * Prepara a resolução da noite `night` a partir das ações guardadas da partida (noites 1 a `night`).
  * Uma ação inválida não bloqueia a noite: fica de fora (STAY) e vem em `invalid`.
  * As quotas contam só as ações válidas das noites anteriores, validadas noite a noite.
  */

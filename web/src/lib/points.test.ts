@@ -54,7 +54,6 @@ describe('os meus pontos', () => {
 
 describe('ranking final (dia 11)', () => {
   it('só com o ciclo acabado', () => {
-    expect(rankingVisible('prep')).toBe(false);
     expect(rankingVisible('running')).toBe(false);
     expect(rankingVisible('finished')).toBe(true);
   });

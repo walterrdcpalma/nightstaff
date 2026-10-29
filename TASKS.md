@@ -62,7 +62,7 @@
   - Script `npm run demo:dia`: avança o ciclo a meio 1 dia, para testar a passagem de noite e o dia 11.
   - **Recusa correr** se o `SUPABASE_URL` não for local (127.0.0.1 ou localhost). Usa a `service_role` local, que só existe no script e nunca no `web/`.
   - No `CLAUDE.md`, secção Comandos: como usar os scripts e o que ver em cada ecrã.
-- [ ] **T9 — Salas: base de dados e resolução**
+- [x] **T9 — Salas: base de dados e resolução**
   - Modelo de dados para **salas** (código, admin, tipo `pessoas`/`bots`, estado `lobby`/`a decorrer`/`acabada`) e **partidas** dentro de cada sala. Os ciclos automáticos desaparecem: nada de `next_cycle` nem de criar ciclos sozinho.
   - Código de 6 caracteres, único e sem letras ambíguas (0/O, 1/I/L).
   - Funções seguras na BD: criar sala, entrar com o código (só em lobby), sair (só em lobby), começar (só o admin, com 3 ou mais jogadores, e a noite 1 abre nesse momento), reiniciar (só o admin, com a sala acabada).

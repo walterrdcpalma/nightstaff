@@ -1,11 +1,11 @@
 # CLAUDE.md — Night Staff
 
-Webapp para um grupo de amigos (número variável, mínimo 3), em ciclos de 11 dias (RULES.md §1). Regras em **`RULES.md`**, que é a fonte da verdade. Objetivo: **a solução mais simples que funcione.** Não adicionar features, abstrações nem dependências que não sejam pedidas.
+Webapp para jogar com amigos em **salas** (mínimo 3 jogadores), cada uma com uma partida de 9 noites de cada vez (RULES.md §1). Regras em **`RULES.md`**, que é a fonte da verdade. Objetivo: **a solução mais simples que funcione.** Não adicionar features, abstrações nem dependências que não sejam pedidas.
 
 ## Stack
 - **Frontend:** React + Vite + TypeScript + Tailwind + **neobrutalism.dev** (componentes neo-brutalistas sobre shadcn/ui: contornos grossos, sombras duras, cores fortes). Instalar os componentes pela CLI do shadcn, como indicado em neobrutalism.dev. Sem fontes pixel; usar uma fonte sans-serif forte nos títulos.
 - **Backend:** Supabase.
-  - Postgres + Auth (magic link, registo público desligado, os 8 jogadores são convidados).
+  - Postgres + Auth (magic link, registo aberto: qualquer pessoa cria conta com o email).
   - RLS.
   - `pg_cron`.
   - 1 Edge Function.
@@ -44,32 +44,40 @@ CLAUDE.md
 ## Dados (Supabase)
 | Tabela | Campos | Leitura |
 |---|---|---|
-| `players` | id (= auth.users.id), name | Todos |
-| `games` | id (= um ciclo), start_date (dia 1), status: `prep` \| `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Todos |
-| `game_players` | game_id, player_id | Todos. Escrita só pelo próprio, só com `status = prep` |
+| `players` | id (= auth.users.id), name (1 a 24 caracteres, sem espaços nas pontas) | O próprio e quem partilha uma sala com ele. Cada um cria e muda só o seu (nome escolhido no primeiro login) |
+| `rooms` | id, code (6 caracteres sem 0/O/1/I/L, único), admin_id, kind: `people` \| `bots`, status: `lobby` \| `running` \| `finished`, created_at | Os jogadores da sala. Escrita só pelas funções da sala |
+| `room_players` | room_id, player_id, joined_at (se o admin sair, passa a admin quem entrou há mais tempo) | Os jogadores da sala. Escrita só pelas funções da sala |
+| `games` | id (= uma partida), room_id, start_date (dia da noite 1 = dia do Começar), status: `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Os jogadores da sala |
+| `game_players` | game_id, player_id (lista fixa, copiada da sala no Começar) | Os jogadores da sala. Escrita só pelo `start_room` |
 | `actions` | game_id, night, player_id, type, target_id; único (game_id, night, player_id) | **Só o próprio** |
-| `nights` | game_id, night, seed, resolved_at, summary jsonb | Todos, depois de resolvida |
-| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio, sempre** (também depois do dia 11) |
-| `rankings` | game_id, player_id, rank, points, successful_attacks | Todos, só quando `games.status = finished` |
+| `nights` | game_id, night, seed, resolved_at, summary jsonb | Os jogadores da sala, depois de resolvida |
+| `ledger` | id, game_id, night, player_id, delta, reason, target_id (alvo do próprio ataque, para o confronto direto; na `DEFENSE`, quem o jogador apanhou) | **Só o próprio, sempre** (também depois de a partida acabar) |
+| `rankings` | game_id, player_id, rank, points, successful_attacks | Os jogadores da sala, só quando `games.status = finished` |
 
+- **RLS por sala:** quem não está na sala não vê nada dela (nem a sala, nem as partidas, noites, rankings ou jogadores). As funções `is_room_member`, `is_game_member` e `shares_room` (`security definer`) servem as políticas. Dentro da sala, as regras de visibilidade v5 não mudam.
+- **Funções da sala** (`security definer`, para quem tem sessão; erros como códigos, ex.: `NO_NAME`, `ROOM_NOT_FOUND`, `ROOM_NOT_IN_LOBBY`, `NOT_ADMIN`, `TOO_FEW_PLAYERS`, `ROOM_NOT_FINISHED`):
+  - `create_room()`: sala de pessoas em lobby; quem cria é o admin e o primeiro jogador.
+  - `join_room(code)`: só em lobby; numa sala contra bots dá `ROOM_NOT_FOUND`.
+  - `leave_room(room)`: só em lobby. Se for o admin, o admin passa para quem entrou há mais tempo; se não sobrar ninguém, a sala é apagada.
+  - `start_room(room)`: só o admin, com 3 ou mais. Cria a partida com `start_date` = hoje (Lisboa): a noite 1 abre já e fecha às 23:59.
+  - `restart_room(room)`: só o admin, com a sala acabada. Volta ao lobby, com o mesmo código e os mesmos jogadores; as partidas anteriores ficam no histórico.
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
   - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00.
   - Nada mais é exposto.
-- Os pontos são `50 + soma do ledger`. Cada jogador só vê os seus. O ranking completo só no dia 11: a `resolve-night` calcula-o no fim do ciclo (`finalRanking`) e grava-o em `rankings`, porque o ledger dos outros nunca chega ao browser.
+- Os pontos são `50 + soma do ledger`. Cada jogador só vê os seus. O ranking completo só na resolução, depois da noite 9: a `resolve-night` calcula-o no fim da partida (`finalRanking`) e grava-o em `rankings`, porque o ledger dos outros nunca chega ao browser.
 - O `nights.summary` é **público** (RULES.md §4 v5): só `players` (casa/fora de cada um) e `caught` (apanhados, sem dizer onde). Nada de pontos, ataques recebidos, defesas, sorteios, bombas, assaltos ou bónus.
 - O que aconteceu a cada jogador é **privado** e vem do seu próprio `ledger`. As razões chegam para isso: `VICTIM` (atacado em casa), `BOMBED`, `BURGLARY_VICTIM`, `ATTACK_DRAW_WON`/`ATTACK_LOST_DRAW` (sorteio), `DEFENSE` (uma linha por apanhado, com `target_id`) e `HOME_BONUS`.
 
 ## Resolução da noite
 - O `pg_cron` corre **de hora a hora** e chama `resolve-night`.
 - A função converte a hora para **Europe/Lisbon** e só resolve se a noite anterior ainda não estiver resolvida (idempotente). Isto evita problemas com a mudança de hora.
-- A mesma função faz as **transições de ciclo** (RULES.md §1):
-  - `prep` → `running` às 00:00 do dia 2, se houver 3 ou mais inscritos. Se não houver, adia o `start_date` 1 dia.
-  - `running` → `finished` depois da noite 9.
-  - No dia a seguir à resolução, cria o próximo ciclo em `prep`, copiando os inscritos.
-- O cálculo da fase e do dia do ciclo a partir das datas é uma função pura no `engine/`: `nextStep` (próximo passo do ciclo mais recente, repetido até não haver nada a fazer) e `prepareNight` (ações inválidas → `STAY`, com log).
+- Trata **todas as partidas a decorrer em salas de pessoas** (as salas contra bots ficam de fora). Uma partida com erro não impede as outras; a resposta é 500 com a lista de erros.
+  - A noite N é o dia N da partida (a 1 é o dia do Começar) e resolve-se às 00:00 seguintes.
+  - Depois da noite 9, `finish_game` acaba a partida e a sala (`finished`). Não há ciclos automáticos: só o admin começa ou reinicia.
+- A lógica das datas é pura, no `engine/`: `nightOn` (noite de um dia), `nextStep` (próximo passo de uma partida, repetido até não haver nada a fazer) e `prepareNight` (ações inválidas → `STAY`, com log).
 - A função usa a `service_role`, que **só existe na Edge Function** e nunca no `web/`.
-- Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger), `finish_game` (fim do ciclo + seed do desempate + `rankings`) e `next_cycle` (novo ciclo + inscritos). O ciclo mais recente é o de maior `games.id`.
+- Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger) e `finish_game` (fim da partida e da sala + seed do desempate + `rankings`; recusa um ranking vazio).
 - O `pg_cron` lê o URL e a chave de dois segredos do **Vault**, `project_url` e `service_role_key`, criados à mão pelo Walter em cada projeto.
 
 ## UI
@@ -78,9 +86,9 @@ CLAUDE.md
   - Janela/ouro `#F5C542`, perigo `#E5484D`, defesa `#4C8DFF`.
 - **Ecrãs:**
   - Hoje: escolha, quotas restantes, contagem até às 23:59.
-  - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As noites e os ciclos anteriores continuam consultáveis.
+  - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As noites e as partidas anteriores continuam consultáveis.
   - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
-  - Os meus pontos (durante o jogo) e o ranking final (só no dia 11).
+  - Os meus pontos (durante a partida) e o ranking final (só na resolução).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
 - **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Reunião de emergência). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
 - **Convenções do `web/`:**
@@ -89,10 +97,11 @@ CLAUDE.md
   - Tema: as variáveis do neobrutalism.dev em `web/src/index.css`, com a paleta acima. Contornos e sombras claros (`#F4F1E8`), para se verem no fundo escuro. Títulos em Archivo Black.
   - A lógica pura de cada ecrã fica em `web/src/lib/` e testa-se no Vitest. O web importa o `engine/` por caminho relativo.
   - Leituras partilhadas em `web/src/lib/data.ts`: um erro lança e o ecrã mostra `LoadError` ("Espreitar outra vez"), nunca um estado vazio. Ecrãs em abas (Hoje, Manhã, Bairro, Pontos), sem router. O `useLoad` ignora respostas de leituras antigas.
-  - Pontos: o ranking vem da tabela `rankings` (a RLS só a mostra com `status = finished`). Durante a preparação do ciclo seguinte, mostra o ciclo anterior.
+  - Pontos: o ranking vem da tabela `rankings` (a RLS só a mostra com `status = finished`).
+  - Até à T10, os ecrãs mostram a partida mais recente das minhas salas (sem lobby nem escolha de sala).
   - Hoje: o alvo da minha Visita ou Reunião de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
   - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
-- **Auth:** o registo fecha-se com `[auth] enable_signup = false`. Não pôr `false` em `[auth.email]`, que desliga também o magic link.
+- **Auth:** registo aberto (`[auth] enable_signup = true`, login com `shouldCreateUser: true`). Não pôr `false` em `[auth.email]`, que desliga também o magic link. Uma conta nova não tem `players`: o nome pede-se no primeiro login (T10), e sem nome as funções da sala dão `NO_NAME`.
   - O magic link volta para `window.location.origin`: o URL do site (dev e produção) tem de estar em *Site URL* / *Redirect URLs* no painel do Supabase. No local já está no `config.toml` (`http://localhost:5173`).
 
 ## Comandos
@@ -101,30 +110,30 @@ npm test            # vitest (engine + sim)
 npm run sim         # simulação de N jogos com bots
 npm run dev         # web (Vite)
 npm run build       # build do web/
-supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste)
+supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste, na sala NSTAFF em lobby; o Walter é admin)
 supabase stop --no-backup  # obrigatório depois de mudar o config.toml: com backup, o auth arranca com a config antiga
-npm run test:db     # testes SQL (pgTAP) + ciclo inteiro na resolve-night (precisa do Supabase local)
-npm run demo [-- meio|terminado|prep]  # limpa a BD LOCAL e cria um ciclo de demonstração (por omissão: meio)
+npm run test:db     # testes SQL (pgTAP) + uma sala inteira na resolve-night (precisa do Supabase local)
+npm run demo [-- meio|terminado|lobby]  # limpa a BD LOCAL e cria uma sala de demonstração (por omissão: meio)
 npm run demo:noite  # resolve já a noite atual; quem não escolheu joga com os bots
-npm run demo:dia    # avança 1 dia (passagem de noite, dia 11, ciclo seguinte)
+npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
 ```
 
 ### Testar no browser com dados de demonstração
-1. `npx supabase start` e `npm run demo` (ou `-- terminado` ou `-- prep`). O script recusa correr se o `SUPABASE_URL` não for local. A `service_role` local só existe no script.
+1. `npx supabase start` e `npm run demo` (ou `-- terminado` ou `-- lobby`). O script recusa correr se o `SUPABASE_URL` não for local. A `service_role` local só existe no script.
 2. `npm run dev` e entrar como `walter@nightstaff.local`. O magic link chega ao Mailpit (http://127.0.0.1:54324).
-3. O que ver (6 jogadores: Walter, Ana, Bruno, Carla, Duarte e Eva; as noites são jogadas pelos bots do `sim/` e resolvidas pela `resolve-night`):
+3. O que ver (6 jogadores: Walter, Ana, Bruno, Carla, Duarte e Eva, numa sala de que o Walter é admin; as noites são jogadas pelos bots do `sim/` e resolvidas pela `resolve-night`):
    - **`meio`** (noite 5 a decorrer, o Walter ainda não escolheu):
      - **Hoje:** escolha, quotas já gastas e contagem até às 23:59.
      - **Manhã:** o relatório privado do Walter na noite 4 e as manchetes; as noites 1 a 3 com um toque. Pelos bots, há sorteio, um apanhado, bomba e assalto a uma casa vazia, cada um no relatório de quem o viveu.
      - **Bairro:** só as janelas (casa/fora) das noites 1 a 4.
      - **Pontos:** só os do Walter.
-   - **`demo:noite`** resolve a noite 5 e abre a 6. Repetido, chega ao dia 11. **`demo:dia`** passa um dia sem preencher escolhas.
-   - **`terminado`** (dia 11):
+   - **`demo:noite`** resolve a noite 5 e abre a 6. Repetido, chega ao fim da partida. **`demo:dia`** passa um dia sem preencher escolhas.
+   - **`terminado`** (sala acabada):
      - **Pontos:** 🏆 Funcionário do Mês e ranking final.
      - **Bairro:** as 9 noites.
      - **Hoje:** "Dia de resolução".
-     - **`demo:dia`** cria o ciclo seguinte em preparação.
-   - **`prep`** (dia 1): o Hoje mostra a preparação com 5 inscritos e o botão para o Walter entrar.
+     - Não há partida seguinte: o admin reinicia a sala (botão na T10).
+   - **`lobby`**: uma sala em lobby com 5 jogadores (a Ana é admin); o script mostra o código para o Walter entrar (ecrã na T10).
 
 ## Regras para agentes (obrigatório)
 1. Trabalhar **só em branches** e entregar por **Pull Request**. Nunca fazer push para `main`.
