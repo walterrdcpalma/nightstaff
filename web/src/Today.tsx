@@ -3,10 +3,10 @@ import { ACTION_TYPES, QUOTAS, lisbonDate, remainingQuota, validateAction } from
 import type { Action, ActionType, GameState } from '../../engine/index.ts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { ACTION_NAMES, choiceText, errorText, formatCountdown, nextLisbonMidnight, todayPhase } from '@/lib/today';
 import type { GameStatus } from '@/lib/today';
+import { LoadError, Note, useLoad } from './Note.tsx';
 
 interface Game {
   id: number;
@@ -39,36 +39,32 @@ function useNow(): Date {
   return now;
 }
 
+/** Um erro numa leitura lança, para o ecrã não confundir uma falha de rede com "não há ciclo". */
+function ok<T>(res: { data: T; error: { message: string } | null }): T {
+  if (res.error) throw new Error(res.error.message);
+  return res.data;
+}
+
 async function load(userId: string): Promise<Data> {
-  const { data: me } = await supabase.from('players').select('id, name').eq('id', userId).maybeSingle();
-  const { data: game } = await supabase
-    .from('games')
-    .select('id, start_date, status')
-    .order('id', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const me = ok(await supabase.from('players').select('id, name').eq('id', userId).maybeSingle());
+  const game = ok(
+    await supabase.from('games').select('id, start_date, status').order('id', { ascending: false }).limit(1).maybeSingle(),
+  );
   if (!game) return { me, game: null, players: [], mine: [] };
-  const { data: enrolled } = await supabase.from('game_players').select('players(id, name)').eq('game_id', game.id);
+  const enrolled = ok(await supabase.from('game_players').select('players(id, name)').eq('game_id', game.id)) ?? [];
   // RLS: só vêm as minhas ações.
-  const { data: mine } = await supabase.from('actions').select('night, type, target_id').eq('game_id', game.id);
-  const players = (enrolled ?? []).map((r) => r.players as unknown as Player).sort((a, b) => a.name.localeCompare(b.name));
-  return { me, game, players, mine: mine ?? [] };
+  const mine = ok(await supabase.from('actions').select('night, type, target_id').eq('game_id', game.id)) ?? [];
+  const players = enrolled.map((r) => r.players as unknown as Player).sort((a, b) => a.name.localeCompare(b.name));
+  return { me, game, players, mine };
 }
 
 export default function Today({ userId }: { userId: string }) {
   const now = useNow();
-  const [data, setData] = useState<Data | null>(null);
-  const reload = useCallback(() => load(userId).then(setData), [userId]);
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  // Ao passar a meia-noite de Lisboa, volta a ler (fase nova).
+  // `today` nas dependências: ao passar a meia-noite de Lisboa, volta a ler (fase nova).
   const today = lisbonDate(now);
-  useEffect(() => {
-    reload();
-  }, [today, reload]);
+  const { data, error, reload } = useLoad(useCallback(() => load(userId), [userId, today]));
 
+  if (error) return <LoadError onRetry={reload} />;
   if (!data) return <p>A acender as luzes da rua…</p>;
   if (!data.me) return <Note title="Ainda não és do bairro">Pede ao Walter para te pôr na lista de jogadores.</Note>;
   if (!data.game) return <Note title="Rua sossegada">Ainda não há nenhum ciclo. Volta mais logo.</Note>;
@@ -84,7 +80,8 @@ export default function Today({ userId }: { userId: string }) {
       if (!enrolled) {
         return <Note title={`Noite ${phase.night} de 9`}>Este ciclo começou sem ti. Volta no próximo dia de preparação.</Note>;
       }
-      return <Night data={data} night={phase.night} userId={userId} countdown={countdown} onChange={reload} />;
+      // A `key` repõe a escolha quando muda a noite sem desmontar o ecrã.
+      return <Night key={phase.night} data={data} night={phase.night} userId={userId} countdown={countdown} onChange={reload} />;
     case 'RESULTS':
       return <Note title="🏆 Dia de resolução">Não há ações hoje. Chegou a hora de conhecer o Funcionário do Mês.</Note>;
     case 'WAKING':
@@ -97,19 +94,6 @@ export default function Today({ userId }: { userId: string }) {
         </Note>
       );
   }
-}
-
-function Note({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card className="bg-secondary-background">
-      <CardHeader>
-        <CardTitle>
-          <h2 className="text-lg">{title}</h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  );
 }
 
 function Deadline({ countdown }: { countdown: string }) {

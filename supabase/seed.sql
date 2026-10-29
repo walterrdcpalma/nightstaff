@@ -11,7 +11,7 @@ select
   '{"provider": "email", "providers": ["email"]}', '{}', now(), now(),
   '', '', '', ''
 from (values
-  ('00000000-0000-0000-0000-000000000001'::uuid, 'walterrdcpalma@gmail.com'),
+  ('00000000-0000-0000-0000-000000000001'::uuid, 'walter@nightstaff.local'),
   ('00000000-0000-0000-0000-0000000000a1'::uuid, 'ana@nightstaff.local'),
   ('00000000-0000-0000-0000-0000000000b2'::uuid, 'bruno@nightstaff.local'),
   ('00000000-0000-0000-0000-0000000000c3'::uuid, 'carla@nightstaff.local')

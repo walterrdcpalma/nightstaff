@@ -86,8 +86,10 @@ CLAUDE.md
   - O `components.json` do shadcn está na raiz. Os componentes vão para `web/src/components/ui/`: são gerados pela CLI e não se editam à mão. O ESLint ignora essa pasta, mas o `tsc` não.
   - Tema: as variáveis do neobrutalism.dev em `web/src/index.css`, com a paleta acima. Contornos e sombras claros (`#F4F1E8`), para se verem no fundo escuro. Títulos em Archivo Black.
   - A lógica pura de cada ecrã fica em `web/src/lib/` e testa-se no Vitest. O web importa o `engine/` por caminho relativo.
+  - Leituras partilhadas em `web/src/lib/data.ts`: um erro lança e o ecrã mostra `LoadError` ("Espreitar outra vez"), nunca um estado vazio. Ecrãs em abas (Hoje, Manhã, Bairro), sem router.
   - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
 - **Auth:** o registo fecha-se com `[auth] enable_signup = false`. Não pôr `false` em `[auth.email]`, que desliga também o magic link.
+  - O magic link volta para `window.location.origin`: o URL do site (dev e produção) tem de estar em *Site URL* / *Redirect URLs* no painel do Supabase. No local já está no `config.toml` (`http://localhost:5173`).
 
 ## Comandos
 ```
