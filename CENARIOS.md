@@ -1,6 +1,6 @@
-# Night Staff — Cenários de aceitação (regras v3)
+# Night Staff — Cenários de aceitação (regras v4)
 
-> Calculados à mão a partir do `RULES.md` v3 e confirmados pelo Walter.
+> Calculados à mão a partir do `RULES.md` v4 e confirmados pelo Walter.
 > Agentes: cada cenário tem de virar um teste. Se o motor der um resultado diferente, **o motor está errado** (ou o `RULES.md` é ambíguo → perguntar).
 > Os resultados são **movimentos** de pontos. Os pontos finais são `50 (salário) + movimentos`.
 
@@ -23,8 +23,9 @@
 **Resultado:**
 - Ana **+10**, Bruno **−10**: ataque normal.
 - Carla **−5**, Duarte **+10**: Duarte defendeu, por isso o ataque custa metade. **Carla fica revelada.**
-- Eva **0**: Filipe estava fora, e um ataque normal a quem está fora falha.
+- Eva **+5**, Filipe **−5**: Filipe estava fora, por isso foi **assalto à casa vazia** (metade).
 - Filipe **+10**, Gil **−10**: ataque normal.
+- Filipe fica com **+5** no total da noite.
 - Helena **+2**: em casa e ninguém a atacou.
 - Duarte **não** ganha bónus: foi atacado.
 
@@ -43,7 +44,7 @@
 **Resultado** (assumindo que o sorteio dá **Bruno**):
 - Bruno **+10**, Helena **−10**.
 - Ana **−10**, Carla **−10**: perderam o sorteio e "morreram".
-- Duarte **0**, Eva **0**: estavam os dois fora, por isso os dois ataques normais falham.
+- Duarte e Eva assaltaram a casa vazia um do outro: cada um ganha +5 e perde −5. Ficam com **0** no total da noite.
 - Filipe **+2**: defendeu sem ser atacado, ganha o bónus e a defesa fica gasta.
 - Gil **+2**: fica em Folga por defeito e ninguém o atacou.
 - O resumo mostra "3 atacantes na Helena, houve sorteio", **sem nomes**.
@@ -88,8 +89,8 @@
 ### Totais após 4 noites (com o sorteio da noite 2 = Bruno)
 | | Ana | Bruno | Carla | Duarte | Eva | Filipe | Gil | Helena |
 |---|---|---|---|---|---|---|---|---|
-| Movimentos | +25 | −4 | −19 | +20 | +5 | −8 | −28 | +8 |
-| Pontos (50 + movimentos) | 75 | 46 | 31 | 70 | 55 | 42 | 22 | 58 |
+| Movimentos | +25 | −4 | −19 | +20 | +10 | −13 | −28 | +8 |
+| Pontos (50 + movimentos) | 75 | 46 | 31 | 70 | 60 | 37 | 22 | 58 |
 
 ### Noite 5 — Validação (o `validateAction` tem de rejeitar)
 - Ana tenta **Atacar** → rejeitado: já usou os 3 ataques (noites 1, 2 e 4).
@@ -109,9 +110,25 @@
 **Resultado:**
 - Bruno **−10**: estava fora, mas a bomba acerta na mesma.
 - Ana **+5**, Duarte **+5**: os 10 são divididos pelos 2 bombistas.
-- Carla **0**: Bruno estava fora, e o ataque normal dela falha.
-- Bruno **0** pelo ataque dele: Carla também estava fora.
+- Carla **0**: também assaltou a casa do Bruno, mas a bomba leva tudo.
+- Bruno **+5**, Carla **−5**: o Bruno assaltou a casa vazia da Carla, e nessa casa não havia bomba.
+- No total da noite: Bruno **−5**, Ana **+5**, Duarte **+5**, Carla **−5**.
 - Ninguém ganha bónus, porque ninguém ficou em casa.
+
+## Cenário extra D — Assalto em grupo (noite 1, 5 jogadores)
+| Jogador | Ação |
+|---|---|
+| Ana | Ataca Eva |
+| Bruno | Ataca Eva |
+| Carla | Ataca Eva |
+| Duarte | Folga |
+| Eva | Ataca Duarte |
+
+**Resultado:**
+- Eva estava fora, por isso a casa dela foi assaltada por 3: Eva **−5**. Ana, Bruno e Carla ganham **+1** cada (5 ÷ 3, arredondado para baixo). Os 2 de resto perdem-se.
+- Eva **+10**, Duarte **−10**: Duarte estava em casa sem defesa.
+- No total da noite: Eva **+5**.
+- Ninguém ganha bónus.
 
 ## Cenário extra B — Noite 9 a dobrar (noite 9, 5 jogadores)
 | Jogador | Ação |
