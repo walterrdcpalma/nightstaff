@@ -65,8 +65,10 @@ CLAUDE.md
   - `prep` → `running` às 00:00 do dia 2, se houver 3 ou mais inscritos. Se não houver, adia o `start_date` 1 dia.
   - `running` → `finished` depois da noite 9.
   - No dia a seguir à resolução, cria o próximo ciclo em `prep`, copiando os inscritos.
-- O cálculo da fase e do dia do ciclo a partir das datas é uma função pura no `engine/`.
+- O cálculo da fase e do dia do ciclo a partir das datas é uma função pura no `engine/`: `nextStep` (próximo passo do ciclo mais recente, repetido até não haver nada a fazer) e `prepareNight` (ações inválidas → `STAY`, com log).
 - A função usa a `service_role`, que **só existe na Edge Function** e nunca no `web/`.
+- Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger) e `next_cycle` (novo ciclo + inscritos). O ciclo mais recente é o de maior `games.id`.
+- O `pg_cron` lê o URL e a chave de dois segredos do **Vault**, `project_url` e `service_role_key`, criados à mão pelo Walter em cada projeto.
 
 ## UI
 - **Tema escuro**, "noite de bairro":
@@ -86,6 +88,7 @@ npm test            # vitest (engine + sim)
 npm run sim         # simulação de N jogos com bots
 npm run dev         # web
 supabase start      # Supabase local
+npm run test:db     # testes SQL (pgTAP) + ciclo inteiro na resolve-night (precisa do Supabase local)
 ```
 
 ## Regras para agentes (obrigatório)

@@ -28,7 +28,7 @@
   - `supabase/` com `npx supabase init`. Migrações para as tabelas do CLAUDE.md.
   - RLS exatamente como no CLAUDE.md. Validação de quota, alvo e prazo **na BD** (função ou trigger), usando as mesmas regras do `validateAction`.
   - Testes de RLS com 2 utilizadores no Supabase local (Docker): não ver ações de outros antes da resolução, nem pontos de outros antes do dia 11, e só entrar ou sair com `status = prep`.
-- [ ] **T4 — Resolução automática**
+- [x] **T4 — Resolução automática**
   - Edge Function `resolve-night`, que usa o `engine/` (imports `.ts`), grava `ledger` e `nights` e faz as transições de ciclo do CLAUDE.md.
   - `pg_cron` de hora a hora. Idempotente: correr 2 vezes não duplica nada.
   - Uma ação inválida não pode bloquear a noite: é registada e tratada como `STAY`, com log visível.
