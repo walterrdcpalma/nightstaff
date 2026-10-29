@@ -1,0 +1,33 @@
+# TASKS.md — Night Staff
+
+> Backlog por ordem. O construtor faz a primeira `[ ]` que não esteja "em curso" (CLAUDE.md, "Processo automático").
+> Cada tarefa = 1 PR. "Feito" = critérios abaixo + `npm test` e lint verdes.
+> Só o Walter acrescenta ou muda tarefas. O construtor só muda `[ ]` → `[x]`.
+
+- [x] **T0 — Motor:** `engine/` com `resolveNight`, `validateAction`, `rng` e testes (PR #1).
+- [ ] **T1 — Simulador + cenários** *(em curso: agente local, branch `feat/sim`)*
+  - Cada cenário do `CENARIOS.md` vira um teste permanente.
+  - `sim/` com bots aleatórios e "espertos" (que leem o histórico). `npm run sim` corre 1000 ciclos.
+  - Relatório no PR: média de acertos por ciclo, pontos finais (média e dispersão), frequência de sorteios e bombas, % de jogadores com 0 ou menos. Correr com 3, 5, 8 e 12 jogadores.
+- [ ] **T2 — Ciclo e ranking no motor** (funções puras)
+  - `cyclePhase(startDate, today)` → `{ phase: 'PREP' | 'NIGHT' | 'RESULTS', day, night? }`, com datas `YYYY-MM-DD` em hora de Lisboa (RULES.md §1).
+  - `finalRanking(ledger)` com desempate (RULES.md §5) e vitória partilhada.
+  - Testes: limites de cada fase, mudança de hora (fim de março e fim de outubro), empates.
+- [ ] **T3 — Supabase: schema e RLS**
+  - `supabase/` com `npx supabase init`. Migrações para as tabelas do CLAUDE.md.
+  - RLS exatamente como no CLAUDE.md. Validação de quota, alvo e prazo **na BD** (função ou trigger), usando as mesmas regras do `validateAction`.
+  - Testes de RLS com 2 utilizadores no Supabase local (Docker): não ver ações de outros antes da resolução, nem pontos de outros antes do dia 11, e só entrar ou sair com `status = prep`.
+- [ ] **T4 — Resolução automática**
+  - Edge Function `resolve-night`, que usa o `engine/` (imports `.ts`), grava `ledger` e `nights` e faz as transições de ciclo do CLAUDE.md.
+  - `pg_cron` de hora a hora. Idempotente: correr 2 vezes não duplica nada.
+  - Uma ação inválida não pode bloquear a noite: é registada e tratada como `STAY`, com log visível.
+  - Teste: simular um ciclo inteiro (preparação, 9 noites, resolução, novo ciclo) no Supabase local.
+- [ ] **T5 — Web: base e "Hoje"**
+  - `web/` com Vite, React, Tailwind e 8bitcn, com o tema do CLAUDE.md.
+  - Login por magic link. Ecrã Hoje: fase atual, escolha da ação com os nomes da app, quotas restantes, contagem até às 23:59. No dia de preparação, botão para entrar ou sair.
+- [ ] **T6 — Web: "Manhã" e "Bairro/Histórico"**
+  - Resumo da noite (RULES.md §4) e histórico com uma casa por jogador e a janela acesa ou apagada, por noite.
+- [ ] **T7 — Web: pontos e resolução**
+  - Os meus pontos e movimentos durante o ciclo. No dia 11, ranking final e 🏆 Funcionário do Mês.
+- [ ] **T8 — Revisão final de segurança**
+  - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
