@@ -110,7 +110,7 @@
   - Se a T12 já tiver a lista de palavras proibidas em `story.ts`, acrescentar `despedimento` (e manter `reunião`). Procurar no `web/` qualquer outra frase que mencione o nome.
   - No `CLAUDE.md`, secção UI, "Nomes na UI": trocar "Reunião de emergência" por "Despedimento coletivo" (regra 8).
   - Teste de regressão: nenhuma string visível ao jogador no `web/` contém "Reunião de emergência".
-- [ ] **T13 — Ajuda: como funciona o jogo**
+- [x] **T13 — Ajuda: como funciona o jogo**
   - Botão **❓ Ajuda** no cabeçalho da app, visível em todos os ecrãs (As minhas salas, lobby, dentro de uma sala, primeiro login). Abre um ecrã de ajuda por cima, com **Fechar**, sem router (estado do `App`, como o resto).
   - Para quem **nunca ouviu falar do jogo**. Duas partes, por esta ordem:
     1. **Como funciona, em 1 minuto:**

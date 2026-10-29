@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { loadMe } from '@/lib/data';
 import { nameButtonText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
+import Help from './Help.tsx';
 import Login from './Login.tsx';
 import NameForm from './NameForm.tsx';
 import { Morning, Neighborhood } from './Neighborhood.tsx';
@@ -17,6 +18,10 @@ type Tab = keyof typeof TABS;
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  // A ajuda abre por cima de qualquer ecrã (T13), sem router: o ecrã de baixo mantém o estado.
+  const [help, setHelp] = useState(false);
+  const openHelp = useCallback(() => setHelp(true), []);
+  const closeHelp = useCallback(() => setHelp(false), []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -27,25 +32,31 @@ export default function App() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
       {session === undefined ? (
-        <Header />
+        <Header onHelp={openHelp} />
       ) : session ? (
-        <SignedIn key={session.user.id} userId={session.user.id} />
+        <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} />
       ) : (
         <>
-          <Header />
+          <Header onHelp={openHelp} />
           <Login />
         </>
       )}
+      {help && <Help onClose={closeHelp} />}
     </main>
   );
 }
 
-/** Cabeçalho da app; com sessão, à direita, o meu nome e Sair. */
-function Header({ children }: { children?: React.ReactNode }) {
+/** Cabeçalho da app: ❓ Ajuda em todos os ecrãs e, com sessão, o meu nome e Sair. */
+function Header({ onHelp, children }: { onHelp: () => void; children?: React.ReactNode }) {
   return (
     <header className="flex items-center justify-between gap-2">
       <h1 className="text-2xl text-main">Night Staff</h1>
-      {children && <div className="flex min-w-0 items-center gap-2">{children}</div>}
+      <div className="flex min-w-0 items-center gap-2">
+        <Button variant="neutral" size="sm" className="shrink-0" onClick={onHelp}>
+          ❓ Ajuda
+        </Button>
+        {children}
+      </div>
     </header>
   );
 }
@@ -54,7 +65,7 @@ function Header({ children }: { children?: React.ReactNode }) {
  * Com sessão: primeiro o nome (primeiro login), depois as salas; dentro de uma sala, as abas só dessa sala.
  * No cabeçalho, o meu nome abre o formulário para o mudar (T15).
  */
-function SignedIn({ userId }: { userId: string }) {
+function SignedIn({ userId, onHelp }: { userId: string; onHelp: () => void }) {
   const me = useLoad(useCallback(() => loadMe(userId), [userId]));
   const [roomId, setRoomId] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>('today');
@@ -112,13 +123,13 @@ function SignedIn({ userId }: { userId: string }) {
 
   return (
     <>
-      <Header>
+      <Header onHelp={onHelp}>
         {me.data && !editingName && (
           <Button variant="neutral" size="sm" className="min-w-0" onClick={() => setEditingName(true)}>
             <span className="truncate">{nameButtonText(me.data.name)}</span>
           </Button>
         )}
-        <Button variant="neutral" size="sm" onClick={() => supabase.auth.signOut()}>
+        <Button variant="neutral" size="sm" className="shrink-0" onClick={() => supabase.auth.signOut()}>
           Sair
         </Button>
       </Header>
