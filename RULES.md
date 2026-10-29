@@ -1,4 +1,4 @@
-# Night Staff — Regras (v2)
+# Night Staff — Regras (v3)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -16,7 +16,8 @@
 - O dia a seguir à resolução é o dia 1 (preparação) do ciclo seguinte.
 - **Inscrição:** mantém-se de ciclo para ciclo. Só se entra ou sai no dia de preparação. Durante o resto do ciclo, a lista de jogadores fica fixa.
 - Se no fim da preparação houver **menos de 3** inscritos, a preparação repete-se no dia seguinte.
-- Em cada ciclo, todos começam com **0 pontos** e quotas completas. Os pontos podem ficar negativos. Cada ciclo tem o seu vencedor.
+- Em cada ciclo, todos começam com um **salário de 50 pontos** e quotas completas. Os pontos podem descer abaixo de 0 ("sem salário"). Cada ciclo tem o seu vencedor.
+- **Noite 9 a dobrar:** todos os movimentos de pontos da última noite contam a dobrar, incluindo o bónus de casa. Calcula-se normalmente e multiplica-se cada movimento por 2.
 - Escala de pontos: **10** por ataque. Bónus de casa: **2**.
 - Fuso horário: **Europe/Lisbon** em tudo.
 
@@ -41,10 +42,12 @@ Para cada jogador **T** que foi alvo de pelo menos um ataque ou bomba, sejam:
 
 Aplica-se o **primeiro** caso que se verificar:
 
-1. **T está fora** (escolheu `ATTACK` ou `BOMB`): todos os ataques a T falham e ninguém ganha nem perde pontos.
+1. **T está fora** (escolheu `ATTACK` ou `BOMB`):
+   - Os ataques normais de N falham: 0 pontos.
+   - **A bomba acerta na mesma** ("Reunião de emergência obriga a comparecer"): se B não estiver vazio, T perde **10** e os bombistas dividem **10** em partes iguais, arredondado para baixo.
 2. **T escolheu `DEFEND`:**
-   - Cada atacante de N perde **10**.
-   - Cada bombista de B perde **20**.
+   - Cada atacante de N perde **5**.
+   - Cada bombista de B perde **10**.
    - T ganha **10 por cada atacante** (N + B).
    - A identidade de todos os atacantes de T é revelada no resumo.
 3. **T está em casa sem defesa (`STAY`):**
@@ -76,8 +79,9 @@ Aplica-se o **primeiro** caso que se verificar:
 - **Desempate:**
   1. Mais ataques bem-sucedidos.
   2. Menos pontos perdidos.
-  3. Se continuar empatado, a vitória é partilhada.
+  3. Se continuar empatado, há **sorteio** com uma seed guardada para o ciclo (reprodutível). Há sempre um único Funcionário do Mês.
 
 ## 6. Em aberto (decidir depois do primeiro teste)
 - O defensor ganha +10 **por atacante** ou +10 fixo? Por agora fica por atacante.
-- Os números (10 / 2 / quotas) ajustam-se com base no simulador.
+- Os números (10 / 5 / 2 / salário / quotas) ajustam-se com base no simulador e no primeiro ciclo real.
+- Ideia para a v4: ação **Vigiar** (2 por ciclo), para ver se o alvo saiu de casa nessa noite.
