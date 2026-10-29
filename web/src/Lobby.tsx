@@ -23,6 +23,7 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
     try {
       await navigator.clipboard.writeText(room.code);
       setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       setError('Não deu para copiar. Seleciona o código à mão.');
     }

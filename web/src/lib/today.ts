@@ -19,6 +19,12 @@ export function todayPhase(startDate: string, status: GameStatus, today: string)
   return night >= 1 && night <= NIGHTS ? { kind: 'NIGHT', night } : { kind: 'WAKING' };
 }
 
+/** Fase numa sala contra bots: não segue o relógio (RULES.md §1.2). A noite aberta é a seguinte à última resolvida. */
+export function botsPhase(status: GameStatus, resolvedNights: number): TodayPhase {
+  if (status === 'finished') return { kind: 'RESULTS' };
+  return resolvedNights < NIGHTS ? { kind: 'NIGHT', night: resolvedNights + 1 } : { kind: 'WAKING' };
+}
+
 /** Próximas 00:00 de Lisboa depois de `now`: o fim do prazo das 23:59 (RULES.md §2). Trata a mudança de hora. */
 export function nextLisbonMidnight(now: Date): Date {
   const tomorrow = addDays(lisbonDate(now), 1);

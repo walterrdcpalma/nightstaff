@@ -16,7 +16,8 @@ interface GameNights {
 
 /** Partidas da sala com pelo menos uma noite resolvida, da mais recente para a mais antiga. */
 async function loadSeasons(roomId: number): Promise<{ games: Game[]; names: Map<string, string> }> {
-  const [games, names, withNights] = await Promise.all([loadGames(roomId), loadNames(), loadGamesWithNights()]);
+  const [games, names] = await Promise.all([loadGames(roomId), loadNames()]);
+  const withNights = await loadGamesWithNights(games.map((g) => g.id));
   return { games: games.filter((g) => withNights.has(g.id)), names };
 }
 

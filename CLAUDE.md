@@ -44,7 +44,7 @@ CLAUDE.md
 ## Dados (Supabase)
 | Tabela | Campos | Leitura |
 |---|---|---|
-| `players` | id (= auth.users.id), name (1 a 24 caracteres, sem espaços nas pontas) | O próprio e quem partilha com ele uma sala ou uma partida. Cada um cria e muda só o seu (nome escolhido no primeiro login) |
+| `players` | id (= auth.users.id nas pessoas; apagar a conta apaga o jogador, por trigger), name (1 a 24 caracteres, sem espaços nas pontas), bot_room_id (só nos bots: a sua sala) | O próprio e quem partilha com ele uma sala ou uma partida. Cada um cria e muda só o seu (nome escolhido no primeiro login), nunca um bot |
 | `rooms` | id, code (6 caracteres sem 0/O/1/I/L, único), admin_id, kind: `people` \| `bots`, status: `lobby` \| `running` \| `finished`, created_at | Os jogadores da sala. Escrita só pelas funções da sala |
 | `room_players` | room_id, player_id, joined_at (se o admin sair, passa a admin quem entrou há mais tempo) | Os jogadores da sala. Escrita só pelas funções da sala |
 | `games` | id (= uma partida), room_id, start_date (dia da noite 1 = dia do Começar), status: `running` \| `finished`, seed (sorteio do desempate, RULES.md §5; preenchida pela resolve-night) | Quem a jogou (`game_players`) |
@@ -57,13 +57,14 @@ CLAUDE.md
 - **RLS por sala e por partida:** a sala (código, lobby, jogadores) é de quem lá está agora; cada partida (noites, rankings, lista de jogadores) é de quem a jogou, também depois de sair da sala (RULES.md §4: o histórico fica sempre consultável). Quem entra numa sala reiniciada não vê as partidas onde não jogou. Quem não está na sala nem jogou nela não vê nada. As funções `is_room_member`, `is_game_player`, `shares_room` e `shares_game` (`security definer`) servem as políticas. Dentro da partida, as regras de visibilidade v5 não mudam.
 - **Funções da sala** (`security definer`, para quem tem sessão; erros como códigos, ex.: `NO_NAME`, `ROOM_NOT_FOUND`, `ROOM_NOT_IN_LOBBY`, `NOT_ADMIN`, `TOO_FEW_PLAYERS`, `ROOM_NOT_FINISHED`, `NOT_PEOPLE_ROOM`):
   - `create_room()`: sala de pessoas em lobby; quem cria é o admin e o primeiro jogador.
+  - `create_bots_room(n)`: sala contra bots (RULES.md §1.2) com n de 2 a 11 bots (`BOT_COUNT`), com nomes do staff ("Bot Rececionista"…). Os bots são `players` sem conta, com `bot_room_id`, e só existem nessa sala. Começa logo, sem lobby.
   - `join_room(code)`: só em lobby; numa sala contra bots dá `ROOM_NOT_FOUND`.
   - `leave_room(room)`: só em lobby. Se for o admin, o admin passa para quem entrou há mais tempo; se não sobrar ninguém, a sala é apagada.
   - `start_room(room)`: só o admin, só salas de pessoas, com 3 ou mais. Cria a partida com `start_date` = hoje (Lisboa): a noite 1 abre já e fecha às 23:59.
-  - `restart_room(room)`: só o admin, com a sala acabada. Volta ao lobby, com o mesmo código e os mesmos jogadores; as partidas anteriores ficam no histórico.
+  - `restart_room(room)`: só o admin, com a sala acabada. Volta ao lobby, com o mesmo código e os mesmos jogadores; as partidas anteriores ficam no histórico. Numa sala contra bots, começa logo outra partida com os mesmos bots.
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
-  - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00.
+  - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00. Numa sala contra bots, a noite atual é a seguinte à última resolvida, a qualquer hora (`night_is_open`).
   - Nada mais é exposto.
 - Os pontos são `50 + soma do ledger`. Cada jogador só vê os seus. O ranking completo só na resolução, depois da noite 9: a `resolve-night` calcula-o no fim da partida (`finalRanking`) e grava-o em `rankings`, porque o ledger dos outros nunca chega ao browser.
 - O `nights.summary` é **público** (RULES.md §4 v5): só `players` (casa/fora de cada um) e `caught` (apanhados, sem dizer onde). Nada de pontos, ataques recebidos, defesas, sorteios, bombas, assaltos ou bónus.
@@ -72,10 +73,11 @@ CLAUDE.md
 ## Resolução da noite
 - O `pg_cron` corre **de hora a hora** e chama `resolve-night`.
 - A função converte a hora para **Europe/Lisbon** e só resolve se a noite anterior ainda não estiver resolvida (idempotente). Isto evita problemas com a mudança de hora.
-- Trata **todas as partidas a decorrer em salas de pessoas** (as salas contra bots ficam de fora). Uma partida com erro não impede as outras; a resposta é 500 com a lista de erros.
+- Sem corpo (pg_cron), trata **todas as partidas a decorrer em salas de pessoas** (as salas contra bots ficam de fora). Uma partida com erro não impede as outras; a resposta é 500 com a lista de erros.
   - A noite N é o dia N da partida (a 1 é o dia do Começar) e resolve-se às 00:00 seguintes.
   - Depois da noite 9, `finish_game` acaba a partida e a sala (`finished`). Não há ciclos automáticos: só o admin começa ou reinicia.
 - A lógica das datas é pura, no `engine/`: `nightOn` (noite de um dia), `nextStep` (próximo passo de uma partida, repetido até não haver nada a fazer) e `prepareNight` (ações inválidas → `STAY`, com log).
+- **⏭️ Passar o dia** (salas contra bots): o web chama a mesma função com `{ room_id, night }` e o JWT do jogador (`supabase.functions.invoke`). Só o admin, só a noite aberta (`NIGHT_CHANGED` num duplo toque). Os bots que não escolheram jogam ao calhas (`randomTurn` do `sim/`, que usa o `randomBot`) e as ações ficam em `actions`; quem não escolheu fica com STAY; a noite resolve-se já e, depois da 9, a partida acaba. A função responde com CORS.
 - A função usa a `service_role`, que **só existe na Edge Function** e nunca no `web/`.
 - Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger) e `finish_game` (fim da partida e da sala + seed do desempate + `rankings`; recusa um ranking vazio).
 - O `pg_cron` lê o URL e a chave de dois segredos do **Vault**, `project_url` e `service_role_key`, criados à mão pelo Walter em cada projeto.
@@ -85,10 +87,10 @@ CLAUDE.md
   - Fundo `#0B1020`, cartas `#151B33`.
   - Janela/ouro `#F5C542`, perigo `#E5484D`, defesa `#4C8DFF`.
 - **Ecrãs:**
-  - **As minhas salas** (ecrã inicial): código, estado e o que falta fazer em cada sala (as que estão à minha espera primeiro), **Criar sala** e **Entrar com código**.
+  - **As minhas salas** (ecrã inicial): código, estado e o que falta fazer em cada sala (as que estão à minha espera primeiro), **Criar sala**, **Entrar com código** e **Jogar contra bots** (de 2 a 11).
   - Primeiro login: o nome que os outros vão ver (cria o meu `players`).
   - Dentro de uma sala, as abas só com dados dessa sala:
-    - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin.
+    - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin. Contra bots: sem contagem, com **⏭️ Passar o dia** por baixo da escolha.
     - Manhã: o meu relatório privado da noite (o que me aconteceu e os meus pontos da noite) e as manchetes públicas (casa/fora e 🚨 apanhados, sem dizer onde). As noites e as partidas anteriores continuam consultáveis.
     - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
     - Os meus pontos (durante a partida) e o ranking final (só na resolução).
@@ -116,7 +118,7 @@ npm run dev         # web (Vite)
 npm run build       # build do web/
 supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste, na sala NSTAFF em lobby; o Walter é admin)
 supabase stop --no-backup  # obrigatório depois de mudar o config.toml: com backup, o auth arranca com a config antiga
-npm run test:db     # testes SQL (pgTAP) + uma sala inteira na resolve-night (precisa do Supabase local)
+npm run test:db     # testes SQL (pgTAP) + uma sala inteira e uma partida contra bots na resolve-night (precisa do Supabase local; os e2e correm um de cada vez)
 npm run demo [-- meio|terminado|lobby]  # limpa a BD LOCAL e cria uma sala de demonstração (por omissão: meio)
 npm run demo:noite  # resolve já a noite atual; quem não escolheu joga com os bots
 npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)

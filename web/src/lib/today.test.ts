@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACTION_TYPES } from '../../../engine/index.ts';
-import { ACTION_NAMES, choiceText, errorText, formatCountdown, nextLisbonMidnight, targetOptions, todayPhase } from './today.ts';
+import { ACTION_NAMES, botsPhase, choiceText, errorText, formatCountdown, nextLisbonMidnight, targetOptions, todayPhase } from './today.ts';
 
 describe('todayPhase', () => {
   const start = '2026-11-02';
@@ -17,6 +17,15 @@ describe('todayPhase', () => {
 
   it('entre as 00:00 e a resolve-night, o bairro está a acordar', () => {
     expect(todayPhase(start, 'running', '2026-11-11')).toEqual({ kind: 'WAKING' }); // noite 9 por resolver
+  });
+});
+
+describe('botsPhase (salas contra bots)', () => {
+  it('a noite aberta é a seguinte à última resolvida; a partida acabada é a resolução', () => {
+    expect(botsPhase('running', 0)).toEqual({ kind: 'NIGHT', night: 1 });
+    expect(botsPhase('running', 8)).toEqual({ kind: 'NIGHT', night: 9 });
+    expect(botsPhase('running', 9)).toEqual({ kind: 'WAKING' });
+    expect(botsPhase('finished', 9)).toEqual({ kind: 'RESULTS' });
   });
 });
 

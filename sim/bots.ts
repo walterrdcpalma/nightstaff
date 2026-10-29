@@ -1,5 +1,16 @@
-import { ACTION_TYPES, BURGLARY_POINTS, DEFENDED_COST, HOME_BONUS, POINTS, QUOTAS, randomIndex } from '../engine/index.ts';
-import type { Action, ActionType, LimitedActionType, NightSummary, PlayerId } from '../engine/index.ts';
+import {
+  ACTION_TYPES,
+  BURGLARY_POINTS,
+  DEFENDED_COST,
+  HOME_BONUS,
+  NIGHTS,
+  POINTS,
+  QUOTAS,
+  previousTarget,
+  randomIndex,
+  remainingQuota,
+} from '../engine/index.ts';
+import type { Action, ActionType, GameState, LimitedActionType, NightSummary, PlayerId } from '../engine/index.ts';
 
 /** O que um jogador sabe numa noite: o resumo público das noites anteriores e as suas quotas. */
 export interface BotView {
@@ -106,3 +117,24 @@ export const smartBot: Bot = (v, rng) => {
 
 export const BOTS = { random: randomBot, smart: smartBot } as const;
 export type BotKind = keyof typeof BOTS;
+
+/**
+ * Ações ao calhas dos bots `who` numa noite de uma sala contra bots (RULES.md §1.2), a partir do estado
+ * validado da partida (`prepareNight`): respeitam as quotas, os alvos e a regra de não repetir o alvo.
+ */
+export function randomTurn(state: GameState, who: PlayerId[], rng: () => number): Action[] {
+  return who.map((me) =>
+    randomBot(
+      {
+        me,
+        players: state.players,
+        night: state.night,
+        nights: NIGHTS,
+        history: [],
+        quota: remainingQuota(state, me),
+        lastTarget: previousTarget(state, me),
+      },
+      rng,
+    ),
+  );
+}

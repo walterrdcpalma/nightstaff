@@ -3,7 +3,7 @@ import { ACTION_TYPES, QUOTAS, lisbonDate, previousTarget, remainingQuota, valid
 import type { Action, ActionType, GameState } from '../../engine/index.ts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { loadGames, loadRoom, loadRoomPlayers } from '@/lib/data';
+import { loadEnrolled, loadGames, loadMyActions, loadNames, loadNights, loadRoom, loadRoomPlayers } from '@/lib/data';
 import type { Player, Room } from '@/lib/data';
 import { roomErrorText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +15,7 @@ import {
   formatCountdown,
   nextLisbonMidnight,
   targetOptions,
+  botsPhase,
   todayPhase,
 } from '@/lib/today';
 import type { GameStatus } from '@/lib/today';
@@ -26,11 +27,6 @@ interface Game {
   start_date: string;
   status: GameStatus;
 }
-interface MyAction {
-  night: number;
-  type: ActionType;
-  target_id: string | null;
-}
 interface Data {
   room: Room | null;
   /** Jogadores da sala, por ordem de entrada (para o lobby). */
@@ -39,7 +35,10 @@ interface Data {
   game: Game | null;
   /** Jogadores dessa partida, por nome. */
   players: Player[];
-  mine: MyAction[];
+  /** As minhas ações nessa partida (a RLS só mostra as minhas). */
+  mine: Awaited<ReturnType<typeof loadMyActions>>;
+  /** Noites resolvidas: numa sala contra bots, a noite aberta é a seguinte. */
+  resolvedNights: number;
 }
 
 /** Hora atual, atualizada a cada segundo (para a contagem). */
@@ -52,21 +51,18 @@ function useNow(): Date {
   return now;
 }
 
-/** Um erro numa leitura lança, para o ecrã não confundir uma falha de rede com "não há partida". */
-function ok<T>(res: { data: T; error: { message: string } | null }): T {
-  if (res.error) throw new Error(res.error.message);
-  return res.data;
-}
-
 async function load(roomId: number): Promise<Data> {
-  const [room, roomPlayers, games] = await Promise.all([loadRoom(roomId), loadRoomPlayers(roomId), loadGames(roomId)]);
+  const [room, roomPlayers, games, names] = await Promise.all([
+    loadRoom(roomId),
+    loadRoomPlayers(roomId),
+    loadGames(roomId),
+    loadNames(),
+  ]);
   const game = games[0] ?? null;
-  if (!game) return { room, roomPlayers, game: null, players: [], mine: [] };
-  const enrolled = ok(await supabase.from('game_players').select('players(id, name)').eq('game_id', game.id)) ?? [];
-  // RLS: só vêm as minhas ações.
-  const mine = ok(await supabase.from('actions').select('night, type, target_id').eq('game_id', game.id)) ?? [];
-  const players = enrolled.map((r) => r.players as unknown as Player).sort((a, b) => a.name.localeCompare(b.name));
-  return { room, roomPlayers, game, players, mine };
+  if (!game) return { room, roomPlayers, game: null, players: [], mine: [], resolvedNights: 0 };
+  const [enrolled, mine, nights] = await Promise.all([loadEnrolled(game.id), loadMyActions(game.id), loadNights(game.id)]);
+  const players = enrolled.map((id) => ({ id, name: names.get(id) ?? '?' })).sort((a, b) => a.name.localeCompare(b.name));
+  return { room, roomPlayers, game, players, mine, resolvedNights: nights.length };
 }
 
 /** Hoje numa sala: o lobby, a escolha da noite ou a resolução (com Reiniciar para o admin). */
@@ -85,7 +81,8 @@ export default function Today(props: { userId: string; roomId: number; onLeft: (
   }
   if (!data.game) return <Waking onRetry={reload} />;
 
-  const phase = todayPhase(data.game.start_date, data.game.status, today);
+  const bots = data.room.kind === 'bots';
+  const phase = bots ? botsPhase(data.game.status, data.resolvedNights) : todayPhase(data.game.start_date, data.game.status, today);
   const enrolled = data.players.some((p) => p.id === userId);
   const countdown = formatCountdown(nextLisbonMidnight(now).getTime() - now.getTime());
 
@@ -95,7 +92,16 @@ export default function Today(props: { userId: string; roomId: number; onLeft: (
         return <Note title={`Noite ${phase.night} de 9`}>Esta partida começou sem ti.</Note>;
       }
       // A `key` repõe a escolha quando muda a noite sem desmontar o ecrã.
-      return <Night key={phase.night} data={data} night={phase.night} userId={userId} countdown={countdown} onChange={reload} />;
+      return (
+        <Night
+          key={phase.night}
+          data={data}
+          night={phase.night}
+          userId={userId}
+          countdown={bots ? null : countdown}
+          onChange={reload}
+        />
+      );
     case 'RESULTS':
       return <Results room={data.room} userId={userId} onChange={reload} />;
     case 'WAKING':
@@ -117,11 +123,14 @@ function Waking({ onRetry }: { onRetry: () => void }) {
 /** Partida acabada. O admin pode reiniciar a sala: volta ao lobby, com o mesmo código (RULES.md §1.1). */
 function Results(props: { room: Room; userId: string; onChange: () => void }) {
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const isAdmin = props.room.admin_id === props.userId;
 
   async function restart() {
     setError(null);
+    setBusy(true);
     const { error } = await supabase.rpc('restart_room', { p_room_id: props.room.id });
+    setBusy(false);
     if (error) setError(roomErrorText(error.message));
     props.onChange();
   }
@@ -131,7 +140,9 @@ function Results(props: { room: Room; userId: string; onChange: () => void }) {
       <div className="flex flex-col gap-4">
         <p>A partida acabou. Vê o Funcionário do Mês nos Pontos.</p>
         {isAdmin ? (
-          <Button onClick={restart}>🔁 Reiniciar a sala</Button>
+          <Button onClick={restart} disabled={busy}>
+            {props.room.kind === 'bots' ? '🔁 Jogar outra vez contra os mesmos bots' : '🔁 Reiniciar a sala'}
+          </Button>
         ) : (
           <p className="text-sm">Se o admin reiniciar a sala, volta ao lobby com o mesmo código.</p>
         )}
@@ -149,7 +160,35 @@ function Deadline({ countdown }: { countdown: string }) {
   );
 }
 
-function Night(props: { data: Data; night: number; userId: string; countdown: string; onChange: () => void }) {
+/** ⏭️ Passar o dia (RULES.md §1.2): os bots escolhem ao calhas e a noite resolve-se já, na `resolve-night`. */
+function PassDay(props: { roomId: number; night: number; onChange: () => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function pass() {
+    setError(null);
+    setBusy(true);
+    const { error } = await supabase.functions.invoke('resolve-night', { body: { room_id: props.roomId, night: props.night } });
+    setBusy(false);
+    if (error) {
+      const body = await (error as { context?: Response }).context?.json().catch(() => null);
+      setError(roomErrorText(body?.error ?? ''));
+    }
+    props.onChange();
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button size="lg" variant="neutral" onClick={pass} disabled={busy}>
+        {busy ? 'A passar a noite…' : '⏭️ Passar o dia'}
+      </Button>
+      <p className="text-sm">Os bots escolhem e a noite resolve-se já. Se não confirmaste nada, ficas de 🏠 Folga.</p>
+      {error && <p className="text-danger">{error}</p>}
+    </div>
+  );
+}
+
+function Night(props: { data: Data; night: number; userId: string; countdown: string | null; onChange: () => void }) {
   const { data, night, userId } = props;
   const chosen = data.mine.find((a) => a.night === night);
   const [type, setType] = useState<ActionType>(chosen?.type ?? 'STAY');
@@ -191,7 +230,11 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
     <div className="flex flex-col gap-6">
       <Note title={`🌙 Noite ${night} de 9`}>
         <div className="flex flex-col gap-2">
-          <Deadline countdown={props.countdown} />
+          {props.countdown !== null ? (
+            <Deadline countdown={props.countdown} />
+          ) : (
+            <p>O tempo só passa quando carregares em ⏭️ Passar o dia.</p>
+          )}
           <p>
             Esta noite:{' '}
             <strong>{chosen ? choiceText(chosen.type, nameOf(chosen.target_id)) : 'ainda nada. Se não escolheres, ficas de 🏠 Folga.'}</strong>
@@ -244,6 +287,7 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
         {saving ? 'A guardar…' : `Confirmar: ${choiceText(type, needsTarget ? nameOf(targetId) : undefined)}`}
       </Button>
       {error && <p className="text-danger">{error}</p>}
+      {data.room?.kind === 'bots' && <PassDay roomId={data.room.id} night={night} onChange={props.onChange} />}
     </div>
   );
 }

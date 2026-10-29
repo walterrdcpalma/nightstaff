@@ -1,10 +1,13 @@
-// resolve-night: chamada de hora a hora pelo pg_cron (CLAUDE.md "Resolução da noite").
-// Converte a hora para Lisboa e, em cada partida a decorrer numa sala de pessoas, resolve as noites que faltam
-// e acaba a partida depois da noite 9. As salas contra bots ficam de fora. Idempotente: correr 2 vezes não
-// duplica nada. Não cria partidas: é o admin que começa ou reinicia a sala.
+// resolve-night: a única Edge Function (CLAUDE.md "Resolução da noite"). Dois usos:
+// - Sem corpo, de hora a hora pelo pg_cron: converte a hora para Lisboa e, em cada partida a decorrer numa sala
+//   de pessoas, resolve as noites que faltam e acaba a partida depois da noite 9. As salas contra bots ficam de
+//   fora. Idempotente: correr 2 vezes não duplica nada. Não cria partidas: é o admin que começa ou reinicia.
+// - Com `{ room_id, night }` e o JWT do jogador: ⏭️ Passar o dia numa sala contra bots (RULES.md §1.2). Os bots
+//   escolhem ao calhas (`randomTurn` do sim/), a noite resolve-se já e, depois da 9, a partida acaba.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
-import { NIGHTS, finalRanking, lisbonDate, nextStep, prepareNight, resolveNight } from '../../../engine/index.ts';
+import { NIGHTS, finalRanking, lisbonDate, mulberry32, nextStep, prepareNight, resolveNight } from '../../../engine/index.ts';
 import type { GameSchedule, InvalidAction, LedgerEntry, PastAction, Step } from '../../../engine/index.ts';
+import { randomTurn } from '../../../sim/bots.ts';
 
 /** Passos por partida e por chamada: as 9 noites e o fim. Nunca fica em ciclo infinito. */
 const MAX_STEPS = NIGHTS + 1;
@@ -57,13 +60,16 @@ async function players(gameId: number): Promise<string[]> {
   return rows.map((r) => r.player_id).sort();
 }
 
-async function resolve(game: Game, night: number): Promise<InvalidAction[]> {
+async function storedActions(gameId: number, night: number): Promise<PastAction[]> {
   const rows = check(
-    await db.from('actions').select('night, player_id, type, target_id').eq('game_id', game.id).lte('night', night),
+    await db.from('actions').select('night, player_id, type, target_id').eq('game_id', gameId).lte('night', night),
     'ler as ações',
   );
-  const stored: PastAction[] = rows.map((r) => ({ night: r.night, playerId: r.player_id, type: r.type, targetId: r.target_id }));
-  const input = prepareNight(await players(game.id), stored, night);
+  return rows.map((r) => ({ night: r.night, playerId: r.player_id, type: r.type, targetId: r.target_id }));
+}
+
+async function resolve(game: Game, night: number): Promise<InvalidAction[]> {
+  const input = prepareNight(await players(game.id), await storedActions(game.id, night), night);
   const seed = randomSeed();
   const { ledger, summary } = resolveNight(input.state, input.actions, seed);
   check(
@@ -137,7 +143,8 @@ async function catchUp(id: number, today: string, done: Done[]) {
   }
 }
 
-Deno.serve(async () => {
+/** Corre os passos de todas as partidas de pessoas (pg_cron). */
+async function hourly(): Promise<Response> {
   const today = lisbonDate(new Date());
   const done: Done[] = [];
   const errors: { game?: number; error: string }[] = [];
@@ -159,4 +166,76 @@ Deno.serve(async () => {
   }
   console.log(`resolve-night ${today}:`, JSON.stringify(done));
   return Response.json({ today, done });
+}
+
+/** O browser chama a função noutro domínio: responde ao preflight e marca as respostas com CORS. */
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+const reply = (body: unknown, status = 200) => Response.json(body, { status, headers: CORS });
+
+/**
+ * ⏭️ Passar o dia (RULES.md §1.2): só o admin de uma sala contra bots a decorrer, e só para a noite aberta
+ * (`night`), para um duplo toque não saltar uma noite. Os bots que ainda não escolheram jogam ao calhas; quem
+ * não escolheu fica com STAY. A noite resolve-se já e, se for a 9, a partida acaba.
+ */
+async function passDay(req: Request, roomId: number, night: number): Promise<Response> {
+  const jwt = req.headers.get('Authorization')?.replace(/^Bearer /, '') ?? '';
+  const { data: auth } = await db.auth.getUser(jwt);
+  if (!auth.user) return reply({ error: 'NOT_SIGNED_IN' }, 401);
+
+  const room = check(await db.from('rooms').select('id, admin_id, kind, status').eq('id', roomId).maybeSingle(), 'ler a sala');
+  if (!room || room.admin_id !== auth.user.id) return reply({ error: 'ROOM_NOT_FOUND' }, 404);
+  if (room.kind !== 'bots' || room.status !== 'running') return reply({ error: 'NOT_BOTS_NIGHT' }, 409);
+  const gameRow = check(
+    await db.from('games').select('id').eq('room_id', roomId).eq('status', 'running').maybeSingle(),
+    'ler a partida',
+  );
+  const game = gameRow && (await readGame(gameRow.id));
+  if (!game) return reply({ error: 'NOT_BOTS_NIGHT' }, 409);
+  if (game.resolvedNights + 1 !== night) return reply({ error: 'NIGHT_CHANGED', night: game.resolvedNights + 1 }, 409);
+
+  const everyone = await players(game.id);
+  const botRows = check(
+    await db.from('players').select('id').eq('bot_room_id', roomId).in('id', everyone),
+    'ler os bots',
+  );
+  const stored = await storedActions(game.id, night);
+  const chosen = new Set(stored.filter((a) => a.night === night).map((a) => a.playerId));
+  const waiting = botRows.map((b) => b.id).filter((id) => !chosen.has(id));
+  const { state } = prepareNight(everyone, stored, night);
+  // Fora do engine/, a seed dos bots pode vir do sorteio.
+  const turn = randomTurn(state, waiting, mulberry32(randomSeed()));
+  if (turn.length > 0) {
+    check(
+      await db.from('actions').upsert(
+        turn.map((a) => ({ game_id: game.id, night, player_id: a.playerId, type: a.type, target_id: a.targetId ?? null })),
+        { onConflict: 'game_id,night,player_id', ignoreDuplicates: true },
+      ),
+      'escolher pelos bots',
+    );
+  }
+  const done: Done[] = [];
+  const invalid = await resolve(game, night);
+  done.push({ game: game.id, kind: 'RESOLVE', night, invalid });
+  if (night === NIGHTS) {
+    await finish(game);
+    done.push({ game: game.id, kind: 'FINISH', invalid: [] });
+  }
+  console.log(`Passar o dia (sala ${roomId}):`, JSON.stringify(done));
+  return reply({ done });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  const body = await req.json().catch(() => ({}));
+  if (body?.room_id === undefined) return hourly();
+  if (!Number.isInteger(body.room_id) || !Number.isInteger(body.night)) return reply({ error: 'BAD_REQUEST' }, 400);
+  try {
+    return await passDay(req, body.room_id, body.night);
+  } catch (e) {
+    console.error('Passar o dia falhou:', e);
+    return reply({ error: String(e) }, 500);
+  }
 });

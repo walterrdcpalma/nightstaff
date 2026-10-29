@@ -3,6 +3,7 @@
 import { MIN_PLAYERS, NIGHTS, nightOn } from '../../../engine/index.ts';
 
 export type RoomStatus = 'lobby' | 'running' | 'finished';
+export type RoomKind = 'people' | 'bots';
 
 export const ROOM_STATUS_TEXT: Record<RoomStatus, string> = {
   lobby: '📝 Lobby',
@@ -13,10 +14,11 @@ export const ROOM_STATUS_TEXT: Record<RoomStatus, string> = {
 export interface RoomCard {
   id: number;
   code: string;
+  kind: RoomKind;
   status: RoomStatus;
   isAdmin: boolean;
   players: number;
-  /** Noite aberta hoje, se a sala está a decorrer e a resolve-night já passou; senão `null`. */
+  /** Noite aberta, se a sala está a decorrer (e, com pessoas, se a resolve-night já passou); senão `null`. */
   night: number | null;
   /** Já escolhi a ação da noite aberta. */
   chosen: boolean;
@@ -28,6 +30,11 @@ export function openNight(startDate: string, today: string): number | null {
   return night >= 1 && night <= NIGHTS ? night : null;
 }
 
+/** Noite aberta numa sala contra bots: a seguinte à última resolvida (RULES.md §1.2), ou `null` depois da 9. */
+export function botsNight(resolvedNights: number): number | null {
+  return resolvedNights < NIGHTS ? resolvedNights + 1 : null;
+}
+
 /** O que falta fazer numa sala, para a lista "As minhas salas". */
 export function roomTodo(r: RoomCard): string {
   switch (r.status) {
@@ -36,6 +43,7 @@ export function roomTodo(r: RoomCard): string {
       return r.players >= MIN_PLAYERS ? 'Já podes carregar em Começar.' : `À espera de jogadores (${r.players}/${MIN_PLAYERS}).`;
     case 'running':
       if (r.night === null) return 'O bairro está a acordar…';
+      if (r.kind === 'bots') return `Noite ${r.night}: escolhe e carrega em ⏭️ Passar o dia.`;
       return r.chosen ? `Noite ${r.night}: já escolheste.` : `Noite ${r.night}: escolhe até às 23:59.`;
     case 'finished':
       return r.isAdmin ? 'Acabou. Vê o Funcionário do Mês ou reinicia a sala.' : 'Acabou. Vê o Funcionário do Mês.';
@@ -44,7 +52,7 @@ export function roomTodo(r: RoomCard): string {
 
 /** A sala está à minha espera: falta escolher a noite, ou sou admin e já posso começar. */
 export function needsMe(r: RoomCard): boolean {
-  if (r.status === 'running') return r.night !== null && !r.chosen;
+  if (r.status === 'running') return r.night !== null && (r.kind === 'bots' || !r.chosen);
   return r.status === 'lobby' && r.isAdmin && r.players >= MIN_PLAYERS;
 }
 
@@ -57,6 +65,10 @@ export function sortRooms(rooms: RoomCard[]): RoomCard[] {
 export function canStart(players: number): boolean {
   return players >= MIN_PLAYERS;
 }
+
+/** Bots numa sala contra bots (RULES.md §1.2), como na BD (`create_bots_room`). */
+export const BOTS_MIN = 2;
+export const BOTS_MAX = 11;
 
 /** Código como a BD o guarda: maiúsculas, sem espaços. */
 export function normalizeCode(input: string): string {
@@ -90,6 +102,9 @@ export const ROOM_ERROR_TEXT: Record<string, string> = {
   TOO_FEW_PLAYERS: `São precisos pelo menos ${MIN_PLAYERS} jogadores.`,
   ROOM_NOT_FINISHED: 'A partida ainda não acabou.',
   NOT_PEOPLE_ROOM: 'Esta sala é contra bots.',
+  BOT_COUNT: `Escolhe entre ${BOTS_MIN} e ${BOTS_MAX} bots.`,
+  NIGHT_CHANGED: 'Esta noite já passou. Espreita outra vez.',
+  NOT_BOTS_NIGHT: 'Não há nenhuma noite por passar nesta sala.',
 };
 
 export function roomErrorText(message: string): string {
