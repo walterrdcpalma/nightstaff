@@ -117,7 +117,10 @@ select is((select count(*)::int from public.ledger where game_id = 1 and player_
   'não vê pontos dos outros durante o ciclo');
 select is((select sum(delta)::int from public.ledger where game_id = 1), 10, 'vê os seus pontos');
 select is((select count(*)::int from public.ledger where game_id = 3), 2, 'vê os pontos de todos no fim do ciclo');
-select is((select count(*)::int from public.players), 4, 'vê todos os jogadores');
+-- Só os jogadores deste teste: o seed.sql pode ter outros.
+select is((select count(*)::int from public.players where id in (
+  '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b',
+  '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000d')), 4, 'vê todos os jogadores');
 select is((select count(*)::int from public.game_players), 7, 'vê todas as inscrições');
 select throws_ok(
   $$insert into public.ledger (game_id, night, player_id, delta, reason) values (1, 4, '00000000-0000-0000-0000-00000000000a', 100, 'X')$$,

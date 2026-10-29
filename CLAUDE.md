@@ -95,7 +95,8 @@ npm test            # vitest (engine + sim)
 npm run sim         # simulação de N jogos com bots
 npm run dev         # web (Vite)
 npm run build       # build do web/
-supabase start      # Supabase local
+supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste)
+supabase stop --no-backup  # obrigatório depois de mudar o config.toml: com backup, o auth arranca com a config antiga
 npm run test:db     # testes SQL (pgTAP) + ciclo inteiro na resolve-night (precisa do Supabase local)
 ```
 
