@@ -40,5 +40,15 @@
   - Resumo da noite (RULES.md §4) e histórico com uma casa por jogador e a janela acesa ou apagada, por noite.
 - [ ] **T7 — Web: pontos e resolução**
   - Os meus pontos e movimentos durante o ciclo. No dia 11, ranking final e 🏆 Funcionário do Mês.
+- [ ] **T7b — Dados de demonstração para testar no browser** (só Supabase local)
+  - Script `npm run demo` (por exemplo `scripts/demo.ts`). Limpa a BD local e cria 6 jogadores (o Walter incluído, com o email do `seed.sql`) e **3 ciclos ao mesmo tempo**:
+    - **Ciclo terminado** (dia 11): 9 noites jogadas, com ranking final e Funcionário do Mês.
+    - **Ciclo a meio** (noite 5 a decorrer): noites 1 a 4 já resolvidas, com pelo menos um sorteio, uma defesa com revelação, uma bomba e um assalto a uma casa vazia. O Walter ainda não escolheu esta noite.
+    - **Ciclo em preparação** (dia 1).
+  - As noites são jogadas pelos bots do `sim/` e resolvidas pelo **mesmo** `resolveNight` do `engine/`, nunca com valores escritos à mão. A gravação usa o mesmo formato da `resolve-night`.
+  - Script `npm run demo:noite`: resolve já a noite atual do ciclo a meio, sem esperar pela meia-noite. Os jogadores que não escolheram ficam com ações dos bots.
+  - Script `npm run demo:dia`: avança o ciclo a meio 1 dia, para testar a passagem de noite e o dia 11.
+  - **Recusa correr** se o `SUPABASE_URL` não for local (127.0.0.1 ou localhost). Usa a `service_role` local, que só existe no script e nunca no `web/`.
+  - No `CLAUDE.md`, secção Comandos: como usar os scripts e o que ver em cada ecrã.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
