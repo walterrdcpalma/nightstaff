@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
 import type { Action, LedgerReason } from '../../../engine/index.ts';
 import { attacksText, movementsByNight, points, rankingRows, rankingVisible } from './points.ts';
-import type { LedgerRow } from './points.ts';
+import type { LedgerRow, RankingDbRow } from './points.ts';
 
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
 const row = (night: number, player_id: string, delta: number, reason: LedgerReason, target_id: string | null = null): LedgerRow => ({
@@ -59,44 +59,34 @@ describe('ranking final (dia 11)', () => {
     expect(rankingVisible('finished')).toBe(true);
   });
 
-  it('ordena por pontos; o 1.º é o Funcionário do Mês', () => {
-    const rows = rankingRows(['ana', 'bruno', 'carla'], [row(1, 'bruno', 10, 'ATTACK_SUCCESS', 'carla'), row(1, 'carla', -10, 'VICTIM')], 1, nameOf);
+  const db = (player_id: string, rank: number, points: number, successful_attacks = 0): RankingDbRow => ({
+    player_id,
+    rank,
+    points,
+    successful_attacks,
+  });
+
+  it('ordena pela posição gravada; o 1.º é o Funcionário do Mês', () => {
+    const rows = rankingRows([db('carla', 3, 40), db('bruno', 1, 60, 1), db('ana', 2, 50)], nameOf);
     expect(rows.map((r) => [r.rank, r.name, r.points, r.tiebreak])).toEqual([
       [1, 'Bruno', 60, false],
       [2, 'Ana', 50, false],
       [3, 'Carla', 40, false],
     ]);
+    expect(rows[0].successfulAttacks).toBe(1);
   });
 
-  it('CENARIOS.md C1: empate em pontos e acertos, ganha a Ana pelo confronto direto', () => {
-    // Ana: 3 acertos (2 no Bruno); Bruno: 3 acertos (1 na Ana). Ambos com 50 + 30 − 30 = 50.
-    const ledger = [
-      row(1, 'ana', 10, 'ATTACK_SUCCESS', 'bruno'),
-      row(2, 'ana', 10, 'ATTACK_SUCCESS', 'bruno'),
-      row(3, 'ana', 10, 'ATTACK_SUCCESS', 'carla'),
-      row(4, 'bruno', 10, 'ATTACK_SUCCESS', 'ana'),
-      row(5, 'bruno', 10, 'ATTACK_SUCCESS', 'carla'),
-      row(6, 'bruno', 10, 'ATTACK_SUCCESS', 'carla'),
-      row(7, 'ana', -30, 'VICTIM'),
-      row(7, 'bruno', -30, 'VICTIM'),
-    ];
-    const rows = rankingRows(['ana', 'bruno', 'carla'], ledger, 1, nameOf);
-    expect(rows.slice(0, 2).map((r) => [r.name, r.points, r.tiebreak])).toEqual([
-      ['Ana', 50, true],
-      ['Bruno', 50, true],
+  it('marca "desempate" quem está empatado em pontos com o de cima ou o de baixo', () => {
+    const rows = rankingRows([db('ana', 1, 50, 3), db('bruno', 2, 50, 3), db('carla', 3, 40)], nameOf);
+    expect(rows.map((r) => [r.name, r.tiebreak])).toEqual([
+      ['Ana', true],
+      ['Bruno', true],
+      ['Carla', false],
     ]);
   });
 
-  it('há sempre um só 1.º lugar, mesmo empatados em tudo (sorteio com a seed)', () => {
-    for (const seed of [1, 2, 3, 4, 5]) {
-      const rows = rankingRows(['ana', 'bruno'], [], seed, nameOf);
-      expect(rows.filter((r) => r.rank === 1)).toHaveLength(1);
-    }
-  });
-
-  it('quem saiu a meio do ciclo e tem movimentos entra no ranking', () => {
-    const rows = rankingRows(['ana'], [row(1, 'dina', 2, 'HOME_BONUS')], 1, nameOf);
-    expect(rows.map((r) => r.name).sort()).toEqual(['Ana', 'Dina']);
+  it('o ranking não precisa do ledger dos outros: só da tabela rankings', () => {
+    expect(rankingRows([], nameOf)).toEqual([]);
   });
 });
 

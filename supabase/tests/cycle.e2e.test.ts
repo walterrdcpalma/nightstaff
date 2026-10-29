@@ -9,6 +9,7 @@ const enabled = !!process.env.SUPABASE_E2E;
 
 let url = '';
 let key = '';
+let anonKey = '';
 const headers = () => ({ apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' });
 
 async function call(base: string, path: string, init: RequestInit = {}) {
@@ -22,6 +23,41 @@ async function call(base: string, path: string, init: RequestInit = {}) {
 }
 const rest = (path: string, init?: RequestInit) => call('rest/v1', path, init);
 const post = (path: string, body: unknown) => rest(path, { method: 'POST', body: JSON.stringify(body) });
+
+/**
+ * Tudo o que a API devolve a um jogador com sessão (chave pública + o seu JWT), tabela a tabela, sem filtros:
+ * é o que um browser malicioso conseguiria ler.
+ */
+async function everythingAs(email: string): Promise<Record<string, Record<string, unknown>[]>> {
+  const link = await call('auth/v1', 'admin/generate_link', { method: 'POST', body: JSON.stringify({ type: 'magiclink', email }) });
+  const session = await fetch(`${url}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
+  }).then((r) => r.json());
+  const out: Record<string, Record<string, unknown>[]> = {};
+  for (const table of ['players', 'games', 'game_players', 'actions', 'nights', 'ledger', 'rankings']) {
+    const res = await fetch(`${url}/rest/v1/${table}?select=*`, {
+      headers: { apikey: anonKey, Authorization: `Bearer ${session.access_token}` },
+    });
+    expect(res.ok).toBe(true);
+    out[table] = await res.json();
+  }
+  return out;
+}
+
+/** O que só pode ser do próprio jogador, ou público pelo RULES.md §4 v5. */
+function expectNothingPrivateOfOthers(seen: Record<string, Record<string, unknown>[]>, me: string, finished: boolean) {
+  for (const a of seen.actions) expect(a.player_id).toBe(me);
+  for (const e of seen.ledger) expect(e.player_id).toBe(me);
+  for (const n of seen.nights) {
+    const summary = n.summary as { players: Record<string, unknown>[] };
+    expect(Object.keys(summary).sort()).toEqual(['caught', 'players']);
+    for (const p of summary.players) expect(Object.keys(p).sort()).toEqual(['location', 'playerId']);
+  }
+  if (!finished) expect(seen.rankings).toEqual([]);
+  for (const r of seen.rankings) expect(Object.keys(r).sort()).toEqual(['game_id', 'player_id', 'points', 'rank', 'successful_attacks']);
+}
 
 /** Chama a resolve-night e devolve os passos feitos. */
 async function tick(): Promise<{ kind: string; night?: number; invalid: { error: string }[] }[]> {
@@ -58,12 +94,14 @@ const ledger = async (gameId: number, night: number) =>
 
 describe.skipIf(!enabled)('resolve-night no Supabase local', () => {
   const ids: Record<'ana' | 'bruno' | 'carla' | 'dina', string> = { ana: '', bruno: '', carla: '', dina: '' };
+  const emails: Record<string, string> = {};
   let first: Game;
 
   beforeAll(async () => {
     const status = JSON.parse(execSync('npx supabase status -o json', { encoding: 'utf8' }));
     url = status.API_URL;
     key = status.SERVICE_ROLE_KEY;
+    anonKey = status.ANON_KEY;
     if (!/^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(url)) throw new Error(`Só no Supabase local: ${url}`);
 
     await rest('games?id=gte.0', { method: 'DELETE' });
@@ -73,6 +111,7 @@ describe.skipIf(!enabled)('resolve-night no Supabase local', () => {
         body: JSON.stringify({ email: `${name}-${Date.now()}@e2e.local`, email_confirm: true }),
       });
       ids[name] = user.id;
+      emails[name] = user.email;
       await post('players', { id: user.id, name });
     }
     [first] = await post('games', { start_date: today() });
@@ -139,6 +178,16 @@ describe.skipIf(!enabled)('resolve-night no Supabase local', () => {
     ]);
   });
 
+  it('a meio do ciclo, a API não dá à Ana nada privado dos outros (ações, ledger, ranking)', async () => {
+    // O Bruno já escolheu a noite 3 (Segurança: sem ataques, dá o mesmo bónus que a Folga): a Ana não o pode ver.
+    await choose(ids.bruno, 'DEFEND');
+    const seen = await everythingAs(emails.ana);
+    expectNothingPrivateOfOthers(seen, ids.ana, false);
+    expect(seen.actions.length).toBeGreaterThan(0);
+    expect(seen.ledger.length).toBeGreaterThan(0);
+    expect(seen.nights).toHaveLength(2);
+  });
+
   it('noites 3 a 8 sem ações: todos em Folga', async () => {
     for (let n = 3; n <= 8; n++) {
       await nextDay();
@@ -163,10 +212,24 @@ describe.skipIf(!enabled)('resolve-night no Supabase local', () => {
       2 + 2 + 6 * 2 + 4,
     ]);
     expect(await rest(`nights?game_id=eq.${first.id}&resolved_at=not.is.null&select=night`)).toHaveLength(9);
+
+    // Ranking final gravado pela resolve-night (o ledger continua privado); a Carla saiu a meio e entra.
+    const ranking: { player_id: string; rank: number; points: number }[] = await rest(
+      `rankings?game_id=eq.${first.id}&order=rank`,
+    );
+    expect(ranking.map((r) => r.rank)).toEqual([1, 2, 3, 4]);
+    expect(ranking.map((r) => r.player_id).sort()).toEqual(Object.values(ids).sort());
+    for (const r of ranking) expect(r.points).toBe(50 + total(r.player_id));
   });
 
   it('dia 11: nada a fazer', async () => {
     expect(await tick()).toEqual([]);
+  });
+
+  it('dia 11: a API dá à Ana o ranking final, mas nunca o ledger nem as ações dos outros', async () => {
+    const seen = await everythingAs(emails.ana);
+    expectNothingPrivateOfOthers(seen, ids.ana, true);
+    expect(seen.rankings).toHaveLength(4);
   });
 
   it('dia seguinte à resolução: novo ciclo em preparação, com os mesmos inscritos', async () => {

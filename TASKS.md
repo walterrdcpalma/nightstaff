@@ -47,7 +47,7 @@
   - Migração da BD para o novo `summary`, para o tipo de ação novo e para a validação nova. Testes de RLS atualizados no Supabase local.
   - Bot esperto e simulador com Desaparecer. Relatório na descrição do PR.
   - O `CENARIOS.md` v5 passa (incluindo os cenários extra E e F).
-- [ ] **T6b — Web: visibilidade v5 e Desaparecer**
+- [x] **T6b — Web: visibilidade v5 e Desaparecer**
   - **Hoje:** carta 🫥 Desaparecer (2 por ciclo). Alvos atacados na noite anterior aparecem bloqueados, com o motivo.
   - **Manhã = relatório privado:** o que te aconteceu esta noite e os teus pontos da noite, mais as manchetes públicas (🚨 quem foi apanhado, sem dizer onde).
   - **Bairro = só casa/fora:** grelha de jogadores × noites com a janela acesa ou apagada. Nunca mostra ações, ataques, defesas nem bombas.

@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { loadEnrolled, loadGames, loadLedger, loadNames } from '@/lib/data';
+import { loadGames, loadLedger, loadNames, loadRanking } from '@/lib/data';
 import type { Game } from '@/lib/data';
 import { attacksText, movementsByNight, points, rankingRows, rankingVisible } from '@/lib/points';
-import type { LedgerRow } from '@/lib/points';
+import type { LedgerRow, RankingDbRow } from '@/lib/points';
 import { cn } from '@/lib/utils';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
@@ -12,8 +12,10 @@ interface Data {
   /** Há um ciclo novo em preparação e este é o anterior. */
   previous: boolean;
   names: Map<string, string>;
+  /** Só o meu (RLS). */
   ledger: LedgerRow[];
-  enrolled: string[];
+  /** Vazio enquanto o ciclo não acaba (RLS). */
+  ranking: RankingDbRow[];
 }
 
 /**
@@ -24,9 +26,9 @@ async function load(): Promise<Data> {
   const [games, names] = await Promise.all([loadGames(), loadNames()]);
   const previous = games[0]?.status === 'prep';
   const game = previous ? (games[1] ?? null) : (games[0] ?? null);
-  if (!game) return { game: null, previous, names, ledger: [], enrolled: [] };
-  const [ledger, enrolled] = await Promise.all([loadLedger(game.id), loadEnrolled(game.id)]);
-  return { game, previous, names, ledger, enrolled };
+  if (!game) return { game: null, previous, names, ledger: [], ranking: [] };
+  const [ledger, ranking] = await Promise.all([loadLedger(game.id), loadRanking(game.id)]);
+  return { game, previous, names, ledger, ranking };
 }
 
 /** Os meus pontos e movimentos; no dia 11, o ranking final e o Funcionário do Mês. */
@@ -40,19 +42,21 @@ export default function Points({ userId }: { userId: string }) {
 
   const nameOf = (id: string) => data.names.get(id) ?? '?';
   const mine = data.ledger.filter((r) => r.player_id === userId);
-  const showRanking = rankingVisible(data.game.status) && data.game.seed !== null;
+  const showRanking = rankingVisible(data.game.status) && data.ranking.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
       {data.previous && <p className="text-sm">Há um ciclo novo em preparação: lá, todos começam com 50. Isto é o ciclo anterior.</p>}
-      {showRanking && <Ranking game={data.game} data={data} userId={userId} nameOf={nameOf} />}
+      {showRanking && <Ranking ranking={data.ranking} userId={userId} nameOf={nameOf} />}
       {rankingVisible(data.game.status) && !showRanking && (
         <Note title="🏆 Funcionário do Mês">O ranking ainda está a ser apurado. Espreita daqui a pouco.</Note>
       )}
 
       <Note title="💰 Os teus pontos">
         <p className="font-heading text-4xl text-main">{points(mine)}</p>
-        <p className="mb-4 text-sm">Salário de 50 + os teus movimentos. Os pontos dos outros só se veem no fim do ciclo.</p>
+        <p className="mb-4 text-sm">
+          Salário de 50 + os teus movimentos. Só tu os vês; no fim do ciclo, o bairro só fica a saber o ranking.
+        </p>
         {mine.length === 0 && <p>Ainda sem movimentos.</p>}
         <ul className="flex flex-col gap-3">
           {movementsByNight(mine, nameOf).map((n) => (
@@ -73,8 +77,8 @@ export default function Points({ userId }: { userId: string }) {
   );
 }
 
-function Ranking(props: { game: Game; data: Data; userId: string; nameOf: (id: string) => string }) {
-  const rows = rankingRows(props.data.enrolled, props.data.ledger, props.game.seed!, props.nameOf);
+function Ranking(props: { ranking: RankingDbRow[]; userId: string; nameOf: (id: string) => string }) {
+  const rows = rankingRows(props.ranking, props.nameOf);
   const winner = rows[0];
   return (
     <>

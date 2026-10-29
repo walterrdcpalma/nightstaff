@@ -60,6 +60,19 @@ export function myResultLines(entries: MyEntry[], nameOf: NameOf): string[] {
   });
 }
 
+export interface PrivateReport {
+  /** O que me aconteceu, linha a linha, ou uma frase de noite tranquila. */
+  lines: string[];
+  /** Os meus pontos da noite, ex.: "+12". */
+  total: string;
+}
+
+/** Manhã: o que me aconteceu nesta noite e os meus pontos dela. Só com o meu ledger (RULES.md §4, privado). */
+export function privateReport(entries: MyEntry[], nameOf: NameOf): PrivateReport {
+  const lines = entries.length > 0 ? myResultLines(entries, nameOf) : ['🌙 Noite tranquila: nada a registar.'];
+  return { lines, total: formatDelta(entries.reduce((sum, e) => sum + e.delta, 0)) };
+}
+
 export type WindowLight = 'HOME' | 'AWAY' | null;
 
 /**

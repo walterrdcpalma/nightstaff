@@ -1,6 +1,6 @@
 // Lógica pura do ecrã de pontos: os meus pontos durante o ciclo e o ranking final (RULES.md §1, §4 e §5).
-import { SALARY, finalRanking } from '../../../engine/index.ts';
-import type { LedgerEntry, LedgerReason, RankingEntry } from '../../../engine/index.ts';
+import { SALARY } from '../../../engine/index.ts';
+import type { LedgerReason } from '../../../engine/index.ts';
 import { formatDelta, myResultLines } from './night.ts';
 import type { MyEntry } from './night.ts';
 import type { GameStatus } from './today.ts';
@@ -40,29 +40,35 @@ export function rankingVisible(status: GameStatus): boolean {
   return status === 'finished';
 }
 
-export interface RankingRow extends RankingEntry {
+/** Linha da tabela `rankings`, gravada pela resolve-night no fim do ciclo (o ledger dos outros nunca se lê). */
+export interface RankingDbRow {
+  player_id: string;
+  rank: number;
+  points: number;
+  successful_attacks: number;
+}
+
+export interface RankingRow {
+  playerId: string;
   name: string;
+  /** 1 = Funcionário do Mês. */
+  rank: number;
+  points: number;
+  successfulAttacks: number;
   /** Empatado em pontos com o jogador acima ou abaixo: a posição saiu do desempate (RULES.md §5). */
   tiebreak: boolean;
 }
 
-/**
- * Ranking final com o motor (`finalRanking`, desempates do RULES.md §5 e a seed do ciclo).
- * Entram os inscritos e quem aparecer no ledger (ex.: saiu a meio do ciclo).
- */
-export function rankingRows(enrolled: string[], ledger: LedgerRow[], seed: number, nameOf: (id: string) => string): RankingRow[] {
-  const players = [...new Set([...enrolled, ...ledger.map((r) => r.player_id)])];
-  const entries: LedgerEntry[] = ledger.map((r) => ({
+/** Ranking final para o ecrã, por posição. */
+export function rankingRows(rows: RankingDbRow[], nameOf: (id: string) => string): RankingRow[] {
+  const sorted = [...rows].sort((a, b) => a.rank - b.rank);
+  return sorted.map((r, i) => ({
     playerId: r.player_id,
-    delta: r.delta,
-    reason: r.reason,
-    ...(r.target_id && { targetId: r.target_id }),
-  }));
-  const ranking = finalRanking(players, entries, seed);
-  return ranking.map((r, i) => ({
-    ...r,
-    name: nameOf(r.playerId),
-    tiebreak: ranking[i - 1]?.points === r.points || ranking[i + 1]?.points === r.points,
+    name: nameOf(r.player_id),
+    rank: r.rank,
+    points: r.points,
+    successfulAttacks: r.successful_attacks,
+    tiebreak: sorted[i - 1]?.points === r.points || sorted[i + 1]?.points === r.points,
   }));
 }
 

@@ -1,7 +1,7 @@
 -- Escrita da resolve-night e pg_cron (T4). Corre no Supabase local: `npm run test:db`.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(9);
+select plan(14);
 
 select is((select schedule from cron.job where jobname = 'resolve-night'), '0 * * * *', 'pg_cron de hora a hora, ao minuto 0');
 
@@ -15,10 +15,17 @@ select is((select seed from public.nights where game_id = :game and night = 1), 
 select isnt(public.next_cycle(:game, '2026-01-12'), null, 'cria o ciclo seguinte');
 select is(public.next_cycle(:game, '2026-01-12'), null, 'a segunda vez não faz nada');
 
+-- finish_game acaba o ciclo e grava o ranking; é idempotente.
+select is(public.finish_game(:game, 77, '[]'), true, 'acaba o ciclo');
+select is((select status || ':' || seed from public.games where id = :game), 'finished:77', 'grava o estado e a seed');
+select is((select count(*)::int from public.rankings where game_id = :game), 0, 'ranking vazio, como pedido');
+select is(public.finish_game(:game, 78, '[]'), false, 'a segunda vez não faz nada');
+
 -- Só a service_role escreve; anon nem as funções do prazo vê.
 set local role authenticated;
 select throws_ok($$select public.apply_night(1, 2, 1, '{}', '[]')$$, '42501', null, 'authenticated não grava noites');
 select throws_ok($$select public.next_cycle(1, '2026-01-12')$$, '42501', null, 'authenticated não cria ciclos');
+select throws_ok($$select public.finish_game(1, 1, '[]')$$, '42501', null, 'authenticated não acaba ciclos');
 reset role;
 set local role anon;
 select throws_ok($$select public.night_at('2026-01-01', now())$$, '42501', null, 'anon não chama night_at');

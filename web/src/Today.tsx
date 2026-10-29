@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ACTION_TYPES, QUOTAS, lisbonDate, remainingQuota, validateAction } from '../../engine/index.ts';
+import { ACTION_TYPES, QUOTAS, lisbonDate, previousTarget, remainingQuota, validateAction } from '../../engine/index.ts';
 import type { Action, ActionType, GameState } from '../../engine/index.ts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
-import { ACTION_NAMES, choiceText, errorText, formatCountdown, nextLisbonMidnight, todayPhase } from '@/lib/today';
+import {
+  ACTION_NAMES,
+  BLOCKED_TARGET_TEXT,
+  choiceText,
+  errorText,
+  formatCountdown,
+  nextLisbonMidnight,
+  targetOptions,
+  todayPhase,
+} from '@/lib/today';
 import type { GameStatus } from '@/lib/today';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
@@ -151,7 +160,8 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
   const quota = remainingQuota(state, userId);
   const nameOf = (id: string | null) => data.players.find((p) => p.id === id)?.name;
   const needsTarget = type === 'ATTACK' || type === 'BOMB';
-  const others = data.players.filter((p) => p.id !== userId);
+  // Não se pode ir à mesma casa duas noites seguidas (RULES.md §2): o alvo de ontem fica bloqueado.
+  const targets = targetOptions(data.players, userId, previousTarget(state, userId));
 
   async function save() {
     const action: Action = { playerId: userId, type, targetId: needsTarget ? targetId : null };
@@ -207,9 +217,16 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
         <section className="flex flex-col gap-3">
           <h2 className="text-lg">A casa de quem?</h2>
           <div className="grid grid-cols-2 gap-3">
-            {others.map((p) => (
-              <Button key={p.id} variant={targetId === p.id ? 'default' : 'neutral'} onClick={() => setTargetId(p.id)}>
-                {p.name}
+            {targets.map((p) => (
+              <Button
+                key={p.id}
+                variant={targetId === p.id ? 'default' : 'neutral'}
+                disabled={p.blocked}
+                onClick={() => setTargetId(p.id)}
+                className="h-auto min-h-10 flex-col whitespace-normal py-2"
+              >
+                <span>{p.blocked ? `🚫 ${p.name}` : p.name}</span>
+                {p.blocked && <span className="text-xs font-base">{BLOCKED_TARGET_TEXT}</span>}
               </Button>
             ))}
           </div>
