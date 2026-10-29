@@ -81,5 +81,22 @@
   - Botão **⏭️ Passar o dia**: os bots escolhem ao calhas (usar o `randomBot` do `sim/`, que respeita quotas, alvos e a regra de não repetir alvo), resolve a noite com o mesmo `resolveNight` e abre a seguinte. Depois da noite 9, resolução.
   - Os bots só existem nessa sala: não são contas e não aparecem em mais lado nenhum.
   - Testes: uma partida inteira contra 3 bots só com Passar o dia, que acaba com ranking e Funcionário do Mês.
+- [ ] **T12 — Manhã em modo história**
+  - A Manhã (`web/src/NightView.tsx`) passa a contar a noite **uma cena de cada vez**, como um narrador: cada jogador, ao seu ritmo, com animação de entrada. Botão **Seguinte** (ou toque no ecrã) para avançar, **Saltar** para ver tudo de uma vez, e **Ver outra vez** no fim. Com `prefers-reduced-motion`, sem animações e tudo visível.
+  - **Cenas, na ordem:**
+    1. Abertura com o número da noite e quantos ficaram em casa e fora.
+    2. Uma cena por jogador: **em casa** ou **fora**, com uma frase.
+    3. Os **apanhados** pela Segurança, se houver (sem dizer em que casa).
+    4. Por fim, **a minha noite**: o relatório privado de hoje (o que me aconteceu e os pontos da noite, só do meu ledger), como já existe.
+  - **Frases:** pelo menos **10 por categoria** em `web/src/lib/story.ts`, em português de Portugal, com humor de bairro (ex.: "ficou em casa a fazer uma francesinha", "saiu sem dizer para onde… talvez a pensar na ex"). Categorias: *em casa*, *fora* e *apanhado*. Com `{nome}` no texto, não o nome colado à frase.
+  - **Regra de ouro, RULES.md §4:** a frase **não pode revelar a ação**. Todas as frases de *em casa* servem para Folga e Segurança (nada de "montou guarda", "trancou a porta", "ficou de vigia"). Todas as frases de *fora* servem para Visita surpresa, Reunião de emergência e Desaparecer (nada de "foi fazer uma surpresa", "levou uma bomba"). O que aconteceu a cada um só aparece na cena privada.
+  - **Escolha determinística:** a frase de cada jogador sai da `seed` da noite e do id do jogador (usar o `mulberry32` do `engine/`), nunca de `Math.random()`. Assim toda a gente vê a mesma história e ela não muda ao recarregar.
+  - Lógica pura em `web/src/lib/story.ts`, testada no Vitest:
+    - a mesma seed dá sempre as mesmas frases;
+    - nenhuma frase de *em casa* ou *fora* contém palavras da lista proibida (`Segurança`, `defend`, `ataque`, `visita`, `bomba`, `reunião`, `desaparec`, `assalt`, …);
+    - cada categoria tem pelo menos 10 frases e nenhuma repetida;
+    - as cenas saem na ordem certa, e sem apanhados não há cena de apanhados.
+  - Animações só com **CSS/Tailwind**, sem dependências novas. Mobile-first, tema escuro de sempre.
+  - O Bairro/Histórico não muda. O texto das manchetes públicas existentes pode ser reaproveitado.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
