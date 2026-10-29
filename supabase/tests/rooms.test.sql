@@ -3,7 +3,7 @@
 -- Jogadores: Ana (…1a1), Bruno (…1b1), Carla (…1c1), Dina (…1d1) e Fábio (…1f1, conta nova sem nome).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(56);
+select plan(57);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000001a1', 'ana@rooms.test'),
@@ -97,30 +97,31 @@ set local role authenticated;
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001a1", "role": "authenticated"}', true);
 select is((select status from public.rooms where id = :room), 'finished', 'a sala acabou');
+select is((select count(*)::int from public.nights where game_id = :game), 1, 'acabada, a partida ainda se vê: as rondas');
+select is((select count(*)::int from public.rankings where game_id = :game), 1, 'e o ranking final');
 select throws_ok(format($$select public.restart_room(%s)$$, :room), 'P0001', 'NOT_ADMIN', 'só o admin reinicia');
 
+-- Reiniciar acaba a partida: as partidas anteriores não se veem, nem para quem as jogou (decisão do Walter).
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001b1", "role": "authenticated"}', true);
 select lives_ok(format($$select public.restart_room(%s)$$, :room), 'o admin reinicia');
 select is((select status || ':' || code from public.rooms where id = :room), 'lobby:' || :'code', 'volta ao lobby, com o mesmo código');
 select is((select count(*)::int from public.room_players where room_id = :room), 3, 'com os mesmos jogadores');
-select is((select status from public.games where id = :game), 'finished', 'a partida anterior fica no histórico');
+select is((select count(*)::int from public.games where room_id = :room), 0, 'a partida anterior já não se vê');
+select is((select count(*)::int from public.nights where game_id = :game), 0, 'nem as suas rondas');
+select is((select count(*)::int from public.rankings where game_id = :game), 0, 'nem o ranking');
+select is((select count(*)::int from public.game_players where game_id = :game), 0, 'nem quem a jogou');
+select is((select count(*)::int from public.actions where game_id = :game), 0, 'nem as minhas ações dessa partida');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001d1", "role": "authenticated"}', true);
 select is(public.join_room(:'code'), :room::bigint, 'depois de reiniciar, entra gente nova');
-select is((select count(*)::int from public.games where room_id = :room), 0, 'quem entra não vê as partidas onde não jogou');
-select is((select count(*)::int from public.nights where game_id = :game), 0, 'nem as suas noites');
-select is((select count(*)::int from public.rankings where game_id = :game), 0, 'nem o ranking');
+select is((select count(*)::int from public.games where room_id = :room), 0, 'quem entra também não vê a partida anterior');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001c1", "role": "authenticated"}', true);
 select lives_ok(format($$select public.leave_room(%s)$$, :room), 'e sai quem quiser');
 select is((select count(*)::int from public.rooms where id = :room), 0, 'quem saiu já não vê a sala');
-select is((select count(*)::int from public.games where id = :game), 1, 'mas continua a ver a partida que jogou');
-select is((select count(*)::int from public.nights where game_id = :game), 1, 'as noites');
-select is((select count(*)::int from public.rankings where game_id = :game), 1, 'o ranking');
-select is((select name from public.players where id = '00000000-0000-0000-0000-0000000001b1'), 'Bruno',
-  'e os nomes de quem jogou com ela');
-select is((select count(*)::int from public.players where id = '00000000-0000-0000-0000-0000000001d1'), 0,
-  'mas não o de quem entrou depois');
+select is((select count(*)::int from public.games where id = :game), 0, 'nem a partida que jogou');
+select is((select count(*)::int from public.players where id = '00000000-0000-0000-0000-0000000001b1'), 0,
+  'nem os nomes de quem jogou com ela');
 
 -- ── O último a sair apaga a sala ─────────────────────────────────────────────
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000001d1", "role": "authenticated"}', true);

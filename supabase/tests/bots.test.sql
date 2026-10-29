@@ -2,7 +2,7 @@
 -- Jogadores: Ana (…2a1, joga contra bots) e Bruno (…2b1, outra conta).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(31);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000002a1', 'ana@bots.test'),
@@ -78,6 +78,8 @@ select is(
   (select count(*)::int from public.game_players gp join public.games g on g.id = gp.game_id
    where g.room_id = :room and g.status = 'running'),
   4, 'com os mesmos 3 bots');
+select is((select count(*)::int from public.games where id = :game), 0, 'a partida anterior já não se vê');
+select is((select count(*)::int from public.ledger where game_id = :game), 0, 'nem o meu ledger dela');
 
 select * from finish();
 rollback;

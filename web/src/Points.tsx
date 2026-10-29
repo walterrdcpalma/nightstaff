@@ -16,7 +16,7 @@ interface Data {
   ranking: RankingDbRow[];
 }
 
-/** A partida a mostrar: a mais recente que joguei nesta sala (depois de Reiniciar, a anterior até Começar). */
+/** A partida atual da sala (a RLS só mostra essa; num lobby depois de Reiniciar, nenhuma). */
 async function load(roomId: number): Promise<Data> {
   const [games, names] = await Promise.all([loadGames(roomId), loadNames()]);
   const game = games[0] ?? null;
@@ -31,7 +31,7 @@ export default function Points({ userId, roomId }: { userId: string; roomId: num
   if (error) return <LoadError onRetry={reload} />;
   if (!data) return <p>A fazer as contas…</p>;
   if (!data.game) {
-    return <Note title="Folha de pagamentos em branco">Ainda não houve nenhuma partida. Todos começam com 50 de salário.</Note>;
+    return <Note title="Folha de pagamentos em branco">A partida ainda não começou. Todos começam com 50 de salário.</Note>;
   }
 
   const nameOf = (id: string) => data.names.get(id) ?? '?';

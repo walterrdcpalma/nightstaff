@@ -62,7 +62,7 @@ export async function loadRoomPlayers(roomId: number): Promise<Player[]> {
   return rows.map((r) => r.players as unknown as Player);
 }
 
-/** Partidas da sala que joguei (a RLS só mostra essas), da mais recente para a mais antiga. */
+/** A partida atual da sala, se a joguei (a RLS só mostra essa: as anteriores não se veem). */
 export async function loadGames(roomId: number): Promise<Game[]> {
   return ok(
     await supabase.from('games').select('id, start_date, status, seed').eq('room_id', roomId).order('id', { ascending: false }),
@@ -98,13 +98,6 @@ export async function loadMyActions(gameId: number): Promise<{ night: number; ty
 export async function loadEnrolled(gameId: number): Promise<string[]> {
   const rows: { player_id: string }[] = ok(await supabase.from('game_players').select('player_id').eq('game_id', gameId));
   return rows.map((r) => r.player_id);
-}
-
-/** Quais das partidas dadas têm pelo menos uma noite resolvida, numa só leitura. */
-export async function loadGamesWithNights(gameIds: number[]): Promise<Set<number>> {
-  if (gameIds.length === 0) return new Set();
-  const rows: { game_id: number }[] = ok(await supabase.from('nights').select('game_id').in('game_id', gameIds).eq('night', 1));
-  return new Set(rows.map((r) => r.game_id));
 }
 
 /** Noites resolvidas de uma partida (a RLS só mostra essas), por ordem. */
