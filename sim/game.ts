@@ -29,7 +29,7 @@ export function playGame(seats: Seat[], seed: number): GameResult {
   const nights: NightRecord[] = [];
 
   for (let night = 1; night <= NIGHTS; night++) {
-    const state: GameState = { players, pastActions: [...pastActions] };
+    const state: GameState = { players, night, pastActions: [...pastActions] };
     const history = nights.map((n) => n.summary);
     const actions = seats.map(({ playerId, bot }) =>
       bot({ me: playerId, players, night, nights: NIGHTS, history, quota: remainingQuota(state, playerId) }, rng),
@@ -39,5 +39,6 @@ export function playGame(seats: Seat[], seed: number): GameResult {
     pastActions.push(...actions);
   }
 
-  return { players, nights, ranking: finalRanking(players, nights.flatMap((n) => n.ledger)) };
+  const cycleSeed = Math.floor(rng() * 2 ** 32);
+  return { players, nights, ranking: finalRanking(players, nights.flatMap((n) => n.ledger), cycleSeed) };
 }

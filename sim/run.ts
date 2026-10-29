@@ -42,14 +42,14 @@ export function formatTable(players: number, reports: { name: string; report: Re
     row('Acertos por ciclo (ataques + bombas, soma de todos)', (r) => `${f1(r.hitsPerGame)} (${f1(r.attackHitsPerGame)} + ${f1(r.bombHitsPerGame)})`),
     row('Acertos por jogador por ciclo', (r) => f2(r.hitsPerGame / r.players)),
     row('Visitas surpresa que renderam pontos', (r) => fp(r.attackHitPct)),
-    row('Pontos finais: média ± desvio padrão', (r) => `${f1(r.points.mean)} ± ${f1(r.points.sd)}`),
+    row('Pontos finais (com salário): média ± desvio padrão', (r) => `${f1(r.points.mean)} ± ${f1(r.points.sd)}`),
     row('Pontos finais: mín / p10 / mediana / p90 / máx', (r) => `${r.points.min} / ${r.points.p10} / ${r.points.p50} / ${r.points.p90} / ${r.points.max}`),
-    row('Jogadores com 0 ou menos', (r) => fp(r.zeroOrLessPct)),
+    row('Jogadores sem salário (< 0 pontos)', (r) => fp(r.noSalaryPct)),
     row('Sorteios por ciclo', (r) => f2(r.drawsPerGame)),
     row('Ciclos com ≥1 sorteio', (r) => fp(r.gamesWithDrawPct)),
     row('Bombas por ciclo', (r) => f1(r.bombsPerGame)),
-    row('Bombas: acertaram / defesa / alvo fora', (r) => `${f1(r.bombOutcomePct.hit)} / ${f1(r.bombOutcomePct.defended)} / ${f1(r.bombOutcomePct.targetAway)} %`),
-    row('Vitória partilhada', (r) => fp(r.sharedWinPct)),
+    row('Bombas: alvo em casa / alvo fora / defesa', (r) => `${f1(r.bombOutcomePct.home)} / ${f1(r.bombOutcomePct.away)} / ${f1(r.bombOutcomePct.defended)} %`),
+    row('Funcionário do Mês decidido no desempate', (r) => fp(r.tiebreakWinPct)),
     row('Ações: Folga / Segurança / Visita / Reunião', (r) => `${f1(r.actionPct.STAY)} / ${f1(r.actionPct.DEFEND)} / ${f1(r.actionPct.ATTACK)} / ${f1(r.actionPct.BOMB)} %`),
   ];
 
@@ -60,12 +60,12 @@ export function formatTable(players: number, reports: { name: string; report: Re
       '',
       `**${name}, esperto vs aleatório:**`,
       '',
-      '| Bot | Lugares | Pontos finais (média ± dp) | 0 ou menos | Ciclos ganhos | Esperado pelos lugares |',
+      '| Bot | Lugares | Pontos finais (média ± dp) | Sem salário | Ciclos ganhos | Esperado pelos lugares |',
       '|---|---|---|---|---|---|',
     );
     for (const [kind, k] of kinds) {
       lines.push(
-        `| ${kind} | ${k.seats} | ${f1(k.points.mean)} ± ${f1(k.points.sd)} | ${fp(k.zeroOrLessPct)} | ${fp(k.winPct)} | ${fp((100 * k.seats) / report.players)} |`,
+        `| ${kind} | ${k.seats} | ${f1(k.points.mean)} ± ${f1(k.points.sd)} | ${fp(k.noSalaryPct)} | ${fp(k.winPct)} | ${fp((100 * k.seats) / report.players)} |`,
       );
     }
   }

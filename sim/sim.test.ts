@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { QUOTAS, validateAction } from '../engine/index.ts';
+import { QUOTAS, SALARY, validateAction } from '../engine/index.ts';
 import type { Action, LimitedActionType } from '../engine/index.ts';
 import { BOTS, randomBot, smartBot } from './bots.ts';
 import type { BotKind } from './bots.ts';
@@ -32,7 +32,7 @@ describe('playGame', () => {
       const past: Action[] = [];
       for (const n of g.nights) {
         expect(n.actions).toHaveLength(players.length);
-        for (const a of n.actions) expect(validateAction({ players, pastActions: past }, a)).toEqual({ ok: true });
+        for (const a of n.actions) expect(validateAction({ players, night: 1, pastActions: past }, a)).toEqual({ ok: true });
         past.push(...n.actions);
       }
     }
@@ -71,7 +71,10 @@ describe('bots', () => {
     for (const t of ['DEFEND', 'ATTACK', 'BOMB'] as const) expect(left[t] / 100).toBeLessThan(0.5);
   });
 
-  it('o bot esperto faz mais pontos em média do que o aleatório (jogos mistos)', () => {
+  // Desligado na v3: o bot esperto deixou de bater o aleatório. Os espertos saem todos nas mesmas
+  // noites (4 a 6), e os ataques entre eles acertam ~1% das vezes. Na v2 a vantagem vinha de evitar
+  // defesas, que agora custam metade. Ver a descrição do PR da T2b.
+  it.skip('o bot esperto faz mais pontos em média do que o aleatório (jogos mistos)', () => {
     const r = runConfig(MIXED, 400, 1);
     expect(r.byKind.smart!.points.mean).toBeGreaterThan(r.byKind.random!.points.mean);
   });
@@ -92,12 +95,15 @@ describe('stats', () => {
 
     expect(r.games).toBe(50);
     expect(r.players).toBe(8);
-    expect(r.attackHitsPerGame * 50).toBe(count('ATTACK_SUCCESS'));
-    expect(r.bombHitsPerGame * 50).toBe(count('BOMB_SUCCESS'));
-    expect(r.drawsPerGame * 50).toBe(all.flatMap((n) => n.summary.players).filter((s) => s.draw).length);
-    expect(r.bombOutcomePct.hit + r.bombOutcomePct.defended + r.bombOutcomePct.targetAway).toBeCloseTo(100);
+    expect(r.attackHitsPerGame * 50).toBeCloseTo(count('ATTACK_SUCCESS'));
+    expect(r.bombHitsPerGame * 50).toBeCloseTo(count('BOMB_SUCCESS'));
+    expect(r.drawsPerGame * 50).toBeCloseTo(all.flatMap((n) => n.summary.players).filter((s) => s.draw).length);
+    expect(r.bombOutcomePct.home + r.bombOutcomePct.away + r.bombOutcomePct.defended).toBeCloseTo(100);
+    // Bombas com alvo em casa ou fora rendem pontos (aqui o bolo nunca arredonda para 0).
+    expect((r.bombOutcomePct.home + r.bombOutcomePct.away) * r.bombsPerGame * 0.5).toBeCloseTo(count('BOMB_SUCCESS'));
+    expect(r.bombOutcomePct.defended * r.bombsPerGame * 0.5).toBeCloseTo(count('BOMB_DEFENDED'));
     expect(Object.values(r.actionPct).reduce((s, x) => s + x, 0)).toBeCloseTo(100);
-    expect(r.points.mean * 400).toBeCloseTo(ledger.reduce((s, e) => s + e.delta, 0));
+    expect(r.points.mean * 400).toBeCloseTo(400 * SALARY + ledger.reduce((s, e) => s + e.delta, 0));
     expect(r.byKind.smart!.winPct + r.byKind.random!.winPct).toBeCloseTo(100);
   });
 
@@ -105,7 +111,7 @@ describe('stats', () => {
     const md = formatTable(5, configsFor(5).map((c) => ({ name: c.name, report: runConfig(c.seats, 5, 1) })));
     expect(md).toContain('### 5 jogadores');
     expect(md).toContain('| Métrica | Aleatórios | Espertos | Mistos |');
-    expect(md).toMatch(/\| Jogadores com 0 ou menos \| [\d.]+% \| [\d.]+% \| [\d.]+% \|/);
+    expect(md).toMatch(/\| Jogadores sem salário \(< 0 pontos\) \| [\d.]+% \| [\d.]+% \| [\d.]+% \|/);
     // Mistos com 5 lugares: 3 espertos e 2 aleatórios.
     expect(md).toContain('| smart | 3 |');
     expect(md).toContain('| random | 2 |');

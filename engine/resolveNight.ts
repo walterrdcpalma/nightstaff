@@ -1,5 +1,6 @@
+import { NIGHTS } from './cycle.ts';
 import { mulberry32, randomIndex } from './rng.ts';
-import { HOME_BONUS, POINTS } from './types.ts';
+import { DEFENDED_COST, HOME_BONUS, POINTS } from './types.ts';
 import type {
   Action,
   ActionType,
@@ -29,8 +30,12 @@ export class InvalidActionError extends Error {
 /**
  * Resolve uma noite (RULES.md §3). Função pura: o mesmo input dá sempre o mesmo output.
  * Quem não tem ação em `actions` fica com STAY. Ações inválidas ou duplicadas lançam `InvalidActionError`.
+ * Na noite 9 (`state.night`), cada movimento conta a dobrar (RULES.md §1).
  */
 export function resolveNight(state: GameState, actions: Action[], seed: number): NightResult {
+  if (!Number.isInteger(state.night) || state.night < 1 || state.night > NIGHTS) {
+    throw new RangeError(`Noite inválida: ${state.night} (esperado 1 a ${NIGHTS})`);
+  }
   const byPlayer = new Map<PlayerId, Action>();
   for (const a of actions) {
     if (byPlayer.has(a.playerId)) throw new InvalidActionError(a.playerId, 'DUPLICATE');
@@ -58,8 +63,10 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
 
   const rng = mulberry32(seed);
   const ledger: LedgerEntry[] = [];
-  const add = (playerId: PlayerId, delta: number, reason: LedgerReason) =>
-    ledger.push({ playerId, delta, reason });
+  const multiplier = state.night === NIGHTS ? 2 : 1;
+  /** `targetId` só nos movimentos de quem atacou: o alvo é a escolha do próprio. */
+  const add = (playerId: PlayerId, delta: number, reason: LedgerReason, targetId?: PlayerId) =>
+    ledger.push({ playerId, delta: delta * multiplier, reason, ...(targetId && { targetId }) });
 
   const summaries = new Map<PlayerId, PlayerNightSummary>();
 
@@ -86,17 +93,21 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
       continue;
     }
 
-    // Caso 1: T está fora.
+    // Caso 1: T está fora. Os ataques normais falham, mas a bomba acerta na mesma.
     if (isAway(t)) {
-      for (const a of n) add(a, 0, 'ATTACK_TARGET_AWAY');
-      for (const a of b) add(a, 0, 'BOMB_TARGET_AWAY');
+      for (const a of n) add(a, 0, 'ATTACK_TARGET_AWAY', t);
+      if (b.length > 0) {
+        add(t, -POINTS, 'VICTIM');
+        const share = Math.floor(POINTS / b.length);
+        for (const a of b) add(a, share, 'BOMB_SUCCESS', t);
+      }
       continue;
     }
 
     // Caso 2: T defendeu-se.
     if (choice(t) === 'DEFEND') {
-      for (const a of n) add(a, -POINTS, 'ATTACK_DEFENDED');
-      for (const a of b) add(a, -2 * POINTS, 'BOMB_DEFENDED');
+      for (const a of n) add(a, -DEFENDED_COST.ATTACK, 'ATTACK_DEFENDED', t);
+      for (const a of b) add(a, -DEFENDED_COST.BOMB, 'BOMB_DEFENDED', t);
       add(t, POINTS * (n.length + b.length), 'DEFENSE');
       s.defended = true;
       s.revealedAttackers = [...n, ...b].sort();
@@ -109,13 +120,13 @@ export function resolveNight(state: GameState, actions: Action[], seed: number):
       const winner = n.length === 1 ? n[0] : n[randomIndex(rng, n.length)];
       s.draw = n.length > 1;
       for (const a of n) {
-        if (a === winner) add(a, POINTS, 'ATTACK_SUCCESS');
-        else add(a, -POINTS, 'ATTACK_LOST_DRAW');
+        if (a === winner) add(a, POINTS, 'ATTACK_SUCCESS', t);
+        else add(a, -POINTS, 'ATTACK_LOST_DRAW', t);
       }
     } else {
-      for (const a of n) add(a, -POINTS, 'ATTACK_BOMBED');
+      for (const a of n) add(a, -POINTS, 'ATTACK_BOMBED', t);
       const share = Math.floor((POINTS + POINTS * n.length) / b.length);
-      for (const a of b) add(a, share, 'BOMB_SUCCESS');
+      for (const a of b) add(a, share, 'BOMB_SUCCESS', t);
     }
   }
 

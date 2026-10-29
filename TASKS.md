@@ -13,7 +13,7 @@
   - `cyclePhase(startDate, today)` → `{ phase: 'PREP' | 'NIGHT' | 'RESULTS', day, night? }`, com datas `YYYY-MM-DD` em hora de Lisboa (RULES.md §1).
   - `finalRanking(ledger)` com desempate (RULES.md §5) e vitória partilhada.
   - Testes: limites de cada fase, mudança de hora (fim de março e fim de outubro), empates.
-- [ ] **T2b — Regras v3 no motor e no simulador**
+- [x] **T2b — Regras v3 no motor e no simulador**
   - `resolveNight`: atacar quem defende custa 5 (bomba 10); bomba num alvo fora acerta (T −10, os bombistas dividem 10); a noite 9 conta a dobrar. A função tem de saber o número da noite.
   - Salário: constante `SALARY = 50`. Os pontos do jogador são `SALARY + soma do ledger`.
   - Ranking: desempate pela ordem do RULES.md §5 (ataques bem-sucedidos, confronto direto/mini-liga, pontos perdidos, sorteio com a seed do ciclo). Nunca há vitória partilhada. O ledger tem de guardar o alvo de cada ataque bem-sucedido.
