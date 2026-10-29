@@ -46,7 +46,7 @@ describe('resumo público da manhã (RULES.md §4 v5, cenários do CENARIOS.md)'
   it('nada do público tem pontos nem ações', () => {
     const { summary } = summaryOf([bomb('ana', 'gil'), atk('bruno', 'gil'), atk('carla', 'duarte')], 9);
     const text = morningHeadline(9, summary);
-    expect(text).not.toMatch(/[+−-]\d|pontos|Reunião|sorteio/);
+    expect(text).not.toMatch(/[+−-]\d|pontos|Despedimento|Reunião|sorteio/);
   });
 });
 
@@ -65,7 +65,7 @@ describe('o meu resultado', () => {
     ).toEqual([
       '🗡️ Visita surpresa bem-sucedida (Bruno): +10',
       '😵 Assaltaram-te a casa vazia: −5',
-      '🗡️ Casa vazia, mas a Reunião de emergência levou tudo (Gil): 0',
+      '🗡️ Casa vazia, mas o Despedimento coletivo levou tudo (Gil): 0',
       '🛡️ A tua Segurança apanhou Carla: +10',
     ]);
   });

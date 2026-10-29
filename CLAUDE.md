@@ -95,7 +95,7 @@ CLAUDE.md
     - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
     - Os meus pontos (durante a partida) e o ranking final (só na resolução).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
-- **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Reunião de emergência). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
+- **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Despedimento coletivo, Desaparecer). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
 - **Convenções do `web/`:**
   - Um só `package.json`, o da raiz: o `npm ci` da CI instala tudo e o `npm run lint` também verifica o `web/` (`tsc -p web`).
   - O `components.json` do shadcn está na raiz. Os componentes vão para `web/src/components/ui/`: são gerados pela CLI e não se editam à mão. O ESLint ignora essa pasta, mas o `tsc` não.
@@ -106,7 +106,7 @@ CLAUDE.md
   - Pontos: o ranking vem da tabela `rankings` (a RLS só a mostra com `status = finished`).
   - Ecrã inicial: As minhas salas (sem router: a sala escolhida é estado do `App`). Os ecrãs de uma sala recebem `roomId` e mostram a partida atual (a RLS só dá essa); o Manhã deixa escolher as rondas anteriores dela.
   - Ranking: quem ficou empatado em pontos mostra o critério do desempate, se os ataques bem-sucedidos chegaram; senão, "confronto direto, pontos perdidos ou sorteio" (sem o ledger dos outros não se distingue).
-  - Hoje: o alvo da minha Visita ou Reunião de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
+  - Hoje: o alvo da minha Visita ou Despedimento de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
   - `web/.env.local` (fora do git) tem `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, como no `web/.env.example`. Só a chave pública.
 - **Auth:** registo aberto (`[auth] enable_signup = true`, login com `shouldCreateUser: true`). Não pôr `false` em `[auth.email]`, que desliga também o magic link. Uma conta nova não tem `players`: o nome pede-se no primeiro login, e sem nome as funções da sala dão `NO_NAME` (também para um bot, que nunca cria salas nem entra nelas).
   - O magic link volta para `window.location.origin`: o URL do site (dev e produção) tem de estar em *Site URL* / *Redirect URLs* no painel do Supabase. No local já está no `config.toml` (`http://localhost:5173`).

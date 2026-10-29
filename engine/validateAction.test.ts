@@ -127,7 +127,7 @@ describe('validateAction: não atacar a mesma pessoa duas noites seguidas (RULES
     expect(validateAction(at(2, [[1, atk('A', 'B')]]), atk('A', 'B'))).toEqual(same);
   });
 
-  it('a Reunião também conta, nos dois sentidos', () => {
+  it('o Despedimento também conta, nos dois sentidos', () => {
     expect(validateAction(at(2, [[1, bmb('A', 'B')]]), atk('A', 'B'))).toEqual(same);
     expect(validateAction(at(2, [[1, atk('A', 'B')]]), bmb('A', 'B'))).toEqual(same);
   });
@@ -150,7 +150,7 @@ describe('validateAction: não atacar a mesma pessoa duas noites seguidas (RULES
     expect(validateAction(at(2, [[1, atk('C', 'B')]]), atk('A', 'B'))).toEqual({ ok: true });
   });
 
-  it('previousTarget: o alvo da noite anterior, só de Visita ou Reunião', () => {
+  it('previousTarget: o alvo da noite anterior, só de Visita ou Despedimento', () => {
     expect(previousTarget(at(2, [[1, atk('A', 'B')]]), 'A')).toBe('B');
     expect(previousTarget(at(2, [[1, bmb('A', 'C')]]), 'A')).toBe('C');
     expect(previousTarget(at(3, [[1, atk('A', 'B')]]), 'A')).toBeNull();

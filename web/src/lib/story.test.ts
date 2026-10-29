@@ -26,6 +26,7 @@ describe('frases', () => {
     expect(forbiddenIn('{nome} montou a Segurança à porta')).toEqual(['seguranca']);
     expect(forbiddenIn('{nome} foi fazer uma VISITA surpresa')).toEqual(['visita', 'surpresa']);
     expect(forbiddenIn('{nome} levou uma bomba para a Reunião')).toEqual(['bomba', 'reuni']);
+    expect(forbiddenIn('{nome} preparou um Despedimento coletivo')).toEqual(['despedi']);
     expect(forbiddenIn('{nome} trancou a porta e ficou de vigia')).toEqual(['vigia', 'tranc']);
     expect(forbiddenIn('{nome} desapareceu')).toEqual(['desaparec']);
     expect(plain('Reunião')).toBe('reuniao');

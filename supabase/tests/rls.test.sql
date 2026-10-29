@@ -103,7 +103,7 @@ select throws_ok(
   'P0001', 'SELF_TARGET', 'não é alvo de si própria');
 select throws_ok(
   $$insert into public.actions values (9101, 4, '00000000-0000-0000-0000-00000000000a', 'BOMB', null)$$,
-  'P0001', 'TARGET_REQUIRED', 'Reunião sem alvo');
+  'P0001', 'TARGET_REQUIRED', 'Despedimento sem alvo');
 select throws_ok(
   $$insert into public.actions values (9101, 4, '00000000-0000-0000-0000-00000000000a', 'BOMB', '00000000-0000-0000-0000-00000000000d')$$,
   'P0001', 'UNKNOWN_TARGET', 'alvo que não está na partida');
@@ -128,7 +128,7 @@ select throws_ok(
   'P0001', 'SAME_TARGET', 'não ataca o Bruno duas noites seguidas');
 select lives_ok(
   $$insert into public.actions values (9101, 4, '00000000-0000-0000-0000-00000000000a', 'BOMB', '00000000-0000-0000-0000-00000000000c')$$,
-  'Ana escolhe Reunião de emergência na Carla');
+  'Ana escolhe Despedimento coletivo na Carla');
 select throws_ok(
   $$update public.actions set type = 'ATTACK' where night = 4$$,
   'P0001', 'QUOTA_EXHAUSTED', 'não muda para uma ação sem quota');
@@ -197,10 +197,10 @@ select throws_ok(
   'P0001', 'QUOTA_EXHAUSTED', 'Segurança sem quota: Bruno já fez 2');
 select throws_ok(
   $$insert into public.actions values (9101, 4, '00000000-0000-0000-0000-00000000000b', 'BOMB', '00000000-0000-0000-0000-00000000000c')$$,
-  'P0001', 'QUOTA_EXHAUSTED', 'Reunião sem quota: Bruno já fez 1');
+  'P0001', 'QUOTA_EXHAUSTED', 'Despedimento sem quota: Bruno já fez 1');
 select throws_ok(
   $$insert into public.actions values (9101, 4, '00000000-0000-0000-0000-00000000000b', 'ATTACK', '00000000-0000-0000-0000-00000000000a')$$,
-  'P0001', 'SAME_TARGET', 'a Reunião da noite anterior na Ana também conta');
+  'P0001', 'SAME_TARGET', 'o Despedimento da noite anterior na Ana também conta');
 select lives_ok(
   $$insert into public.actions values (9101, 4, '00000000-0000-0000-0000-00000000000b', 'ATTACK', '00000000-0000-0000-0000-00000000000c')$$,
   'Bruno escolhe Visita surpresa à Carla');

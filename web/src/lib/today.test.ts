@@ -76,7 +76,7 @@ describe('textos', () => {
       '🏠 Folga',
       '🛡️ Segurança',
       '🗡️ Visita surpresa',
-      '💣 Reunião de emergência',
+      '🔥 Despedimento coletivo',
       '🫥 Desaparecer',
     ]);
     expect(choiceText('ATTACK', 'Bruno')).toBe('🗡️ Visita surpresa a Bruno');
