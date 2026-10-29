@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "deny": ["Edit(RULES.md)", "Write(RULES.md)", "Bash(git push origin main*)"]
+  }
+}
