@@ -3,7 +3,7 @@ import { InvalidActionError, resolveNight } from './resolveNight.ts';
 import type { Action, GameState, LedgerEntry, PlayerId } from './types.ts';
 
 const PLAYERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-const state: GameState = { players: PLAYERS, pastActions: [] };
+const state: GameState = { players: PLAYERS, night: 1, pastActions: [] };
 
 const stay = (p: PlayerId): Action => ({ playerId: p, type: 'STAY' });
 const defend = (p: PlayerId): Action => ({ playerId: p, type: 'DEFEND' });
@@ -19,9 +19,12 @@ function totals(ledger: LedgerEntry[]): Record<PlayerId, number> {
 
 const entriesOf = (ledger: LedgerEntry[], p: PlayerId) =>
   ledger.filter((e) => e.playerId === p).map(({ delta, reason }) => ({ delta, reason }));
+/** Como `entriesOf`, mas sem depender da ordem do ledger. */
+const sortedEntriesOf = (ledger: LedgerEntry[], p: PlayerId) =>
+  entriesOf(ledger, p).sort((x, y) => y.delta - x.delta);
 
-function run(actions: Action[], seed = 1) {
-  const result = resolveNight(state, actions, seed);
+function run(actions: Action[], seed = 1, night = 1) {
+  const result = resolveNight({ ...state, night }, actions, seed);
   const byPlayer = Object.fromEntries(result.summary.players.map((s) => [s.playerId, s]));
   return { ...result, totals: totals(result.ledger), summaryOf: (p: PlayerId) => byPlayer[p] };
 }
@@ -73,19 +76,43 @@ describe('caso 1: alvo fora', () => {
   it('um ataque a quem está fora falha sem pontos para ninguém', () => {
     const r = run([attack('A', 'B'), attack('B', 'C')]);
     expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: 0, reason: 'ATTACK_TARGET_AWAY' }]);
+    expect(r.ledger.find((e) => e.playerId === 'A')!.targetId).toBe('B');
     expect(r.totals.A).toBe(0);
     // B não perde nada por ter sido atacado; o ataque dele a C conta normalmente.
     expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: 10, reason: 'ATTACK_SUCCESS' }]);
     expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', attacks: 1, bombs: 0, draw: false });
   });
 
-  it('vários ataques e bombas a quem está fora: ninguém ganha nem perde, sem sorteio', () => {
+  it('bomba sozinha a quem está fora acerta na mesma: alvo -10, bombista +10', () => {
+    const r = run([bomb('A', 'B'), attack('B', 'C')]);
+    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: 10, reason: 'BOMB_SUCCESS' }]);
+    // B perde 10 pela bomba e ganha 10 pelo ataque dele a C, que ficou em casa.
+    expect(sortedEntriesOf(r.ledger, 'B')).toEqual([
+      { delta: 10, reason: 'ATTACK_SUCCESS' },
+      { delta: -10, reason: 'VICTIM' },
+    ]);
+    expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', bombs: 1, draw: false, defended: false });
+  });
+
+  it('bomba + ataques a quem está fora: os ataques falham (0, não "morrem") e o bolo é só 10', () => {
     const r = run([bomb('B', 'H'), attack('A', 'B'), attack('C', 'B'), bomb('D', 'B')]);
-    expect(r.totals.A).toBe(0);
-    expect(r.totals.C).toBe(0);
-    expect(r.totals.D).toBe(0);
-    expect(entriesOf(r.ledger, 'D')).toEqual([{ delta: 0, reason: 'BOMB_TARGET_AWAY' }]);
+    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: 0, reason: 'ATTACK_TARGET_AWAY' }]);
+    expect(entriesOf(r.ledger, 'C')).toEqual([{ delta: 0, reason: 'ATTACK_TARGET_AWAY' }]);
+    expect(entriesOf(r.ledger, 'D')).toEqual([{ delta: 10, reason: 'BOMB_SUCCESS' }]);
+    // B: +10 pela bomba em H (em casa), -10 pela bomba de D.
+    expect(r.totals.B).toBe(0);
     expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', attacks: 2, bombs: 1, draw: false, defended: false });
+  });
+
+  it('2 bombas a quem está fora: 5 para cada bombista', () => {
+    const r = run([bomb('A', 'B'), bomb('C', 'B'), attack('B', 'D'), attack('E', 'B')]);
+    expect(r.totals).toMatchObject({ A: 5, C: 5, E: 0 });
+    expect(entriesOf(r.ledger, 'B')).toContainEqual({ delta: -10, reason: 'VICTIM' });
+  });
+
+  it('3 bombas a quem está fora: 10/3 arredonda para baixo (3 cada)', () => {
+    const r = run([bomb('A', 'B'), bomb('C', 'B'), bomb('D', 'B'), attack('B', 'E')]);
+    expect(r.totals).toMatchObject({ A: 3, C: 3, D: 3, B: 0 });
   });
 
   it('ataques cruzados (A→B, B→A): os dois estão fora e ambos falham', () => {
@@ -96,50 +123,54 @@ describe('caso 1: alvo fora', () => {
     expect(r.summaryOf('B')).toMatchObject({ location: 'AWAY', attacks: 1 });
   });
 
-  it('bombas cruzadas (A→B, B→A) também falham', () => {
+  it('bombas cruzadas (A→B, B→A): as duas acertam, cada um +10 e -10', () => {
     const r = run([bomb('A', 'B'), bomb('B', 'A')]);
+    expect(sortedEntriesOf(r.ledger, 'A')).toEqual([
+      { delta: 10, reason: 'BOMB_SUCCESS' },
+      { delta: -10, reason: 'VICTIM' },
+    ]);
     expect(r.totals.A).toBe(0);
     expect(r.totals.B).toBe(0);
   });
 });
 
 describe('caso 2: alvo defende-se', () => {
-  it('contra 1 atacante: atacante -10, defensor +10, atacante revelado', () => {
+  it('contra 1 atacante: atacante -5, defensor +10, atacante revelado', () => {
     const r = run([defend('B'), attack('A', 'B')]);
-    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -10, reason: 'ATTACK_DEFENDED' }]);
+    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -5, reason: 'ATTACK_DEFENDED' }]);
     expect(entriesOf(r.ledger, 'B')).toEqual([{ delta: 10, reason: 'DEFENSE' }]);
     expect(r.summaryOf('B')).toMatchObject({ location: 'HOME', defended: true, revealedAttackers: ['A'], homeBonus: false });
   });
 
-  it('contra N=3 atacantes: cada um -10, defensor +30, sem sorteio', () => {
+  it('contra N=3 atacantes: cada um -5, defensor +30, sem sorteio', () => {
     const r = run([defend('B'), attack('A', 'B'), attack('C', 'B'), attack('D', 'B')]);
-    expect([r.totals.A, r.totals.C, r.totals.D]).toEqual([-10, -10, -10]);
+    expect([r.totals.A, r.totals.C, r.totals.D]).toEqual([-5, -5, -5]);
     expect(r.totals.B).toBe(30);
     expect(r.summaryOf('B')).toMatchObject({ draw: false, revealedAttackers: ['A', 'C', 'D'] });
   });
 
-  it('contra B=1 bomba: bombista -20, defensor +10', () => {
+  it('contra B=1 bomba: bombista -10, defensor +10', () => {
     const r = run([defend('B'), bomb('A', 'B')]);
-    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -20, reason: 'BOMB_DEFENDED' }]);
+    expect(entriesOf(r.ledger, 'A')).toEqual([{ delta: -10, reason: 'BOMB_DEFENDED' }]);
     expect(r.totals.B).toBe(10);
     expect(r.summaryOf('B')).toMatchObject({ defended: true, bombs: 1, revealedAttackers: ['A'] });
   });
 
-  it('contra B=2 bombas: cada bombista -20, defensor +20', () => {
+  it('contra B=2 bombas: cada bombista -10, defensor +20', () => {
     const r = run([defend('B'), bomb('A', 'B'), bomb('C', 'B')]);
-    expect([r.totals.A, r.totals.C]).toEqual([-20, -20]);
+    expect([r.totals.A, r.totals.C]).toEqual([-10, -10]);
     expect(r.totals.B).toBe(20);
   });
 
-  it('contra N=2 e B=1: atacantes -10, bombista -20, defensor +30, todos revelados', () => {
+  it('contra N=2 e B=1: atacantes -5, bombista -10, defensor +30, todos revelados', () => {
     const r = run([defend('E'), bomb('A', 'E'), attack('H', 'E'), attack('C', 'E')]);
-    expect(r.totals).toMatchObject({ A: -20, C: -10, H: -10, E: 30 });
+    expect(r.totals).toMatchObject({ A: -10, C: -5, H: -5, E: 30 });
     expect(r.summaryOf('E')).toMatchObject({ attacks: 2, bombs: 1, defended: true, revealedAttackers: ['A', 'C', 'H'] });
   });
 
-  it('atacante travado pela defesa e atacado enquanto está fora: só perde os 10 da defesa', () => {
+  it('atacante travado pela defesa e atacado enquanto está fora: só perde os 5 da defesa', () => {
     const r = run([defend('B'), attack('A', 'B'), attack('C', 'A')]);
-    expect(r.totals.A).toBe(-10);
+    expect(r.totals.A).toBe(-5);
     expect(r.totals.C).toBe(0);
   });
 });
@@ -257,12 +288,12 @@ describe('noite completa', () => {
     // A bomba C (em casa) com D a atacar C também.
     // B defende-se de E. F ataca A (fora). G e H ficam em casa.
     const r = run([bomb('A', 'C'), attack('D', 'C'), defend('B'), attack('E', 'B'), attack('F', 'A')]);
-    expect(r.totals).toEqual({ A: 20, B: 10, C: -10, D: -10, E: -10, F: 0, G: 2, H: 2 });
+    expect(r.totals).toEqual({ A: 20, B: 10, C: -10, D: -10, E: -5, F: 0, G: 2, H: 2 });
     expect(r.summary.players.map((s) => s.location)).toEqual(['AWAY', 'HOME', 'HOME', 'AWAY', 'AWAY', 'AWAY', 'HOME', 'HOME']);
   });
 
   it('o resumo segue a ordem de state.players', () => {
-    const r = resolveNight({ players: ['Z', 'M', 'A'], pastActions: [] }, [], 1);
+    const r = resolveNight({ players: ['Z', 'M', 'A'], night: 1, pastActions: [] }, [], 1);
     expect(r.summary.players.map((s) => s.playerId)).toEqual(['Z', 'M', 'A']);
   });
 
@@ -277,6 +308,48 @@ describe('noite completa', () => {
   });
 });
 
+describe('alvo no ledger', () => {
+  it('cada movimento de quem atacou guarda o alvo; os do alvo não revelam o atacante', () => {
+    const r = run([bomb('A', 'C'), attack('D', 'C'), defend('B'), attack('E', 'B'), attack('F', 'G'), attack('H', 'G')]);
+    for (const e of r.ledger) {
+      if (e.reason.startsWith('ATTACK_') || e.reason.startsWith('BOMB_')) {
+        const a = [bomb('A', 'C'), attack('D', 'C'), attack('E', 'B'), attack('F', 'G'), attack('H', 'G')].find(
+          (x) => x.playerId === e.playerId,
+        )!;
+        expect(e.targetId).toBe(a.targetId);
+      } else {
+        expect(e).not.toHaveProperty('targetId');
+      }
+    }
+  });
+});
+
+describe('noite 9 a dobrar', () => {
+  it('cada movimento conta a dobrar, incluindo o bónus de casa', () => {
+    const actions = [bomb('A', 'C'), attack('D', 'C'), defend('B'), attack('E', 'B'), attack('F', 'A')];
+    const normal = run(actions, 1, 8);
+    const double = run(actions, 1, 9);
+    expect(double.ledger).toEqual(normal.ledger.map((e) => ({ ...e, delta: e.delta * 2 })));
+    expect(double.totals).toEqual({ A: 40, B: 20, C: -20, D: -20, E: -10, F: 0, G: 4, H: 4 });
+    expect(double.summary).toEqual(normal.summary);
+  });
+
+  it('arredonda-se primeiro e só depois se multiplica: 3 bombas + N=1 dá 6 × 2 = 12', () => {
+    const r = run([bomb('A', 'B'), bomb('C', 'B'), bomb('D', 'B'), attack('E', 'B')], 1, 9);
+    expect(r.totals).toMatchObject({ A: 12, C: 12, D: 12, E: -20, B: -20 });
+  });
+
+  it('o sorteio da noite 9 é o mesmo que noutra noite com a mesma seed', () => {
+    const actions = [attack('A', 'B'), attack('C', 'B'), attack('D', 'B')];
+    const winner = (night: number) => run(actions, 7, night).ledger.find((e) => e.reason === 'ATTACK_SUCCESS')!;
+    expect(winner(9)).toEqual({ ...winner(1), delta: 20 });
+  });
+
+  it('noite fora de 1 a 9 lança erro', () => {
+    for (const night of [0, 10, 1.5, NaN]) expect(() => run([], 1, night)).toThrow(RangeError);
+  });
+});
+
 describe('ações inválidas', () => {
   it('alvo próprio lança erro', () => {
     expect(() => run([attack('A', 'A')])).toThrow(/SELF_TARGET/);
@@ -287,7 +360,7 @@ describe('ações inválidas', () => {
   });
 
   it('quota esgotada lança erro', () => {
-    const s: GameState = { players: PLAYERS, pastActions: [bomb('A', 'C')] };
+    const s: GameState = { players: PLAYERS, night: 2, pastActions: [bomb('A', 'C')] };
     expect(() => resolveNight(s, [bomb('A', 'B')], 1)).toThrow(/QUOTA_EXHAUSTED/);
   });
 

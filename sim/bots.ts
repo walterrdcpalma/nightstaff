@@ -1,4 +1,4 @@
-import { ACTION_TYPES, HOME_BONUS, POINTS, QUOTAS, randomIndex } from '../engine/index.ts';
+import { ACTION_TYPES, DEFENDED_COST, HOME_BONUS, POINTS, QUOTAS, randomIndex } from '../engine/index.ts';
 import type { Action, ActionType, LimitedActionType, NightSummary, PlayerId, PlayerNightSummary } from '../engine/index.ts';
 
 /** O que um jogador sabe numa noite: o resumo público das noites anteriores e as suas quotas. */
@@ -75,11 +75,12 @@ export const smartBot: Bot = (v, rng) => {
     if (v.quota.ATTACK > 0) {
       // Com K ~ Poisson(k) outros atacantes, P(ganhar o sorteio) = E[1/(1+K)] = (1 − e^−k)/k.
       const pWin = k === 0 ? 1 : (1 - Math.exp(-k)) / k;
-      const ev = pStay * POINTS * (2 * pWin - 1) - pDef * POINTS;
+      const ev = pStay * POINTS * (2 * pWin - 1) - pDef * DEFENDED_COST.ATTACK;
       options.push({ action: { playerId: v.me, type: 'ATTACK', targetId: t }, score: ev - reserve('ATTACK') + noise() });
     }
     if (v.quota.BOMB > 0) {
-      const ev = pStay * POINTS * (1 + k) - pDef * 2 * POINTS;
+      // A bomba também acerta em quem está fora, mas aí o bolo é só POINTS.
+      const ev = pStay * POINTS * (1 + k) + pAway.get(t)! * POINTS - pDef * DEFENDED_COST.BOMB;
       options.push({ action: { playerId: v.me, type: 'BOMB', targetId: t }, score: ev - reserve('BOMB') + noise() });
     }
   }

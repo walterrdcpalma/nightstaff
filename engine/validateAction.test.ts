@@ -3,7 +3,7 @@ import type { Action, GameState } from './types.ts';
 import { remainingQuota, validateAction } from './validateAction.ts';
 
 const PLAYERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-const withPast = (pastActions: Action[]): GameState => ({ players: PLAYERS, pastActions });
+const withPast = (pastActions: Action[]): GameState => ({ players: PLAYERS, night: 1, pastActions });
 const fresh = withPast([]);
 
 const repeat = (n: number, a: Action) => Array.from({ length: n }, () => a);

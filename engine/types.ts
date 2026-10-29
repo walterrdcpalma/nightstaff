@@ -13,14 +13,20 @@ export interface Action {
 
 export interface GameState {
   players: PlayerId[];
+  /** Noite a resolver, de 1 a 9. A última conta a dobrar (RULES.md §1). */
+  night: number;
   /** Ações das noites ANTERIORES (não incluir a noite atual). Servem para as quotas. */
   pastActions: Action[];
 }
 
+/** Salário de cada ciclo: os pontos de um jogador são `SALARY + soma do ledger` (RULES.md §1). */
+export const SALARY = 50;
 /** Pontos por ataque (RULES.md §1). */
 export const POINTS = 10;
 /** Bónus de casa (RULES.md §1). */
 export const HOME_BONUS = 2;
+/** O que perde quem ataca um jogador que se defendeu (RULES.md §3, caso 2). */
+export const DEFENDED_COST = { ATTACK: 5, BOMB: 10 } as const;
 
 export const ACTION_TYPES: readonly ActionType[] = ['STAY', 'DEFEND', 'ATTACK', 'BOMB'];
 
@@ -38,19 +44,21 @@ export type LedgerReason =
   | 'ATTACK_SUCCESS' // ataque bem-sucedido: único atacante ou vencedor do sorteio (+10)
   | 'ATTACK_LOST_DRAW' // perdeu o sorteio (-10)
   | 'ATTACK_BOMBED' // atacante normal "morre" porque houve bomba no alvo (-10)
-  | 'ATTACK_DEFENDED' // atacou quem se defendeu (-10)
+  | 'ATTACK_DEFENDED' // atacou quem se defendeu (-5)
   | 'ATTACK_TARGET_AWAY' // alvo estava fora (0)
-  | 'BOMB_SUCCESS' // parte do bolo
-  | 'BOMB_DEFENDED' // bombardeou quem se defendeu (-20)
-  | 'BOMB_TARGET_AWAY' // alvo estava fora (0)
-  | 'VICTIM' // atacado em casa sem defesa (-10)
+  | 'BOMB_SUCCESS' // parte do bolo, também com o alvo fora
+  | 'BOMB_DEFENDED' // bombardeou quem se defendeu (-10)
+  | 'VICTIM' // atacado em casa sem defesa, ou bombardeado mesmo fora (-10)
   | 'DEFENSE' // defendeu-se: +10 por atacante
   | 'HOME_BONUS'; // em casa e não foi alvo (+2)
 
 export interface LedgerEntry {
   playerId: PlayerId;
+  /** Já multiplicado por 2 na última noite. */
   delta: number;
   reason: LedgerReason;
+  /** Alvo da Visita ou Reunião do próprio jogador (razões `ATTACK_*` e `BOMB_*`). Serve o confronto direto (RULES.md §5). */
+  targetId?: PlayerId;
 }
 
 /** Resumo público de um jogador numa noite. Sem pontos (CLAUDE.md, RULES.md §4). */
