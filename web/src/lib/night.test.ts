@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
 import type { Action, LedgerReason } from '../../../engine/index.ts';
-import { REASON_TEXT, caughtHeadline, formatDelta, historyGrid, listNames, morningHeadline, myResultLines, privateReport } from './night.ts';
+import { REASON_TEXT, formatDelta, historyGrid, morningHeadline, myResultLines, privateReport } from './night.ts';
 
 const P = ['ana', 'bruno', 'carla', 'duarte', 'eva', 'filipe', 'gil', 'helena'];
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
@@ -24,18 +24,18 @@ describe('resumo público da manhã (RULES.md §4 v5, cenários do CENARIOS.md)'
       atk('filipe', 'gil'),
     ]);
     expect(morningHeadline(1, summary)).toBe('Noite 1: 4 em casa, 4 fora.');
-    expect(caughtHeadline(summary, nameOf)).toBe('🚨 A Segurança apanhou Carla a meio de uma visita.');
+    expect(summary.caught).toEqual(['carla']);
   });
 
   it('noite 2: sorteio, assaltos e bónus não aparecem no público', () => {
     const { summary } = summaryOf([atk('ana', 'helena'), atk('bruno', 'helena'), atk('carla', 'helena')]);
-    expect(caughtHeadline(summary, nameOf)).toBeNull();
+    expect(summary.caught).toEqual([]);
     expect(morningHeadline(2, summary)).toBe('Noite 2: 5 em casa, 3 fora.');
   });
 
-  it('noite 4: vários apanhados na mesma manchete', () => {
+  it('noite 4: vários apanhados na mesma noite', () => {
     const { summary } = summaryOf([atk('ana', 'duarte'), { playerId: 'duarte', type: 'DEFEND' }, atk('eva', 'duarte')]);
-    expect(caughtHeadline(summary, nameOf)).toBe('🚨 A Segurança apanhou Ana e Eva a meio de uma visita.');
+    expect(summary.caught).toEqual(['ana', 'eva']);
   });
 
   it('Desaparecer conta como fora', () => {
@@ -45,7 +45,7 @@ describe('resumo público da manhã (RULES.md §4 v5, cenários do CENARIOS.md)'
 
   it('nada do público tem pontos nem ações', () => {
     const { summary } = summaryOf([bomb('ana', 'gil'), atk('bruno', 'gil'), atk('carla', 'duarte')], 9);
-    const text = [morningHeadline(9, summary), caughtHeadline(summary, nameOf) ?? ''].join(' ');
+    const text = morningHeadline(9, summary);
     expect(text).not.toMatch(/[+−-]\d|pontos|Reunião|sorteio/);
   });
 });
@@ -117,11 +117,5 @@ describe('bairro/histórico', () => {
     const n1 = summaryOf([]).summary;
     const grid = historyGrid(['ana'], [{ night: 1, summary: n1 }]);
     expect(grid.get('helena')![0]).toBe('HOME');
-  });
-
-  it('listNames', () => {
-    expect(listNames([])).toBe('');
-    expect(listNames(['Ana'])).toBe('Ana');
-    expect(listNames(['Ana', 'Bruno', 'Carla'])).toBe('Ana, Bruno e Carla');
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACTION_TYPES } from '../../../engine/index.ts';
-import { ACTION_NAMES, botsPhase, choiceText, errorText, formatCountdown, nextLisbonMidnight, targetOptions, todayPhase } from './today.ts';
+import { ACTION_NAMES, botsPhase, hasUnsavedChoice, choiceText, errorText, formatCountdown, nextLisbonMidnight, targetOptions, todayPhase } from './today.ts';
 
 describe('todayPhase', () => {
   const start = '2026-11-02';
@@ -26,6 +26,20 @@ describe('botsPhase (salas contra bots)', () => {
     expect(botsPhase('running', 8)).toEqual({ kind: 'NIGHT', night: 9 });
     expect(botsPhase('running', 9)).toEqual({ kind: 'WAKING' });
     expect(botsPhase('finished', 9)).toEqual({ kind: 'RESULTS' });
+  });
+});
+
+describe('hasUnsavedChoice (Passar o dia só com a escolha confirmada)', () => {
+  it('sem escolha gravada, a Folga não é uma mudança', () => {
+    expect(hasUnsavedChoice({ type: 'STAY', targetId: null }, undefined)).toBe(false);
+    expect(hasUnsavedChoice({ type: 'DEFEND', targetId: null }, undefined)).toBe(true);
+  });
+
+  it('outra ação ou outro alvo é uma mudança por confirmar', () => {
+    const saved = { type: 'ATTACK' as const, target_id: 'bruno' };
+    expect(hasUnsavedChoice({ type: 'ATTACK', targetId: 'bruno' }, saved)).toBe(false);
+    expect(hasUnsavedChoice({ type: 'ATTACK', targetId: 'carla' }, saved)).toBe(true);
+    expect(hasUnsavedChoice({ type: 'VANISH', targetId: 'bruno' }, saved)).toBe(true);
   });
 });
 

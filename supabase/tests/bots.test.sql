@@ -2,7 +2,7 @@
 -- Jogadores: Ana (…2a1, joga contra bots) e Bruno (…2b1, outra conta).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(34);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000002a1', 'ana@bots.test'),
@@ -56,6 +56,16 @@ with u as (update public.players set name = 'Bot Mau' where bot_room_id = :room 
 select is(count(*)::int, 0, 'nem se mudam os nomes dos bots') from u;
 select throws_ok(format($$update public.players set bot_room_id = %s where id = auth.uid()$$, :room),
   '42501', null, 'nem a Ana passa a bot');
+
+-- ── Um bot nunca age por si: não cria salas nem entra nelas ─────────────────
+reset role;
+select id as bot from public.players where bot_room_id = :room limit 1 \gset
+set local role authenticated;
+select set_config('request.jwt.claims', format('{"sub": "%s", "role": "authenticated"}', :'bot'), true);
+select throws_ok($$select public.create_room()$$, 'P0001', 'NO_NAME', 'um bot não cria salas');
+select throws_ok($$select public.create_bots_room(2)$$, 'P0001', 'NO_NAME', 'nem salas contra bots');
+select throws_ok($$select public.join_room('ABCDEF')$$, 'P0001', 'NO_NAME', 'nem entra com um código');
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000002a1", "role": "authenticated"}', true);
 
 -- ── Os bots não aparecem em mais lado nenhum ─────────────────────────────────
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000002b1", "role": "authenticated"}', true);

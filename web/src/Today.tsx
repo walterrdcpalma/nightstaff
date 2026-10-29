@@ -13,6 +13,7 @@ import {
   choiceText,
   errorText,
   formatCountdown,
+  hasUnsavedChoice,
   nextLisbonMidnight,
   targetOptions,
   botsPhase,
@@ -161,7 +162,7 @@ function Deadline({ countdown }: { countdown: string }) {
 }
 
 /** ⏭️ Passar o dia (RULES.md §1.2): os bots escolhem ao calhas e a noite resolve-se já, na `resolve-night`. */
-function PassDay(props: { roomId: number; night: number; onChange: () => void }) {
+function PassDay(props: { roomId: number; night: number; unsaved: boolean; onChange: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -179,10 +180,14 @@ function PassDay(props: { roomId: number; night: number; onChange: () => void })
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="lg" variant="neutral" onClick={pass} disabled={busy}>
+      <Button size="lg" variant="neutral" onClick={pass} disabled={busy || props.unsaved}>
         {busy ? 'A passar a noite…' : '⏭️ Passar o dia'}
       </Button>
-      <p className="text-sm">Os bots escolhem e a noite resolve-se já. Se não confirmaste nada, ficas de 🏠 Folga.</p>
+      <p className="text-sm">
+        {props.unsaved
+          ? 'Mudaste a escolha: confirma-a primeiro, para não se perder.'
+          : 'Os bots escolhem e a noite resolve-se já. Se não confirmaste nada, ficas de 🏠 Folga.'}
+      </p>
       {error && <p className="text-danger">{error}</p>}
     </div>
   );
@@ -206,6 +211,7 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
   const quota = remainingQuota(state, userId);
   const nameOf = (id: string | null) => data.players.find((p) => p.id === id)?.name;
   const needsTarget = type === 'ATTACK' || type === 'BOMB';
+  const unsaved = hasUnsavedChoice({ type, targetId }, chosen);
   // Não se pode ir à mesma casa duas noites seguidas (RULES.md §2): o alvo de ontem fica bloqueado.
   const targets = targetOptions(data.players, userId, previousTarget(state, userId));
 
@@ -287,7 +293,9 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
         {saving ? 'A guardar…' : `Confirmar: ${choiceText(type, needsTarget ? nameOf(targetId) : undefined)}`}
       </Button>
       {error && <p className="text-danger">{error}</p>}
-      {data.room?.kind === 'bots' && <PassDay roomId={data.room.id} night={night} onChange={props.onChange} />}
+      {data.room?.kind === 'bots' && (
+        <PassDay roomId={data.room.id} night={night} unsaved={unsaved} onChange={props.onChange} />
+      )}
     </div>
   );
 }

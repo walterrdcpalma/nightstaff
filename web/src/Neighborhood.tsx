@@ -50,7 +50,8 @@ export function Morning({ userId, roomId }: { userId: string; roomId: number }) 
           ))}
         </div>
       )}
-      <NightView gameId={game.id} night={shown} names={names} userId={userId} />
+      {/* A `key` recomeça a história ao mudar de noite. */}
+      <NightView key={shown.night} gameId={game.id} night={shown} names={names} userId={userId} />
     </div>
   );
 }
