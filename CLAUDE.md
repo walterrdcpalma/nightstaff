@@ -94,7 +94,7 @@ CLAUDE.md
   - Dentro de uma sala, as abas só com dados dessa sala:
     - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, a escolha em **cartas** (T18: uma por ação, com o nome na app, a quota restante em pontinhos, desligada e com o motivo se esgotou; a escolhida com contorno grosso e sombra dura), os alvos como **avatares** (inicial e cor estável derivada do id, `lib/cards.ts`, sem nada na BD; nos bots, a inicial do posto) e a contagem até às 23:59; acabada, **Reiniciar** para o admin. Contra bots: sem contagem, com **⏭️ Passar o dia** por baixo da escolha e, em qualquer fase, **🗑️ Apagar sala** para o admin (com confirmação; depois volta a As minhas salas).
     - Manhã, em **modo história** (T12): a noite contada uma cena de cada vez — abertura (quantos em casa e fora), uma cena por jogador (em casa ou fora, com uma frase), os 🚨 apanhados (sem dizer onde, só se houver) e, por fim, a minha noite (relatório privado, só do meu ledger). Seguinte (ou toque), Saltar e Ver outra vez; com `prefers-reduced-motion`, tudo visível e sem animação. As rondas anteriores da partida atual continuam consultáveis.
-    - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
+    - Bairro/Histórico: só casa/fora. Uma **rua à noite** em SVG inline (T19, `Street.tsx`), uma noite de cada vez (seletor 1 a 9, as por resolver desligadas): uma casa por jogador, por nome, com o avatar da T18 e o nome por baixo (scroll horizontal no mobile). Janela acesa (ouro) = em casa; apagada e de cortina cruzada = fora; 🚨 sirene por cima de quem foi apanhado. Cada casa tem `aria-label` ("Ana: em casa"). As casas vêm de `lib/street.ts`, que só lê o `nights.summary`. Nunca mostra ações, ataques, defesas nem bombas.
     - Os meus pontos (durante a partida) e o ranking final (só na resolução).
 - Textos em **português de Portugal**, com tom de narrador. Mobile-first.
 - **Nomes na UI:** usar sempre os nomes da coluna "Nome na app" do `RULES.md` §2 (Folga, Segurança, Visita surpresa, Despedimento coletivo, Desaparecer). Os códigos (`STAY`, `DEFEND`...) ficam só no código. O vencedor chama-se **Funcionário do Mês**.
@@ -136,7 +136,7 @@ npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
    - **`meio`** (noite 5 a decorrer, o Walter ainda não escolheu):
      - **Hoje:** escolha, quotas já gastas e contagem até às 23:59.
      - **Manhã:** o relatório privado do Walter na noite 4 e as manchetes; as noites 1 a 3 com um toque. Pelos bots, há sorteio, um apanhado, bomba e assalto a uma casa vazia, cada um no relatório de quem o viveu.
-     - **Bairro:** só as janelas (casa/fora) das noites 1 a 4.
+     - **Bairro:** a rua, com as janelas (casa/fora) das noites 1 a 4 e a sirene de quem foi apanhado.
      - **Pontos:** só os do Walter.
    - **`demo:noite`** resolve a noite 5 e abre a 6. Repetido, chega ao fim da partida. **`demo:dia`** passa um dia sem preencher escolhas.
    - **`terminado`** (sala acabada):

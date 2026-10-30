@@ -59,17 +59,3 @@ export function privateReport(entries: MyEntry[], nameOf: NameOf): PrivateReport
   const lines = entries.length > 0 ? myResultLines(entries, nameOf) : ['🌙 Noite tranquila: nada a registar.'];
   return { lines, total: formatDelta(entries.reduce((sum, e) => sum + e.delta, 0)) };
 }
-
-export type WindowLight = 'HOME' | 'AWAY' | null;
-
-/**
- * Bairro: uma linha por jogador, com a janela de cada noite (1 a 9). `null` = noite ainda por resolver
- * ou jogador fora do ciclo nessa noite. Entra também quem saiu a meio e aparece nos resumos.
- */
-export function historyGrid(enrolled: string[], nights: { night: number; summary: NightSummary }[]): Map<string, WindowLight[]> {
-  const grid = new Map<string, WindowLight[]>();
-  const row = (id: string) => grid.get(id) ?? grid.set(id, Array<WindowLight>(9).fill(null)).get(id)!;
-  enrolled.forEach(row);
-  for (const n of nights) for (const s of n.summary.players) row(s.playerId)[n.night - 1] = s.location;
-  return grid;
-}
