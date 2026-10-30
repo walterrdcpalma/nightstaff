@@ -1,4 +1,4 @@
-# Night Staff — Regras (v8)
+# Night Staff — Regras (v9)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -11,11 +11,12 @@
 ### 1.1 Sala com pessoas
 | Fase | O que acontece |
 |---|---|
-| 📝 **Lobby** | Entra-se com o código e pode-se sair. Sem ações |
+| 📝 **Lobby** | Entra-se com o código e pode-se sair. O admin pode **expulsar** qualquer outro jogador (nunca a si próprio). Quem é expulso sai da sala e, com o código, pode voltar a entrar. Sem ações |
 | ▶️ **Começar** | Só o admin, com **3 ou mais** jogadores. A partir daí a lista de jogadores fica fixa |
 | 🌙 **Noites 1–9** | A **noite 1 abre no momento em que o admin carrega em Começar** e fecha às 23:59 desse dia. Cada noite seguinte é o dia seguinte, com escolha até às 23:59 e resolução às 00:00 |
 | 🏆 **Resolução** | Depois da noite 9: ranking final e Funcionário do Mês. A sala fica acabada |
 
+- **Expulsar** só existe no lobby, antes de Começar: com a partida a decorrer a lista de jogadores é fixa. Também não existe nas salas contra bots.
 - **Reiniciar** (só o admin, com a sala acabada): nova partida na mesma sala e com o mesmo código. Volta ao lobby com os mesmos jogadores, e qualquer um pode sair ou entrar até o admin carregar em Começar.
 - O admin escolhe a hora de começar. Se começar perto da meia-noite, a noite 1 fica curta.
 
