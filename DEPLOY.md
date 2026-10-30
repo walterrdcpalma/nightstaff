@@ -81,7 +81,10 @@ No painel, em *Authentication* (**confirmar no painel** os nomes exatos dos menu
 2. **URLs:** *URL Configuration*:
    - *Site URL* = `<URL do site>`;
    - *Redirect URLs* = `<URL do site>` (e `<URL do site>/**`, se o painel pedir o padrão). O web pede o regresso a `window.location.origin`.
-3. **Confirmar:** só depois do passo 6 (com o site no ar), pedir um magic link no site e ver que o link do email volta ao `<URL do site>`, e não ao `localhost`.
+3. **Email com código** (T24, para a app guardada no ecrã principal do telemóvel, que não partilha a sessão com o browser): em *Authentication → Email Templates* (**confirmar no painel**):
+   - **Magic Link** e **Confirm signup** (uma conta nova pode receber este): *Subject* = `Night Staff: o teu código de entrada`; *Body* = o conteúdo de `supabase/templates/magic_link.html`, copiado inteiro. O modelo mostra o código (`{{ .Token }}`) em destaque e o link (`{{ .ConfirmationURL }}`) por baixo.
+   - Em *Sign In / Providers → Email*, o *Email OTP length* tem de ser **6** (o web pede 6 dígitos) e o *Email OTP expiration* `3600` segundos, como no `config.toml`.
+4. **Confirmar:** só depois do passo 6 (com o site no ar), pedir o email no site: o link volta ao `<URL do site>`, e não ao `localhost`; e, noutro browser (ou na app do ecrã principal), o código de 6 dígitos entra.
 
 ### 5. Email (SMTP próprio)
 O serviço de email que vem com o Supabase só envia para membros da organização e tem um limite de 2 mensagens por hora. Não serve para os amigos receberem o magic link.
@@ -119,7 +122,7 @@ Com duas contas de email tuas (A e B) e, se der, um terceiro amigo (ou uma terce
 4. **No dia seguinte**, depois das 00:00 de Lisboa (o cron corre ao minuto 0), abrir a **☀️ Manhã**: a história da noite 1 e o relatório privado de cada um. No SQL Editor: `select game_id, night, resolved_at from nights order by resolved_at desc limit 3;`
 5. **Sala contra bots:** **A** cria uma sala contra 3 bots, escolhe, carrega em **⏭️ Passar o dia** e vê a Manhã da noite 1 logo a seguir. Repetir até à noite 9, ou só algumas noites: o ranking e o 🏆 Funcionário do Mês aparecem nos Pontos no fim.
 6. **❓ Ajuda** abre e fecha. **🪪 o meu nome** muda e aparece nas salas.
-7. **🛠️ Painel da app** (RULES.md §7): depois de entrares no site pela primeira vez e escolheres o nome, no *SQL Editor* do projeto de produção, com o teu email:
+7. **🛠️ Painel da app** (RULES.md §7): depois de entrares no site pela primeira vez e escolheres o nome, no *SQL Editor* do projeto, com o teu email. Faz-se **em cada projeto** (produção e dev; no Supabase local, depois de cada `db reset`), porque a migração não sabe o teu email:
    ```sql
    insert into app_admins select p.id from players p join auth.users u on u.id = p.id where u.email = '<email>';
    ```
