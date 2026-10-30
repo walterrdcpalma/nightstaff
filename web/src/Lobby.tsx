@@ -86,7 +86,7 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
               <span className="flex items-center gap-2">
                 {p.id === room.admin_id && <Badge>👑 admin</Badge>}
                 {canKick(room, userId, p.id) && (
-                  <Button size="sm" variant="neutral" onClick={() => setKicking(p)} disabled={busy}>
+                  <Button size="sm" variant="neutral" onClick={() => setKicking(p)} disabled={busy || kicking !== null}>
                     Expulsar
                   </Button>
                 )}

@@ -1,10 +1,11 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
-import { loadMe } from '@/lib/data';
+import { loadIsAppAdmin, loadMe } from '@/lib/data';
 import type { HelpAnchor } from '@/lib/help';
 import { nameButtonText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
+import AdminPanel from './AdminPanel.tsx';
 import Help from './Help.tsx';
 import { HelpContext } from './HelpLink.tsx';
 import Login from './Login.tsx';
@@ -25,6 +26,10 @@ export default function App() {
   const [help, setHelp] = useState<HelpAnchor | 'top' | null>(null);
   const openHelp = useCallback((anchor?: HelpAnchor) => setHelp(anchor ?? 'top'), []);
   const closeHelp = useCallback(() => setHelp(null), []);
+  // 🛠️ Painel da app (T23): também por cima, só para o admin da app.
+  const [panel, setPanel] = useState(false);
+  const openPanel = useCallback(() => setPanel(true), []);
+  const closePanel = useCallback(() => setPanel(false), []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -34,13 +39,13 @@ export default function App() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
-      {/* Com a ajuda aberta, o ecrã de baixo fica `inert`: o Tab e os leitores de ecrã ficam só na ajuda. */}
-      <div className="contents" inert={help !== null}>
+      {/* Com a ajuda (ou o painel) aberta, o ecrã de baixo fica `inert`: o Tab e os leitores de ecrã ficam só nela. */}
+      <div className="contents" inert={help !== null || panel}>
         <HelpContext.Provider value={openHelp}>
           {session === undefined ? (
             <Header onHelp={openHelp} />
           ) : session ? (
-            <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} />
+            <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} onPanel={openPanel} />
           ) : (
             <>
               <Header onHelp={openHelp} />
@@ -49,6 +54,7 @@ export default function App() {
           )}
         </HelpContext.Provider>
       </div>
+      {panel && session && <AdminPanel onClose={closePanel} />}
       {help && <Help anchor={help === 'top' ? undefined : help} onClose={closeHelp} />}
     </main>
   );
@@ -71,10 +77,12 @@ function Header({ onHelp, children }: { onHelp: () => void; children?: React.Rea
 
 /**
  * Com sessão: primeiro o nome (primeiro login), depois as salas; dentro de uma sala, as abas só dessa sala.
- * No cabeçalho, o meu nome abre o formulário para o mudar (T15).
+ * No cabeçalho, o meu nome abre o formulário para o mudar (T15) e, só para o admin da app, 🛠️ Painel (T23).
  */
-function SignedIn({ userId, onHelp }: { userId: string; onHelp: () => void }) {
+function SignedIn({ userId, onHelp, onPanel }: { userId: string; onHelp: () => void; onPanel: () => void }) {
   const me = useLoad(useCallback(() => loadMe(userId), [userId]));
+  // Se a pergunta falhar, o botão simplesmente não aparece: o painel não é preciso para jogar.
+  const appAdmin = useLoad(useCallback(() => loadIsAppAdmin(), []));
   const [roomId, setRoomId] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>('today');
   const [editingName, setEditingName] = useState(false);
@@ -132,6 +140,11 @@ function SignedIn({ userId, onHelp }: { userId: string; onHelp: () => void }) {
   return (
     <>
       <Header onHelp={onHelp}>
+        {appAdmin.data === true && (
+          <Button variant="neutral" size="sm" className="shrink-0" onClick={onPanel}>
+            🛠️ Painel
+          </Button>
+        )}
         {me.data && !editingName && (
           <Button variant="neutral" size="sm" className="min-w-0" onClick={() => setEditingName(true)}>
             <span className="truncate">{nameButtonText(me.data.name)}</span>
