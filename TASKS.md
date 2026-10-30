@@ -98,7 +98,7 @@
     - as cenas saem na ordem certa, e sem apanhados não há cena de apanhados.
   - Animações só com **CSS/Tailwind**, sem dependências novas. Mobile-first, tema escuro de sempre.
   - O Bairro/Histórico não muda. O texto das manchetes públicas existentes pode ser reaproveitado.
-- [ ] **T12b — Renomear a ação das bombas: 🔥 Despedimento coletivo**
+- [x] **T12b — Renomear a ação das bombas: 🔥 Despedimento coletivo**
   - O `RULES.md` v7 (§2) chama-lhe agora **🔥 Despedimento coletivo** (antes 💣 Reunião de emergência). Só muda o **nome na app**: o código `BOMB`, as regras e as migrações já aplicadas não mudam. Esta tarefa só corre depois do PR de regras v7 estar em `main`; se o `RULES.md` ainda disser "Reunião de emergência", parar e avisar.
   - Trocar o nome em **tudo o que o jogador lê** em `web/` (hoje em `web/src/lib/today.ts` e `web/src/lib/night.ts`, e nos componentes e textos que o usarem), com a **concordância certa**: passou de feminino a masculino.
     - "💣 Reunião de emergência" → "🔥 Despedimento coletivo"

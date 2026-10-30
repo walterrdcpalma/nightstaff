@@ -49,7 +49,7 @@ const NOISE = 6;
 /**
  * Lê o histórico público (só casa/fora e apanhados, RULES.md §4) e escolhe a ação com maior valor
  * esperado, com algum ruído para os bots espertos não escolherem todos o mesmo alvo. Cada noite fora
- * é uma Visita, Reunião ou Desaparecer gasta. Daí estima, para cada adversário:
+ * é uma Visita, Despedimento ou Desaparecer gasta. Daí estima, para cada adversário:
  * - saídas que lhe restam (3 + 1 + 2 − noites fora) e P(fora) = saídas a dividir pelas noites que faltam;
  * - P(defende): as defesas não são públicas, por isso usa a quota espalhada pelo ciclo;
  * - atacantes esperados em cada alvo = soma de P(fora) dos outros, na parte que são ataques, com alvo uniforme.
@@ -65,7 +65,7 @@ export const smartBot: Bot = (v, rng) => {
   const outings = QUOTAS.ATTACK + QUOTAS.BOMB + QUOTAS.VANISH;
   const pAway = new Map(others.map((p) => [p, Math.min(1, Math.max(0, outings - awayNights(p)) / nightsLeft)]));
   const pDefend = (p: PlayerId) => Math.min(1 - pAway.get(p)!, QUOTAS.DEFEND / v.nights);
-  /** Parte das saídas que são ataques (Visita ou Reunião), e destes a parte que são Reuniões. */
+  /** Parte das saídas que são ataques (Visita ou Despedimento), e destes a parte que são Despedimentos. */
   const attackShare = (QUOTAS.ATTACK + QUOTAS.BOMB) / outings;
   const bombShare = QUOTAS.BOMB / (QUOTAS.ATTACK + QUOTAS.BOMB);
   /** Atacantes esperados em `t` vindos de jogadores que não sou eu nem `t`. */

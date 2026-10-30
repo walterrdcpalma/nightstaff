@@ -24,7 +24,7 @@ export const HOME_LINES = [
   '{nome} adormeceu no sofá antes de o telejornal acabar.',
 ];
 
-/** Fora: servem para Visita surpresa, Reunião de emergência e Desaparecer. Sem género. */
+/** Fora: servem para Visita surpresa, Despedimento coletivo e Desaparecer. Sem género. */
 export const AWAY_LINES = [
   '{nome} saiu sem dizer para onde… talvez a pensar na ex.',
   'A casa de {nome} ficou às escuras a noite toda.',
@@ -71,6 +71,8 @@ export const FORBIDDEN_WORDS = [
   'surpresa',
   'bomba',
   'reuni',
+  'despedi',
+  'demiss',
   'desaparec',
   'sumiu',
   'escond',
@@ -118,8 +120,11 @@ export function pickLines(category: Category, seed: number, playerIds: PlayerId[
   const used = new Set<number>();
   const out = new Map<PlayerId, string>();
   for (const id of [...playerIds].sort()) {
-    let i = randomIndex(mulberry32((seed ^ hashId(id) ^ SALT[category]) >>> 0), lines.length);
-    if (used.size < lines.length) while (used.has(i)) i = (i + 1) % lines.length;
+    const rng = mulberry32((seed ^ hashId(id) ^ SALT[category]) >>> 0);
+    // Ao calhas entre as frases ainda livres (todas, se já se usaram todas), para nenhuma ter mais peso.
+    const free = lines.map((_, i) => i).filter((i) => !used.has(i));
+    const pool = free.length > 0 ? free : lines.map((_, i) => i);
+    const i = pool[randomIndex(rng, pool.length)];
     used.add(i);
     out.set(id, lines[i]);
   }

@@ -61,7 +61,7 @@ export const ACTION_NAMES: Record<ActionType, string> = {
   STAY: '🏠 Folga',
   DEFEND: '🛡️ Segurança',
   ATTACK: '🗡️ Visita surpresa',
-  BOMB: '💣 Reunião de emergência',
+  BOMB: '🔥 Despedimento coletivo',
   VANISH: '🫥 Desaparecer',
 };
 
@@ -92,7 +92,7 @@ export function errorText(message: string): string {
 export interface TargetOption {
   id: string;
   name: string;
-  /** Alvo da minha Visita ou Reunião de ontem: não o posso atacar esta noite (RULES.md §2). */
+  /** Alvo da minha Visita ou Despedimento de ontem: não o posso atacar esta noite (RULES.md §2). */
   blocked: boolean;
 }
 

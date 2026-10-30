@@ -73,7 +73,7 @@ export interface LedgerEntry {
   delta: number;
   reason: LedgerReason;
   /**
-   * Razões `ATTACK_*` e `BOMB_*`: alvo da Visita ou Reunião do próprio jogador. Serve o confronto direto (RULES.md §5).
+   * Razões `ATTACK_*` e `BOMB_*`: alvo da Visita ou Despedimento do próprio jogador. Serve o confronto direto (RULES.md §5).
    * `DEFENSE`: o atacante que o jogador apanhou (só ele o sabe, RULES.md §4).
    */
   targetId?: PlayerId;

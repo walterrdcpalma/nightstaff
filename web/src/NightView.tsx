@@ -22,6 +22,8 @@ export function NightView(props: { gameId: number; night: ResolvedNight; names: 
   const { gameId, night, names, userId } = props;
   const nameOf = (id: string) => names.get(id) ?? '?';
   const scenes = storyScenes(night, nameOf);
+  const where = night.summary.players.find((p) => p.playerId === userId)?.location;
+  const home = where === undefined ? undefined : where === 'HOME';
   const [shown, setShown] = useState(() => (prefersReducedMotion() ? scenes.length : 1));
   const last = useRef<HTMLDivElement>(null);
   const done = shown >= scenes.length;
@@ -35,6 +37,8 @@ export function NightView(props: { gameId: number; night: ResolvedNight; names: 
 
   return (
     <div className="flex flex-col gap-4">
+      {/* O toque na história é um atalho para o rato e o dedo; para o teclado e os leitores de ecrã, o controlo
+          é o botão Seguinte, por isso este div não é um botão (e o `aria-live` lê cada cena nova). */}
       <div
         className={cn('flex flex-col gap-4', !done && 'cursor-pointer')}
         onClick={done ? undefined : next}
@@ -42,7 +46,7 @@ export function NightView(props: { gameId: number; night: ResolvedNight; names: 
       >
         {scenes.slice(0, shown).map((scene, i) => (
           <div key={i} ref={i === shown - 1 ? last : undefined} className="motion-safe:animate-scene-in">
-            <SceneCard scene={scene} gameId={gameId} night={night.night} userId={userId} nameOf={nameOf} />
+            <SceneCard scene={scene} gameId={gameId} night={night.night} userId={userId} home={home} nameOf={nameOf} />
           </div>
         ))}
       </div>
@@ -63,7 +67,15 @@ export function NightView(props: { gameId: number; night: ResolvedNight; names: 
   );
 }
 
-function SceneCard(props: { scene: Scene; gameId: number; night: number; userId: string; nameOf: (id: string) => string }) {
+function SceneCard(props: {
+  scene: Scene;
+  gameId: number;
+  night: number;
+  userId: string;
+  /** Onde eu estive esta noite (do resumo público); `undefined` se não joguei. */
+  home: boolean | undefined;
+  nameOf: (id: string) => string;
+}) {
   const { scene } = props;
   switch (scene.kind) {
     case 'OPENING':
@@ -99,12 +111,14 @@ function SceneCard(props: { scene: Scene; gameId: number; night: number; userId:
         </Note>
       );
     case 'MINE':
-      return <MyNight gameId={props.gameId} night={props.night} userId={props.userId} nameOf={props.nameOf} />;
+      return (
+        <MyNight gameId={props.gameId} night={props.night} userId={props.userId} home={props.home} nameOf={props.nameOf} />
+      );
   }
 }
 
 /** A minha noite: o relatório privado (o que me aconteceu e os pontos da noite), só do meu ledger. */
-function MyNight(props: { gameId: number; night: number; userId: string; nameOf: (id: string) => string }) {
+function MyNight(props: { gameId: number; night: number; userId: string; home: boolean | undefined; nameOf: (id: string) => string }) {
   const { gameId, night, userId } = props;
   const mine = useLoad(useCallback(() => loadMyEntries(gameId, night, userId), [gameId, night, userId]));
   const report = mine.data && privateReport(mine.data, props.nameOf);
@@ -117,6 +131,7 @@ function MyNight(props: { gameId: number; night: number; userId: string; nameOf:
         <p>A ler o teu relatório…</p>
       ) : (
         <div className="flex flex-col gap-1">
+          {props.home !== undefined && <p className="text-sm">{props.home ? '🪟 Ficaste em casa.' : '🌑 Estiveste fora.'}</p>}
           {report.lines.map((l) => (
             <p key={l}>{l}</p>
           ))}

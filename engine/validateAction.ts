@@ -23,7 +23,7 @@ export function remainingQuota(state: GameState, playerId: PlayerId): Record<Lim
 }
 
 /**
- * Alvo da Visita ou Reunião do jogador na noite anterior, se houve. Não o pode atacar outra vez esta noite
+ * Alvo da Visita ou Despedimento do jogador na noite anterior, se houve. Não o pode atacar outra vez esta noite
  * (RULES.md §2). Uma noite sem ataque pelo meio volta a permitir.
  */
 export function previousTarget(state: GameState, playerId: PlayerId): PlayerId | null {

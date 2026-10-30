@@ -206,7 +206,7 @@ describe('CENARIOS.md', () => {
       expect(validateAction(afterNight4, ataca('Gil', 'Filipe'))).toEqual({ ok: false, error: 'SAME_TARGET' });
     });
 
-    it('Bruno tenta atacar Filipe → rejeitado (a Reunião da noite 4 foi no Filipe e conta como ataque)', () => {
+    it('Bruno tenta atacar Filipe → rejeitado (o Despedimento da noite 4 foi no Filipe e conta como ataque)', () => {
       expect(validateAction(afterNight4, ataca('Bruno', 'Filipe'))).toEqual({ ok: false, error: 'SAME_TARGET' });
     });
 
@@ -399,7 +399,7 @@ describe('CENARIOS.md, cenário extra C: desempates', () => {
     for (let seed = 0; seed < 20; seed++) expect(winner(players, ledger, seed)).toBe('Bruno');
   });
 
-  it('C3. uma Reunião que rendeu pontos no Bruno conta como 1 acerto contra o Bruno, para cada bombista', () => {
+  it('C3. um Despedimento que rendeu pontos no Bruno conta como 1 acerto contra o Bruno, para cada bombista', () => {
     // Noite real: Ana e Carla bombardeiam o Bruno em casa (5 cada).
     const players = ['Ana', 'Bruno', 'Carla'];
     const night = resolveNight({ players, night: 1, pastActions: [] }, [bomba('Ana', 'Bruno'), bomba('Carla', 'Bruno')], 1);
