@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminDates, adminNight, groupAdminRooms } from './admin.ts';
+import { adminDates, adminNight, groupAdminRooms, ptDate } from './admin.ts';
 import type { AdminRoomRow } from './admin.ts';
 
 const row = (over: Partial<AdminRoomRow>): AdminRoomRow => ({
@@ -41,12 +41,13 @@ describe('painel da app (T23)', () => {
   });
 
   it('datas em Lisboa: criada, noite 1 e, acabada, o fim', () => {
-    expect(adminDates(row({ created_at: '2026-10-20T23:30:00Z' }))).toEqual(['Criada a 2026-10-21']);
+    expect(ptDate('2026-03-05')).toBe('05/03/2026');
+    expect(adminDates(row({ created_at: '2026-10-20T23:30:00Z' }))).toEqual(['Criada a 21/10/2026']);
     expect(
       adminDates(
         row({ status: 'finished', start_date: '2026-10-21', last_resolved_at: '2026-10-30T00:00:05Z', created_at: '2026-10-20T10:00:00Z' }),
       ),
-    ).toEqual(['Criada a 2026-10-20', 'Noite 1 a 2026-10-21', 'Acabou a 2026-10-30']);
+    ).toEqual(['Criada a 20/10/2026', 'Noite 1 a 21/10/2026', 'Acabou a 30/10/2026']);
   });
 
   it('só metadados: as linhas não têm ações, pontos, ledger nem rankings', () => {

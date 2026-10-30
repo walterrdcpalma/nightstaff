@@ -1,0 +1,10 @@
+<!-- Night Staff: email de entrada (magic link + código de 6 dígitos, T24). Em produção, copiar para o painel do
+     Supabase: Authentication → Email Templates → Magic Link (e Confirm signup, com o mesmo texto). -->
+<div style="font-family: Arial, Helvetica, sans-serif; background: #0B1020; color: #F4F1E8; padding: 24px;">
+  <h1 style="margin: 0 0 16px; font-size: 22px; color: #F5C542;">Night Staff</h1>
+  <p style="margin: 0 0 12px;">A chave do bairro. Escreve este código na app:</p>
+  <p style="margin: 0 0 20px; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #F5C542;">{{ .Token }}</p>
+  <p style="margin: 0 0 12px;">Ou, se estás no mesmo browser, entra pelo link:</p>
+  <p style="margin: 0 0 20px;"><a href="{{ .ConfirmationURL }}" style="color: #4C8DFF;">Entrar no Night Staff</a></p>
+  <p style="margin: 0; font-size: 12px; color: #A9A79F;">O código e o link valem uma hora e só uma vez. Se não foste tu que pediste, ignora este email.</p>
+</div>

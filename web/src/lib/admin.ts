@@ -43,10 +43,16 @@ export function groupAdminRooms(rows: AdminRoomRow[], today: string): { current:
   return { current: rooms.filter((r) => r.status !== 'finished'), closed: rooms.filter((r) => r.status === 'finished') };
 }
 
+/** Dia "2026-10-30" como se lê em Portugal: "30/10/2026". */
+export function ptDate(day: string): string {
+  const [y, m, d] = day.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 /** As datas de uma sala, em Lisboa: criada, começou e (acabada) a última noite resolvida. */
 export function adminDates(r: AdminRoomRow): string[] {
-  const dates = [`Criada a ${lisbonDate(new Date(r.created_at))}`];
-  if (r.start_date) dates.push(`Noite 1 a ${r.start_date}`);
-  if (r.status === 'finished' && r.last_resolved_at) dates.push(`Acabou a ${lisbonDate(new Date(r.last_resolved_at))}`);
+  const dates = [`Criada a ${ptDate(lisbonDate(new Date(r.created_at)))}`];
+  if (r.start_date) dates.push(`Noite 1 a ${ptDate(r.start_date)}`);
+  if (r.status === 'finished' && r.last_resolved_at) dates.push(`Acabou a ${ptDate(lisbonDate(new Date(r.last_resolved_at)))}`);
   return dates;
 }

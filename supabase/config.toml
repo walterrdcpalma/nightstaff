@@ -244,6 +244,17 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Email de entrada (T24): o código de 6 dígitos (`{{ .Token }}`) em destaque e o link por baixo. Uma conta nova
+# pode receber o de confirmação em vez do magic link, por isso os dois usam o mesmo modelo. Em produção, o modelo
+# copia-se à mão para o painel (DEPLOY.md).
+[auth.email.template.magic_link]
+subject = "Night Staff: o teu código de entrada"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Night Staff: o teu código de entrada"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
