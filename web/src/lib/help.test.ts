@@ -48,6 +48,15 @@ describe('ajuda: números (vêm do engine/)', () => {
     expect(text).toContain(`A noite ${NIGHTS} conta a dobrar`);
   });
 
+  it('o que só tu vês inclui o bónus de casa (RULES.md §4)', () => {
+    expect(allText()).toContain('se ganhaste o bónus de casa');
+  });
+
+  it('a sala contra bots apaga-se quando quiseres (RULES.md §1.2 v8)', () => {
+    const bots = helpFaq().find((f) => f.question === 'Como funciona uma sala contra bots?')!.answer.join(' ');
+    expect(bots).toContain('🗑️ Apagar sala');
+  });
+
   it('os cenários das perguntas fazem as contas do RULES.md §3', () => {
     const answer = (q: string) => helpFaq().find((f) => f.question.startsWith(q))!.answer.join(' ');
     // Dois atacantes: sorteio, defesa (+10 por atacante) ou assalto dividido e arredondado para baixo.

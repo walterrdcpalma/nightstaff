@@ -28,7 +28,7 @@ Marcadores usados:
 3. **Confirmar:**
    - `npx supabase db push --dry-run` volta a correr e diz que não há nada para aplicar.
    - No painel, em *Database → Extensions*, `pg_cron` e `pg_net` estão ativas (as migrações fazem `create extension if not exists`). Em *Project Settings → Vault* (ou *Integrations → Vault*; **confirmar no painel**), o Vault está disponível.
-   - No *SQL Editor*, existem as tabelas `rooms`, `games`, `actions`, `nights`, `ledger` e `rankings`, todas com RLS:
+   - No *SQL Editor*, existem as tabelas `players`, `rooms`, `room_players`, `games`, `game_players`, `actions`, `nights`, `ledger` e `rankings`, todas com RLS:
      ```sql
      select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename;
      ```
@@ -37,7 +37,8 @@ Marcadores usados:
 ### 2. Segredos do Vault e pg_cron
 O `pg_cron` chama a `resolve-night` de hora a hora (ao minuto 0) e lê o URL e a chave de dois segredos do Vault: `project_url` e `service_role_key` (CLAUDE.md, "Resolução da noite").
 
-1. Copiar a chave `service_role` (ou a chave secreta) em *Project Settings → API Keys* (**confirmar no painel**). Não a colar em mais lado nenhum.
+1. Copiar a chave `service_role` *legacy* (um JWT, começa por `eyJ`) em *Project Settings → API Keys* (**confirmar no painel**). Não a colar em mais lado nenhum.
+   - Não usar a chave secreta nova (`sb_secret_…`): não é um JWT, e com a verificação de JWT ligada (passo 3) o gateway das Edge Functions recusa-a. Usá-la exigiria outra configuração (**confirmar no painel**).
 2. No *SQL Editor* do projeto de produção:
    ```sql
    select vault.create_secret('<URL do projeto>', 'project_url');
@@ -72,7 +73,7 @@ npx supabase functions deploy resolve-night
     -H "Authorization: Bearer <chave service_role>" -H 'Content-Type: application/json' -d '{}'
   ```
   Resposta `200` com `{"today":"AAAA-MM-DD","done":[]}`: sem salas a decorrer, não há nada a fazer.
-- **Com `{ room_id, night }` (Passar o dia):** testa-se pelo web, no teste de fumo (passo 7). Sem sessão, responde `401`.
+- **Com `{ room_id, night }` (Passar o dia):** testa-se pelo web, no teste de fumo (passo 7). Sem sessão, responde `401`: com a verificação de JWT ligada, quem recusa é o gateway, antes de a função correr.
 
 ### 4. Auth
 No painel, em *Authentication* (**confirmar no painel** os nomes exatos dos menus):
@@ -144,7 +145,7 @@ Se tudo correr bem, o jogo está no ar.
   - web: as ferramentas do browser. O site não tem servidor próprio.
 - **Mudar o SMTP:** criar as credenciais no fornecedor novo e verificar o domínio. Trocar os campos em *Authentication → Emails → SMTP Settings* e repetir o teste de envio do passo 5. Só depois desligar o fornecedor antigo.
 - **Rodar as chaves:**
-  - **Chave `service_role` (ou secreta):** gerar a nova em *Project Settings → API Keys* (**confirmar no painel**). Atualizar logo o segredo do Vault, ou o cron deixa de conseguir chamar a função:
+  - **Chave `service_role` (legacy, JWT):** gerar a nova em *Project Settings → API Keys* (**confirmar no painel**). Atualizar logo o segredo do Vault, ou o cron deixa de conseguir chamar a função:
     ```sql
     select vault.update_secret((select id from vault.secrets where name = 'service_role_key'), '<chave nova>');
     ```

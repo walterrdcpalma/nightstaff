@@ -126,6 +126,10 @@ describe.skipIf(!enabled)('RLS com o web real (T8)', () => {
     // Nem tenta mudá-la: a RLS esconde a linha, e nada muda.
     const forged = await supabase.from('actions').update({ type: 'STAY', target_id: null }).eq('player_id', users.bruno.id).select();
     expect(forged.data ?? []).toEqual([]);
+    // E, para o Bruno, a escolha dele ficou igual.
+    await signInAs(users.bruno.email);
+    expect(await web.loadMyActions(gameId)).toEqual([{ night: 1, type: 'ATTACK', target_id: users.ana.id }]);
+    await signInAs(users.ana.email);
     // Ainda não há noites resolvidas, nem pontos de ninguém.
     expect(await web.loadNights(gameId)).toEqual([]);
     expect(await everything('ledger')).toEqual([]);

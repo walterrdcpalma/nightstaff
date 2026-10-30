@@ -70,6 +70,14 @@ export function canStart(players: number): boolean {
 export const BOTS_MIN = 2;
 export const BOTS_MAX = 11;
 
+/** 🗑️ Apagar sala (RULES.md §1.2 v8): só numa sala contra bots, pelo admin, a qualquer momento. */
+export function canDeleteRoom(room: { kind: RoomKind; admin_id: string }, userId: string): boolean {
+  return room.kind === 'bots' && room.admin_id === userId;
+}
+
+/** Aviso antes de apagar a sala. */
+export const DELETE_ROOM_WARNING = 'Isto apaga a sala e o jogo, e não se desfaz.';
+
 /** Código como a BD o guarda: maiúsculas, sem espaços. */
 export function normalizeCode(input: string): string {
   return input.replace(/\s+/g, '').toUpperCase();
@@ -107,6 +115,7 @@ export const ROOM_ERROR_TEXT: Record<string, string> = {
   TOO_FEW_PLAYERS: `São precisos pelo menos ${MIN_PLAYERS} jogadores.`,
   ROOM_NOT_FINISHED: 'A partida ainda não acabou.',
   NOT_PEOPLE_ROOM: 'Esta sala é contra bots.',
+  NOT_BOTS_ROOM: 'Só se apagam as salas contra bots.',
   BOT_COUNT: `Escolhe entre ${BOTS_MIN} e ${BOTS_MAX} bots.`,
   NIGHT_CHANGED: 'Esta noite já passou. Espreita outra vez.',
   NOT_BOTS_NIGHT: 'Não há nenhuma noite por passar nesta sala.',

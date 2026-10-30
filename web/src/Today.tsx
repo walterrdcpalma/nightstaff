@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { loadEnrolled, loadGames, loadMyActions, loadNames, loadNights, loadRoom, loadRoomPlayers } from '@/lib/data';
 import type { Player, Room } from '@/lib/data';
-import { roomErrorText } from '@/lib/rooms';
+import { DELETE_ROOM_WARNING, canDeleteRoom, roomErrorText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 import {
   ACTION_NAMES,
@@ -66,7 +66,7 @@ async function load(roomId: number): Promise<Data> {
   return { room, roomPlayers, game, players, mine, resolvedNights: nights.length };
 }
 
-/** Hoje numa sala: o lobby, a escolha da noite ou a resolução (com Reiniciar para o admin). */
+/** Hoje numa sala: o lobby, a escolha da noite ou a resolução (com Reiniciar para o admin); contra bots, 🗑️ Apagar sala. */
 export default function Today(props: { userId: string; roomId: number; onLeft: () => void }) {
   const { userId, roomId } = props;
   const now = useNow();
@@ -80,10 +80,27 @@ export default function Today(props: { userId: string; roomId: number; onLeft: (
   if (data.room.status === 'lobby') {
     return <Lobby room={data.room} players={data.roomPlayers} userId={userId} onChange={reload} onLeft={props.onLeft} />;
   }
-  if (!data.game) return <Waking onRetry={reload} />;
+  const content = data.game ? (
+    <Phase data={data} userId={userId} now={now} today={today} reload={reload} />
+  ) : (
+    <Waking onRetry={reload} />
+  );
+  if (!canDeleteRoom(data.room, userId)) return content;
+  return (
+    <div className="flex flex-col gap-10">
+      {content}
+      <DeleteRoom roomId={data.room.id} onDeleted={props.onLeft} />
+    </div>
+  );
+}
 
-  const bots = data.room.kind === 'bots';
-  const phase = bots ? botsPhase(data.game.status, data.resolvedNights) : todayPhase(data.game.start_date, data.game.status, today);
+/** A partida da sala: a escolha da noite, a resolução ou o bairro a acordar. */
+function Phase(props: { data: Data; userId: string; now: Date; today: string; reload: () => void }) {
+  const { data, userId, now, today, reload } = props;
+  const room = data.room!;
+  const game = data.game!;
+  const bots = room.kind === 'bots';
+  const phase = bots ? botsPhase(game.status, data.resolvedNights) : todayPhase(game.start_date, game.status, today);
   const enrolled = data.players.some((p) => p.id === userId);
   const countdown = formatCountdown(nextLisbonMidnight(now).getTime() - now.getTime());
 
@@ -104,10 +121,50 @@ export default function Today(props: { userId: string; roomId: number; onLeft: (
         />
       );
     case 'RESULTS':
-      return <Results room={data.room} userId={userId} onChange={reload} />;
+      return <Results room={room} userId={userId} onChange={reload} />;
     case 'WAKING':
       return <Waking onRetry={reload} />;
   }
+}
+
+/** 🗑️ Apagar sala (RULES.md §1.2 v8): só contra bots, a qualquer momento, com confirmação. Depois, As minhas salas. */
+function DeleteRoom(props: { roomId: number; onDeleted: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setError(null);
+    setBusy(true);
+    const { error } = await supabase.rpc('delete_bots_room', { p_room_id: props.roomId });
+    setBusy(false);
+    if (error) return setError(roomErrorText(error.message));
+    props.onDeleted();
+  }
+
+  if (!confirming) {
+    return (
+      <Button variant="neutral" className="self-start" onClick={() => setConfirming(true)}>
+        🗑️ Apagar sala
+      </Button>
+    );
+  }
+  return (
+    <Note title="🗑️ Apagar sala?">
+      <div className="flex flex-col gap-4">
+        <p>{DELETE_ROOM_WARNING}</p>
+        <div className="flex flex-wrap gap-3">
+          <Button className="bg-danger" onClick={remove} disabled={busy}>
+            {busy ? 'A apagar…' : 'Sim, apagar'}
+          </Button>
+          <Button variant="neutral" onClick={() => setConfirming(false)} disabled={busy}>
+            Cancelar
+          </Button>
+        </div>
+        {error && <p className="text-danger">{error}</p>}
+      </div>
+    </Note>
+  );
 }
 
 function Waking({ onRetry }: { onRetry: () => void }) {
