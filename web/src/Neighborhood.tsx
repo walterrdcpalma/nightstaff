@@ -1,18 +1,17 @@
 import { useCallback, useState } from 'react';
+import { NIGHTS } from '../../engine/index.ts';
 import { Button } from '@/components/ui/button';
-import { loadEnrolled, loadGames, loadNames, loadNights } from '@/lib/data';
+import { loadGames, loadNames, loadNights } from '@/lib/data';
 import type { Game, ResolvedNight } from '@/lib/data';
-import { historyGrid } from '@/lib/night';
-import type { WindowLight } from '@/lib/night';
-import { cn } from '@/lib/utils';
+import { streetHouses } from '@/lib/street';
 import { NightView } from './NightView.tsx';
+import { Street } from './Street.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
 /** A partida atual da sala, com as noites já resolvidas. Só a atual se vê (RLS): as anteriores não. */
 interface Current {
   game: Game;
   nights: ResolvedNight[];
-  enrolled: string[];
   names: Map<string, string>;
 }
 
@@ -21,8 +20,8 @@ async function loadCurrent(roomId: number): Promise<Current | null> {
   const [games, names] = await Promise.all([loadGames(roomId), loadNames()]);
   const game = games[0];
   if (!game) return null;
-  const [nights, enrolled] = await Promise.all([loadNights(game.id), loadEnrolled(game.id)]);
-  return nights.length > 0 ? { game, nights, enrolled, names } : null;
+  const nights = await loadNights(game.id);
+  return nights.length > 0 ? { game, nights, names } : null;
 }
 
 /**
@@ -56,66 +55,44 @@ export function Morning({ userId, roomId }: { userId: string; roomId: number }) 
   );
 }
 
-/** Bairro/Histórico da partida atual: só casa/fora. Uma casa por jogador e a janela de cada noite, nunca as ações (RULES.md §4). */
+/**
+ * Bairro/Histórico da partida atual, como uma rua à noite (T19): uma casa por jogador, com a janela acesa se estava
+ * em casa e apagada se estava fora, e a sirene de quem foi apanhado. Uma noite de cada vez. Nunca as ações (RULES.md §4).
+ */
 export function Neighborhood({ roomId }: { roomId: number }) {
   const current = useLoad(useCallback(() => loadCurrent(roomId), [roomId]));
+  const [picked, setPicked] = useState<number | null>(null);
 
   if (current.error) return <LoadError onRetry={current.reload} />;
   if (current.data === undefined) return <p>A percorrer a rua…</p>;
   if (!current.data) return <Note title="Rua por estrear">Ainda nenhuma noite foi resolvida.</Note>;
 
-  const { nights, enrolled, names } = current.data;
-  const nameOf = (id: string) => names.get(id) ?? '?';
-  const grid = [...historyGrid(enrolled, nights)].sort(([a], [b]) => nameOf(a).localeCompare(nameOf(b)));
+  const { nights, names } = current.data;
+  const shown = nights.find((n) => n.night === picked) ?? nights[nights.length - 1];
+  const houses = streetHouses(shown.summary, (id) => names.get(id) ?? '?');
 
   return (
-    <div className="flex flex-col gap-6">
-      <Note title="🏘️ O bairro">
-        <table className="w-full table-fixed border-separate border-spacing-0.5 text-sm">
-          <colgroup>
-            <col className="w-16" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th />
-              {Array.from({ length: 9 }, (_, i) => (
-                <th key={i} className={cn('font-heading', !nights.some((n) => n.night === i + 1) && 'opacity-40')}>
-                  {i + 1}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {grid.map(([id, windows]) => (
-              <tr key={id}>
-                <td className="max-w-16 truncate pr-1 font-heading">{nameOf(id)}</td>
-                {windows.map((w, i) => (
-                  <td key={i}>
-                    <WindowCell window={w} />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-3 text-xs">🟨 janela acesa: em casa · ⬛ apagada: fora. O que cada um fez fica entre ele e a noite.</p>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2">
+        {Array.from({ length: NIGHTS }, (_, i) => i + 1).map((n) => (
+          <Button
+            key={n}
+            size="sm"
+            variant={n === shown.night ? 'default' : 'neutral'}
+            disabled={!nights.some((r) => r.night === n)}
+            onClick={() => setPicked(n)}
+          >
+            {n}
+          </Button>
+        ))}
+      </div>
+      <Note title={`🏘️ O bairro na noite ${shown.night}`}>
+        <Street houses={houses} night={shown.night} />
+        <p className="mt-3 text-xs">
+          Janela acesa: em casa · apagada, de cortina cruzada: fora · 🚨 a Segurança deu com essa pessoa. O que cada um fez
+          fica entre cada um e a noite.
+        </p>
       </Note>
     </div>
-  );
-}
-
-function WindowCell({ window }: { window: WindowLight }) {
-  const label = window === 'HOME' ? 'em casa' : window === 'AWAY' ? 'fora' : 'por resolver';
-  return (
-    <div
-      title={label}
-      aria-label={label}
-      className={cn(
-        'mx-auto size-5 rounded-sm border-2 border-border',
-        window === 'HOME' && 'bg-main shadow-[0_0_8px_var(--main)]',
-        window === 'AWAY' && 'bg-background',
-        window === null && 'border-dashed opacity-30',
-      )}
-    />
   );
 }

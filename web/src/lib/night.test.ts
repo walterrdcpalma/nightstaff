@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveNight } from '../../../engine/index.ts';
 import type { Action, LedgerReason } from '../../../engine/index.ts';
-import { REASON_TEXT, formatDelta, historyGrid, morningHeadline, myResultLines, privateReport } from './night.ts';
+import { REASON_TEXT, formatDelta, morningHeadline, myResultLines, privateReport } from './night.ts';
 
 const P = ['ana', 'bruno', 'carla', 'duarte', 'eva', 'filipe', 'gil', 'helena'];
 const nameOf = (id: string) => id[0].toUpperCase() + id.slice(1);
@@ -96,26 +96,5 @@ describe('relatório privado da manhã', () => {
 
   it('sem movimentos: noite tranquila e 0 pontos', () => {
     expect(privateReport([], nameOf)).toEqual({ lines: ['🌙 Noite tranquila: nada a registar.'], total: '0' });
-  });
-});
-
-describe('bairro/histórico', () => {
-  it('uma casa por jogador, janela acesa (em casa) ou apagada (fora) por noite', () => {
-    const n1 = summaryOf([atk('ana', 'bruno')]).summary;
-    const n2 = summaryOf([bomb('bruno', 'ana')]).summary;
-    const grid = historyGrid(P, [
-      { night: 1, summary: n1 },
-      { night: 2, summary: n2 },
-    ]);
-    expect(grid.size).toBe(8);
-    expect(grid.get('ana')!.slice(0, 3)).toEqual(['AWAY', 'HOME', null]); // noite 3 por resolver
-    expect(grid.get('bruno')!.slice(0, 2)).toEqual(['HOME', 'AWAY']);
-    expect(grid.get('ana')).toHaveLength(9);
-  });
-
-  it('quem saiu a meio do ciclo continua a aparecer nas noites em que jogou', () => {
-    const n1 = summaryOf([]).summary;
-    const grid = historyGrid(['ana'], [{ night: 1, summary: n1 }]);
-    expect(grid.get('helena')![0]).toBe('HOME');
   });
 });
