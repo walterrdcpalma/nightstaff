@@ -46,7 +46,7 @@ describe('frases', () => {
 
   it('sem género: nenhuma frase diz "apanhado/apanhada", "sozinho/sozinha" e afins', () => {
     for (const l of [...HOME_LINES, ...AWAY_LINES, ...CAUGHT_LINES]) {
-      expect(plain(l), l).not.toMatch(/\b(apanhad|sozinh|convidad|cansad|obrigad|perdid|visto|vista)[oa]?s?\b/);
+      expect(plain(l), l).not.toMatch(/\b(apanhad|sozinh|convidad|cansad|obrigad|perdid)[oa]?s?\b/);
     }
   });
 

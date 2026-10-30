@@ -76,7 +76,7 @@ export function helpSections(): HelpSection[] {
       title: '💰 Como se ganham e perdem pontos',
       paragraphs: [
         `${VISITA} a quem está em casa de ${FOLGA}: ganhas ${POINTS} e a pessoa perde ${POINTS}.`,
-        `Vários atacantes na mesma casa: há sorteio. Quem ganha leva ${POINTS}; cada um dos outros perde ${POINTS}.`,
+        `Várias ${VISITA}s à mesma casa, com o dono em casa de ${FOLGA} e sem ${DESPEDIMENTO}: há sorteio. Quem ganha leva ${POINTS}; cada um dos outros perde ${POINTS}.`,
         `Casa vazia: o dono perde ${BURGLARY_POINTS} e os atacantes dividem ${BURGLARY_POINTS} (arredondado para baixo).`,
         `Atacar quem tem ${SEGURANCA}: uma ${VISITA} custa-te ${DEFENDED_COST.ATTACK}, um ${DESPEDIMENTO} custa-te ${DEFENDED_COST.BOMB}. Quem se defendeu ganha ${POINTS} por cada atacante.`,
         `${DESPEDIMENTO} sem ${SEGURANCA} do outro lado: o alvo perde ${POINTS}, esteja em casa ou fora, e quem o fez fica com o bolo. Não há sorteio: com o alvo fora, as ${VISITA}s na mesma casa ficam com 0; com o alvo em casa, perdem ${POINTS} cada e esses pontos vão para o bolo.`,
@@ -99,7 +99,7 @@ export function helpSections(): HelpSection[] {
       paragraphs: [
         'Ninguém vê as ações dos outros: nem antes da meia-noite, nem depois.',
         `De manhã, todos sabem quem estava em casa e quem estava fora, e quem foi apanhado pela ${SEGURANCA} (sem dizer em que casa).`,
-        'O resto só tu vês: se foste atacado, assaltado ou apanhado num sorteio, quem apanhaste e os teus pontos. O ranking completo só aparece no fim da partida.',
+        `O resto só tu vês: se te atacaram, assaltaram ou te apanhou um ${DESPEDIMENTO} (sem saber quem), se ganhaste ou perdeste um sorteio, quem apanhaste com a ${SEGURANCA} e os teus pontos. O ranking completo só aparece no fim da partida.`,
       ],
     },
     {

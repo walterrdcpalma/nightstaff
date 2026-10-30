@@ -22,11 +22,12 @@ export default function NameForm(props: { userId: string; current?: string; onDo
     if (invalid) return setError(invalid);
     setError(null);
     setBusy(true);
-    const { error } = editing
-      ? await supabase.from('players').update({ name: name.trim() }).eq('id', props.userId)
-      : await supabase.from('players').insert({ id: props.userId, name: name.trim() });
+    // Com `.select()`, um `update` que a RLS filtrasse devolve 0 linhas: mostra-se o erro em vez de fechar.
+    const { data, error } = editing
+      ? await supabase.from('players').update({ name: name.trim() }).eq('id', props.userId).select('id')
+      : await supabase.from('players').insert({ id: props.userId, name: name.trim() }).select('id');
     setBusy(false);
-    if (error) return setError('Não deu para guardar o nome. Tenta outra vez.');
+    if (error || data.length !== 1) return setError('Não deu para guardar o nome. Tenta outra vez.');
     props.onDone();
   }
 

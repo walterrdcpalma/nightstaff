@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botsNight, canStart, nameButtonText, codeError, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
+import { botsNight, canStart, codeError, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
 import type { RoomCard } from './rooms.ts';
 
 const card = (over: Partial<RoomCard>): RoomCard => ({

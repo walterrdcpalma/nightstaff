@@ -23,6 +23,11 @@ describe('nomes na UI (RULES.md §2 v7)', () => {
     expect(old.map(([file]) => file)).toEqual([]);
   });
 
+  it('regressão: o ícone antigo 💣 também não volta (o Despedimento é 🔥)', () => {
+    const old = Object.entries(sources).filter(([, text]) => text.includes('💣'));
+    expect(old.map(([file]) => file)).toEqual([]);
+  });
+
   it('todas as ações têm nome na app, e nenhum nome mostra o código', () => {
     for (const t of ACTION_TYPES) expect(ACTION_NAMES[t]).not.toMatch(/STAY|DEFEND|ATTACK|BOMB|VANISH/);
   });

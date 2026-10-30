@@ -238,7 +238,8 @@ Deno.serve(async (req) => {
   try {
     return await passDay(req, body.room_id, body.night);
   } catch (e) {
+    // O detalhe fica no log; o browser só recebe um código, sem mensagens internas da BD.
     console.error('Passar o dia falhou:', e);
-    return reply({ error: String(e) }, 500);
+    return reply({ error: 'INTERNAL' }, 500);
   }
 });

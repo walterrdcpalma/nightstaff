@@ -31,16 +31,19 @@ export default function App() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
-      {session === undefined ? (
-        <Header onHelp={openHelp} />
-      ) : session ? (
-        <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} />
-      ) : (
-        <>
+      {/* Com a ajuda aberta, o ecrã de baixo fica `inert`: o Tab e os leitores de ecrã ficam só na ajuda. */}
+      <div className="contents" inert={help}>
+        {session === undefined ? (
           <Header onHelp={openHelp} />
-          <Login />
-        </>
-      )}
+        ) : session ? (
+          <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} />
+        ) : (
+          <>
+            <Header onHelp={openHelp} />
+            <Login />
+          </>
+        )}
+      </div>
       {help && <Help onClose={closeHelp} />}
     </main>
   );

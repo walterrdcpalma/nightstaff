@@ -78,7 +78,7 @@ CLAUDE.md
   - Depois da noite 9, `finish_game` acaba a partida e a sala (`finished`). Não há ciclos automáticos: só o admin começa ou reinicia.
 - A lógica das datas é pura, no `engine/`: `nightOn` (noite de um dia), `nextStep` (próximo passo de uma partida, repetido até não haver nada a fazer) e `prepareNight` (ações inválidas → `STAY`, com log).
 - **⏭️ Passar o dia** (salas contra bots): o web chama a mesma função com `{ room_id, night }` e o JWT do jogador (`supabase.functions.invoke`). Só o admin, só a noite aberta (`NIGHT_CHANGED` num duplo toque). Os bots que não escolheram jogam ao calhas (`randomTurn` do `sim/`, que usa o `randomBot`) e as ações ficam em `actions`; quem não escolheu fica com STAY; a noite resolve-se já e, depois da 9, a partida acaba. A função responde com CORS.
-- A função usa a `service_role`, que **só existe na Edge Function** e nunca no `web/`.
+- A função usa a `service_role`, que **só existe na Edge Function** e nunca no `web/`. O `web/secrets.test.ts` (no `npm test`) faz o build do web e falha se o bundle, as fontes ou os `.env` do `web/` tiverem um JWT com `role` diferente de `anon`, uma chave `sb_secret_…` ou nomes da service_role.
 - Escritas atómicas e idempotentes em SQL, executáveis só pela `service_role`: `apply_night` (noite + ledger) e `finish_game` (fim da partida e da sala + seed do desempate + `rankings`; recusa um ranking vazio).
 - O `pg_cron` lê o URL e a chave de dois segredos do **Vault**, `project_url` e `service_role_key`, criados à mão pelo Walter em cada projeto.
 
@@ -114,13 +114,13 @@ CLAUDE.md
 
 ## Comandos
 ```
-npm test            # vitest (engine + sim)
+npm test            # vitest (engine, sim, web/src/lib e o bundle do web sem segredos)
 npm run sim         # simulação de N jogos com bots
 npm run dev         # web (Vite)
 npm run build       # build do web/
 supabase start      # Supabase local (com o seed.sql: Walter + 3 jogadores de teste, na sala NSTAFF em lobby; o Walter é admin)
 supabase stop --no-backup  # obrigatório depois de mudar o config.toml: com backup, o auth arranca com a config antiga
-npm run test:db     # testes SQL (pgTAP) + uma sala inteira e uma partida contra bots na resolve-night (precisa do Supabase local; os e2e correm um de cada vez)
+npm run test:db     # testes SQL (pgTAP) + uma sala inteira, uma partida contra bots e a RLS com o web real (cliente e leituras do web/, 2 jogadores e uma sala alheia) (precisa do Supabase local; os e2e correm um de cada vez)
 npm run demo [-- meio|terminado|lobby]  # limpa a BD LOCAL e cria uma sala de demonstração (por omissão: meio)
 npm run demo:noite  # resolve já a noite atual; quem não escolheu joga com os bots
 npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
