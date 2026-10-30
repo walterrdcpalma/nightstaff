@@ -6,9 +6,13 @@ import { NAME_MAX, nameError } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 import { Note } from './Note.tsx';
 
-/** Primeiro login: o nome que os outros vão ver. Cria o meu `players` (a RLS só deixa criar o próprio). */
-export default function NameForm(props: { userId: string; onDone: () => void }) {
-  const [name, setName] = useState('');
+/**
+ * O nome que os outros vão ver. No primeiro login cria o meu `players`; com `current`, muda-o (T15), já
+ * preenchido, com Guardar e Cancelar. A RLS só deixa criar e mudar o próprio.
+ */
+export default function NameForm(props: { userId: string; current?: string; onDone: () => void; onCancel?: () => void }) {
+  const editing = props.current !== undefined;
+  const [name, setName] = useState(props.current ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,20 +22,33 @@ export default function NameForm(props: { userId: string; onDone: () => void }) 
     if (invalid) return setError(invalid);
     setError(null);
     setBusy(true);
-    const { error } = await supabase.from('players').insert({ id: props.userId, name: name.trim() });
+    const { error } = editing
+      ? await supabase.from('players').update({ name: name.trim() }).eq('id', props.userId)
+      : await supabase.from('players').insert({ id: props.userId, name: name.trim() });
     setBusy(false);
     if (error) return setError('Não deu para guardar o nome. Tenta outra vez.');
     props.onDone();
   }
 
   return (
-    <Note title="🪪 Como te chamam no bairro?">
+    <Note title={editing ? '🪪 Mudar o meu nome' : '🪪 Como te chamam no bairro?'}>
       <form onSubmit={save} className="flex flex-col gap-4">
         <p>É o nome que os outros vão ver nas salas, nas manchetes e no ranking.</p>
         <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={NAME_MAX + 10} placeholder="O teu nome" />
-        <Button type="submit" disabled={busy}>
-          {busy ? 'A guardar…' : 'Entrar no bairro'}
-        </Button>
+        {editing ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="submit" disabled={busy}>
+              {busy ? 'A guardar…' : 'Guardar'}
+            </Button>
+            <Button type="button" variant="neutral" onClick={props.onCancel} disabled={busy}>
+              Cancelar
+            </Button>
+          </div>
+        ) : (
+          <Button type="submit" disabled={busy}>
+            {busy ? 'A guardar…' : 'Entrar no bairro'}
+          </Button>
+        )}
         {error && <p className="text-danger">{error}</p>}
       </form>
     </Note>

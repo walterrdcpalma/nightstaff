@@ -88,7 +88,7 @@ CLAUDE.md
   - Janela/ouro `#F5C542`, perigo `#E5484D`, defesa `#4C8DFF`.
 - **Ecrãs:**
   - **As minhas salas** (ecrã inicial): código, estado e o que falta fazer em cada sala (as que estão à minha espera primeiro), **Criar sala**, **Entrar com código** e **Jogar contra bots** (de 2 a 11).
-  - Primeiro login: o nome que os outros vão ver (cria o meu `players`).
+  - Primeiro login: o nome que os outros vão ver (cria o meu `players`). Depois, o botão com o meu nome no cabeçalho ("🪪 Walter", ao lado de Sair) abre o mesmo `NameForm`, já preenchido, com Guardar e Cancelar (`update` ao meu `players`); ao guardar, os ecrãs voltam a ler e o nome novo aparece logo.
   - Dentro de uma sala, as abas só com dados dessa sala:
     - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin. Contra bots: sem contagem, com **⏭️ Passar o dia** por baixo da escolha.
     - Manhã, em **modo história** (T12): a noite contada uma cena de cada vez — abertura (quantos em casa e fora), uma cena por jogador (em casa ou fora, com uma frase), os 🚨 apanhados (sem dizer onde, só se houver) e, por fim, a minha noite (relatório privado, só do meu ledger). Seguinte (ou toque), Saltar e Ver outra vez; com `prefers-reduced-motion`, tudo visível e sem animação. As rondas anteriores da partida atual continuam consultáveis.

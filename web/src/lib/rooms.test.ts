@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botsNight, canStart, codeError, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
+import { botsNight, canStart, nameButtonText, codeError, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
 import type { RoomCard } from './rooms.ts';
 
 const card = (over: Partial<RoomCard>): RoomCard => ({
@@ -91,6 +91,18 @@ describe('nome no primeiro login', () => {
     expect(nameError('  Ana  ')).toBeNull();
     expect(nameError('x'.repeat(24))).toBeNull();
     expect(nameError('x'.repeat(25))).toBe('No máximo 24 caracteres.');
+  });
+});
+
+describe('mudar o meu nome (T15)', () => {
+  it('o botão do cabeçalho mostra o meu nome', () => {
+    expect(nameButtonText('Walter')).toBe('🪪 Walter');
+  });
+
+  it('a validação é a do primeiro login: 1 a 24 caracteres, sem contar os espaços nas pontas', () => {
+    expect(nameError('  Walter  ')).toBeNull();
+    expect(nameError('')).toBe('Escreve um nome.');
+    expect(nameError('W'.repeat(25))).toBe('No máximo 24 caracteres.');
   });
 });
 

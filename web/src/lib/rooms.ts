@@ -93,6 +93,11 @@ export function nameError(name: string): string | null {
   return null;
 }
 
+/** Texto do botão do meu nome, no cabeçalho (T15): abre o formulário para o mudar. */
+export function nameButtonText(name: string): string {
+  return `🪪 ${name}`;
+}
+
 /** Erros das funções da sala (BD), em português de Portugal. */
 export const ROOM_ERROR_TEXT: Record<string, string> = {
   NO_NAME: 'Primeiro escolhe o teu nome.',
