@@ -66,6 +66,13 @@ export function canStart(players: number): boolean {
   return players >= MIN_PLAYERS;
 }
 
+/** Lobby: "Faltam 2 jogadores para Começar." ou `null` se já se pode começar. */
+export function missingPlayersText(players: number): string | null {
+  const missing = MIN_PLAYERS - players;
+  if (missing <= 0) return null;
+  return missing === 1 ? 'Falta 1 jogador para Começar.' : `Faltam ${missing} jogadores para Começar.`;
+}
+
 /** Bots numa sala contra bots (RULES.md §1.2), como na BD (`create_bots_room`). */
 export const BOTS_MIN = 2;
 export const BOTS_MAX = 11;

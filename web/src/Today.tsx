@@ -18,7 +18,9 @@ import {
   todayPhase,
 } from '@/lib/today';
 import type { GameStatus } from '@/lib/today';
+import { CONTEXT_HELP } from '@/lib/help';
 import { ActionCards, TargetAvatars } from './ChoiceCards.tsx';
+import { HelpLink } from './HelpLink.tsx';
 import { Lobby } from './Lobby.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
@@ -216,8 +218,11 @@ function Results(props: { room: Room; userId: string; onChange: () => void }) {
 
 function Deadline({ countdown }: { countdown: string }) {
   return (
-    <p>
-      Fecha às 23:59. Faltam <span className="font-heading text-main tabular-nums">{countdown}</span>.
+    <p className="flex flex-wrap items-center gap-2">
+      <span>
+        Fecha às 23:59. Faltam <span className="font-heading text-main tabular-nums">{countdown}</span>.
+      </span>
+      <HelpLink anchor={CONTEXT_HELP.deadline} label="o prazo" />
     </p>
   );
 }
@@ -300,7 +305,10 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
           {props.countdown !== null ? (
             <Deadline countdown={props.countdown} />
           ) : (
-            <p>O tempo só passa quando carregares em ⏭️ Passar o dia.</p>
+            <p className="flex flex-wrap items-center gap-2">
+              O tempo só passa quando carregares em ⏭️ Passar o dia.
+              <HelpLink anchor={CONTEXT_HELP.deadline} label="o prazo" />
+            </p>
           )}
           <p>
             Esta noite:{' '}
@@ -311,7 +319,10 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
       </Note>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg">O que fazes esta noite?</h2>
+        <h2 className="flex items-center gap-2 text-lg">
+          O que fazes esta noite?
+          <HelpLink anchor={CONTEXT_HELP.cards} label="as ações e a quota" />
+        </h2>
         <ActionCards cards={actionCards(quota, type)} onPick={setType} />
       </section>
 

@@ -4,7 +4,9 @@ import { loadGames, loadLedger, loadNames, loadRanking } from '@/lib/data';
 import type { Game } from '@/lib/data';
 import { TIEBREAK_TEXT, attacksText, movementsByNight, points, rankingRows, rankingVisible } from '@/lib/points';
 import type { LedgerRow, RankingDbRow } from '@/lib/points';
+import { CONTEXT_HELP } from '@/lib/help';
 import { cn } from '@/lib/utils';
+import { HelpLink } from './HelpLink.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
 interface Data {
@@ -102,8 +104,9 @@ function Ranking(props: { ranking: RankingDbRow[]; userId: string; nameOf: (id: 
             </li>
           ))}
         </ol>
-        <p className="mt-3 text-xs">
+        <p className="mt-3 flex items-center gap-2 text-xs">
           Desempate: ataques bem-sucedidos, confronto direto, menos pontos perdidos e, por fim, sorteio.
+          <HelpLink anchor={CONTEXT_HELP.points} label="o desempate" />
         </p>
       </Note>
     </>

@@ -86,7 +86,7 @@ describe('relatório privado da manhã', () => {
     const mine = (p: string) =>
       ledger.filter((e) => e.playerId === p).map((e) => ({ delta: e.delta, reason: e.reason, target_id: e.targetId ?? null }));
     // A Helena sabe que foi atacada, mas não por quem.
-    expect(privateReport(mine('helena'), nameOf)).toEqual({ lines: ['😵 Atacaram-te em casa: −10'], total: '−10' });
+    expect(privateReport(mine('helena'), nameOf)).toEqual({ lines: ['😵 Fizeram-te uma Visita surpresa em casa: −10'], total: '−10' });
     const winner = ['ana', 'bruno', 'carla'].find((p) => mine(p)[0].reason === 'ATTACK_DRAW_WON')!;
     expect(privateReport(mine(winner), nameOf)).toEqual({
       lines: ['🗡️ Ganhaste o sorteio da Visita surpresa (Helena): +10'],

@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { loadMyEntries } from '@/lib/data';
 import type { ResolvedNight } from '@/lib/data';
+import { CONTEXT_HELP } from '@/lib/help';
 import { privateReport } from '@/lib/night';
 import { storyScenes } from '@/lib/story';
 import type { Scene } from '@/lib/story';
 import { cn } from '@/lib/utils';
+import { HelpLink } from './HelpLink.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
 /** Com `prefers-reduced-motion`, a história aparece toda de uma vez e sem animações. */
@@ -138,7 +140,10 @@ function MyNight(props: { gameId: number; night: number; userId: string; home: b
           <p className="mt-2 font-heading">
             Pontos da noite: <span className="text-main">{report.total}</span>
           </p>
-          <p className="text-xs">Só tu vês isto.</p>
+          <p className="flex items-center gap-2 text-xs">
+            Só tu vês isto.
+            <HelpLink anchor={CONTEXT_HELP.report} label="o que quer dizer cada linha" />
+          </p>
         </div>
       )}
     </Note>

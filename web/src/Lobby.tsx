@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Player, Room } from '@/lib/data';
-import { canStart, roomErrorText } from '@/lib/rooms';
+import { CONTEXT_HELP } from '@/lib/help';
+import { canStart, missingPlayersText, roomErrorText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
-import { MIN_PLAYERS } from '../../engine/index.ts';
+import { HelpLink } from './HelpLink.tsx';
 import { Note } from './Note.tsx';
 
 /**
@@ -18,6 +19,7 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
   const [copied, setCopied] = useState(false);
   const isAdmin = room.admin_id === userId;
   const admin = players.find((p) => p.id === room.admin_id);
+  const missing = missingPlayersText(players.length);
 
   async function copy() {
     try {
@@ -75,14 +77,16 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
           <Button size="lg" onClick={() => run('start_room')} disabled={busy || !canStart(players.length)}>
             ▶️ Começar
           </Button>
-          <p className="text-sm">
-            {canStart(players.length)
-              ? 'A noite 1 abre logo e fecha às 23:59 de hoje. Depois, ninguém entra nem sai.'
-              : `São precisos pelo menos ${MIN_PLAYERS} jogadores.`}
+          <p className="flex items-center gap-2 text-sm">
+            {missing ?? 'A noite 1 abre logo e fecha às 23:59 de hoje. Depois, ninguém entra nem sai.'}
+            <HelpLink anchor={CONTEXT_HELP.lobby} label="porque é que o Começar está desligado" />
           </p>
         </div>
       ) : (
-        <p>À espera que {admin?.name ?? 'o admin'} carregue em Começar.</p>
+        <p className="flex flex-wrap items-center gap-2">
+          À espera que {admin?.name ?? 'o admin'} carregue em Começar.{missing && ` ${missing}`}
+          <HelpLink anchor={CONTEXT_HELP.lobby} label="quando se pode começar" />
+        </p>
       )}
       <div className="flex gap-2">
         <Button variant="neutral" onClick={props.onChange} disabled={busy}>

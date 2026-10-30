@@ -20,7 +20,7 @@ export const REASON_TEXT: Record<LedgerReason, string> = {
   ATTACK_AWAY_BOMBED: '🗡️ Casa vazia, mas o Despedimento coletivo levou tudo',
   BOMB_SUCCESS: '🔥 Despedimento coletivo',
   BOMB_DEFENDED: '🔥 O alvo tinha Segurança',
-  VICTIM: '😵 Atacaram-te em casa',
+  VICTIM: '😵 Fizeram-te uma Visita surpresa em casa',
   BOMBED: '🔥 Um Despedimento coletivo apanhou-te',
   BURGLARY_VICTIM: '😵 Assaltaram-te a casa vazia',
   DEFENSE: '🛡️ A tua Segurança apanhou',

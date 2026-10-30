@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { loadGames, loadNames, loadNights } from '@/lib/data';
 import type { Game, ResolvedNight } from '@/lib/data';
 import { buildingRooms } from '@/lib/building';
+import { CONTEXT_HELP } from '@/lib/help';
 import { NightView } from './NightView.tsx';
 import { Building } from './Building.tsx';
+import { HelpLink } from './HelpLink.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
 /** A partida atual da sala, com as noites já resolvidas. Só a atual se vê (RLS): as anteriores não. */
@@ -93,7 +95,10 @@ export function Neighborhood({ roomId }: { roomId: number }) {
           <li>✖️ Janela apagada, com X: fora.</li>
           <li>🚨 A Segurança deu com essa pessoa.</li>
         </ul>
-        <p className="mt-2 text-xs">O que cada um fez fica entre cada um e a noite.</p>
+        <p className="mt-2 flex items-center gap-2 text-xs">
+          O que cada um fez fica entre cada um e a noite.
+          <HelpLink anchor={CONTEXT_HELP.building} label="o que querem dizer as janelas e a sirene" />
+        </p>
       </Note>
     </div>
   );

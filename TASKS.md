@@ -196,7 +196,7 @@
   - Tem de caber sem scroll lateral em mobile, com 3 a 12 jogadores (o prédio cresce na vertical); testar os extremos.
   - **Só UI** (regra 9: nada a mudar em jogos a decorrer; sem migrações, `engine/` nem RLS). Lógica pura (posição de cada divisão, estado) em `web/src/lib/` com testes no Vitest, incluindo um teste de que nada além de casa/fora/apanhado chega ao componente. Sem dependências novas.
   - Atualizar o CLAUDE.md (UI, Bairro) — regra 8.
-- [ ] **T21 — Reescrever a Ajuda e pôr ajuda contextual**
+- [x] **T21 — Reescrever a Ajuda e pôr ajuda contextual**
   - Só texto e UI; **as regras não mudam** (RULES.md é a fonte da verdade e não se altera). Os números continuam a vir das constantes do `engine/` e os nomes do `ACTION_NAMES`; o `help.test.ts` continua a verificar que a Ajuda bate com o RULES.md.
   - **Nova ordem** em `web/src/lib/help.ts`: 🌙 A ideia → 🎬 O que posso fazer (as cinco ações, com quota) → 💰 O que acontece (tabela) → ⏰ Prazo → 👀 Quem vê o quê → 🚪 Salas → 💡 Dicas curtas.
   - **"Como se ganham e perdem pontos"**: trocar os 8 parágrafos por uma **tabela** (o que faço / como está o alvo / resultado), com um parágrafo por caso só onde a tabela não chega (sorteio, Despedimento com bolo). Bónus de casa e noite 9 a dobrar ficam em duas linhas à parte.

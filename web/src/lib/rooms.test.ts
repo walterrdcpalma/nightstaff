@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { botsNight, canDeleteRoom, canStart, DELETE_ROOM_WARNING, codeError, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
+import { botsNight, canDeleteRoom, canStart, DELETE_ROOM_WARNING, codeError, missingPlayersText, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
 import type { RoomCard } from './rooms.ts';
+import { MIN_PLAYERS } from '../../../engine/index.ts';
 
 const card = (over: Partial<RoomCard>): RoomCard => ({
   id: 1,
@@ -119,5 +120,14 @@ describe('erros das funções da sala', () => {
     expect(roomErrorText('ROOM_NOT_FOUND')).toBe('Não há nenhuma sala com esse código.');
     expect(roomErrorText('TOO_FEW_PLAYERS')).toBe('São precisos pelo menos 3 jogadores.');
     expect(roomErrorText('xpto')).toBe('Algo correu mal. Tenta outra vez.');
+  });
+});
+
+describe('lobby: quantos jogadores faltam (T21)', () => {
+  it('diz quantos faltam até 3 e nada a partir daí', () => {
+    expect(missingPlayersText(1)).toBe('Faltam 2 jogadores para Começar.');
+    expect(missingPlayersText(2)).toBe('Falta 1 jogador para Começar.');
+    expect(missingPlayersText(MIN_PLAYERS)).toBeNull();
+    expect(missingPlayersText(MIN_PLAYERS + 4)).toBeNull();
   });
 });
