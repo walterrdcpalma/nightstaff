@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ACTION_TYPES, QUOTAS, lisbonDate, previousTarget, remainingQuota, validateAction } from '../../engine/index.ts';
+import { lisbonDate, previousTarget, remainingQuota, validateAction } from '../../engine/index.ts';
 import type { Action, ActionType, GameState } from '../../engine/index.ts';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { loadEnrolled, loadGames, loadMyActions, loadNames, loadNights, loadRoom, loadRoomPlayers } from '@/lib/data';
 import type { Player, Room } from '@/lib/data';
+import { actionCards } from '@/lib/cards';
 import { DELETE_ROOM_WARNING, canDeleteRoom, roomErrorText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 import {
-  ACTION_NAMES,
-  BLOCKED_TARGET_TEXT,
   choiceText,
   errorText,
   formatCountdown,
@@ -20,6 +18,7 @@ import {
   todayPhase,
 } from '@/lib/today';
 import type { GameStatus } from '@/lib/today';
+import { ActionCards, TargetAvatars } from './ChoiceCards.tsx';
 import { Lobby } from './Lobby.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
@@ -136,10 +135,15 @@ function DeleteRoom(props: { roomId: number; onDeleted: () => void }) {
   async function remove() {
     setError(null);
     setBusy(true);
-    const { error } = await supabase.rpc('delete_bots_room', { p_room_id: props.roomId });
-    setBusy(false);
-    if (error) return setError(roomErrorText(error.message));
-    props.onDeleted();
+    try {
+      const { error } = await supabase.rpc('delete_bots_room', { p_room_id: props.roomId });
+      if (error) return setError(roomErrorText(error.message));
+      props.onDeleted();
+    } catch {
+      setError(roomErrorText(''));
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!confirming) {
@@ -308,41 +312,13 @@ function Night(props: { data: Data; night: number; userId: string; countdown: st
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg">O que fazes esta noite?</h2>
-        {ACTION_TYPES.map((t) => {
-          const limit = t === 'STAY' ? null : QUOTAS[t];
-          const left = t === 'STAY' ? null : quota[t];
-          return (
-            <Button
-              key={t}
-              variant={type === t ? 'default' : 'neutral'}
-              disabled={left === 0}
-              onClick={() => setType(t)}
-              className="h-12 justify-between"
-            >
-              <span>{ACTION_NAMES[t]}</span>
-              <Badge variant="neutral">{left === null ? '∞' : `${left}/${limit}`}</Badge>
-            </Button>
-          );
-        })}
+        <ActionCards cards={actionCards(quota, type)} onPick={setType} />
       </section>
 
       {needsTarget && (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg">A casa de quem?</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {targets.map((p) => (
-              <Button
-                key={p.id}
-                variant={targetId === p.id ? 'default' : 'neutral'}
-                disabled={p.blocked}
-                onClick={() => setTargetId(p.id)}
-                className="h-auto min-h-10 flex-col whitespace-normal py-2"
-              >
-                <span>{p.blocked ? `🚫 ${p.name}` : p.name}</span>
-                {p.blocked && <span className="text-xs font-base">{BLOCKED_TARGET_TEXT}</span>}
-              </Button>
-            ))}
-          </div>
+          <TargetAvatars targets={targets} selected={targetId} onPick={setTargetId} />
         </section>
       )}
 

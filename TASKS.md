@@ -179,7 +179,7 @@
   - **Regra 9 (produção em uso):** migração só **aditiva** (função nova). Não pode mexer em salas, partidas ou dados de ninguém; em "Impacto em jogos a decorrer", dizer que só se apagam salas de bots quando o próprio jogador o pede.
   - Testes: pgTAP e/ou e2e com 2 jogadores e 2 salas de bots (apagar a minha não toca na do outro nem em salas de pessoas); um não-admin e uma sala de pessoas são recusados; os bots da sala desaparecem; o web mostra o botão só em salas de bots.
   - Atualizar o CLAUDE.md (funções da sala e UI) — regra 8.
-- [ ] **T18 — Ecrã de escolha da noite (cartas)**
+- [x] **T18 — Ecrã de escolha da noite (cartas)**
   - No **Hoje** (sala a correr), trocar a lista de ações por **cartas grandes**, uma por ação, com o ícone e o **nome na app** (RULES.md §2: Folga, Segurança, Visita surpresa, Despedimento coletivo, Desaparecer). Os códigos ficam só no código.
   - Cada carta mostra a **quota restante em pontinhos** (cheio = por gastar; Folga sem pontinhos, é ∞). Uma carta com a quota esgotada fica desativada, com o motivo.
   - Visita surpresa e Despedimento coletivo pedem alvo: ao escolher a carta, mostrar os outros jogadores como **avatares** (inicial + cor estável derivada do id do jogador, sem guardar nada na BD). O alvo da minha Visita ou Despedimento de ontem aparece bloqueado, com o motivo (`previousTarget` do `engine/`).
