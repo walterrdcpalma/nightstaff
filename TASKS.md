@@ -171,7 +171,7 @@
   - Incluir uma secção **"Depois do lançamento"**: onde ver erros, como mudar o SMTP e como rodar as chaves.
   - Os comandos têm de existir de facto (confirmar no `package.json`, no `supabase/` e no CLAUDE.md); o que não se puder confirmar escreve-se como "confirmar no painel" e não se inventa.
   - Sem dependências novas e sem mexer no código. Referir o `DEPLOY.md` no CLAUDE.md (secção Comandos) — regra 8.
-- [ ] **T17 — Apagar a sala contra bots**
+- [x] **T17 — Apagar a sala contra bots**
   - Hoje uma sala contra bots não se consegue largar: o **Sair** só existe no lobby (que as salas de bots não têm) e o **Reiniciar** só serve depois da noite 9. As salas acumulam-se em **As minhas salas**.
   - RULES.md §1.2 (v8): o jogador pode **apagar a sala** a qualquer momento, a meio ou acabada. Nas salas com pessoas isto **não existe**.
   - Função na BD `delete_bots_room(p_room_id)` (`security definer`, para quem tem sessão): só o admin, só `kind = 'bots'` (senão `NOT_BOTS_ROOM`; sem ser o admin, `NOT_ADMIN`). Apaga a sala e tudo o que era dela: partidas, ações, noites, ledger, rankings, `room_players` **e os bots** (`players` com `bot_room_id` dessa sala). Tudo numa só transação. Não toca em nada de outras salas, nem na conta do jogador.

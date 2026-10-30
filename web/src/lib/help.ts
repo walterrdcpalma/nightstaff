@@ -99,7 +99,7 @@ export function helpSections(): HelpSection[] {
       paragraphs: [
         'Ninguém vê as ações dos outros: nem antes da meia-noite, nem depois.',
         `De manhã, todos sabem quem estava em casa e quem estava fora, e quem foi apanhado pela ${SEGURANCA} (sem dizer em que casa).`,
-        `O resto só tu vês: se te atacaram, assaltaram ou te apanhou um ${DESPEDIMENTO} (sem saber quem), se ganhaste ou perdeste um sorteio, quem apanhaste com a ${SEGURANCA} e os teus pontos. O ranking completo só aparece no fim da partida.`,
+        `O resto só tu vês: se te atacaram, assaltaram ou te apanhou um ${DESPEDIMENTO} (sem saber quem), se ganhaste ou perdeste um sorteio, quem apanhaste com a ${SEGURANCA}, se ganhaste o bónus de casa e os teus pontos. O ranking completo só aparece no fim da partida.`,
       ],
     },
     {
@@ -202,6 +202,7 @@ export function helpFaq(): HelpQuestion[] {
         `Escolhes quantos bots queres (de ${BOTS_MIN} a ${BOTS_MAX}) e a partida começa logo. Ninguém mais entra.`,
         'Escolhes a tua ação e carregas em ⏭️ Passar o dia: os bots escolhem ao calhas, sempre dentro das regras, e a noite resolve-se logo.',
         `Se não escolheres nada, ficas de ${FOLGA}. Depois da noite ${NIGHTS}, sai o ranking e podes jogar outra vez.`,
+        'Podes apagar a sala quando quiseres, a meio ou no fim, com 🗑️ Apagar sala no Hoje. Apaga-se tudo e não se desfaz.',
       ],
     },
   ];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botsNight, canStart, codeError, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
+import { botsNight, canDeleteRoom, canStart, DELETE_ROOM_WARNING, codeError, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
 import type { RoomCard } from './rooms.ts';
 
 const card = (over: Partial<RoomCard>): RoomCard => ({
@@ -62,6 +62,14 @@ describe('salas contra bots', () => {
     expect(roomTodo(bots)).toBe('Noite 3: escolhe e carrega em ⏭️ Passar o dia.');
     expect(needsMe(bots)).toBe(true);
     expect(roomErrorText('BOT_COUNT')).toBe('Escolhe entre 2 e 11 bots.');
+  });
+
+  it('🗑️ Apagar sala só numa sala contra bots, pelo admin (T17)', () => {
+    expect(canDeleteRoom({ kind: 'bots', admin_id: 'eu' }, 'eu')).toBe(true);
+    expect(canDeleteRoom({ kind: 'people', admin_id: 'eu' }, 'eu')).toBe(false);
+    expect(canDeleteRoom({ kind: 'bots', admin_id: 'outro' }, 'eu')).toBe(false);
+    expect(DELETE_ROOM_WARNING).toBe('Isto apaga a sala e o jogo, e não se desfaz.');
+    expect(roomErrorText('NOT_BOTS_ROOM')).toBe('Só se apagam as salas contra bots.');
   });
 });
 

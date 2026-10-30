@@ -55,13 +55,14 @@ CLAUDE.md
 | `rankings` | game_id, player_id, rank, points, successful_attacks | Quem jogou a partida atual, só quando `games.status = finished` |
 
 - **RLS por sala e por partida:** a sala (código, lobby, jogadores) é de quem lá está agora. **Só se vê a partida atual** de cada sala (decisão do Walter: uma partida são as 9 rondas; o histórico do RULES.md §4 são as rondas da partida atual). A atual é a mais recente, enquanto a sala não volta ao lobby: Reiniciar acaba-a, e as partidas anteriores deixam de se ver para todos, também as minhas ações e o meu ledger delas. Não se entra a meio. Quem não está na sala não vê nada. As funções `is_room_member`, `is_game_player`, `shares_room` e `shares_game` (`security definer`) servem as políticas. Dentro da partida, as regras de visibilidade v5 não mudam.
-- **Funções da sala** (`security definer`, para quem tem sessão; erros como códigos, ex.: `NO_NAME`, `ROOM_NOT_FOUND`, `ROOM_NOT_IN_LOBBY`, `NOT_ADMIN`, `TOO_FEW_PLAYERS`, `ROOM_NOT_FINISHED`, `NOT_PEOPLE_ROOM`):
+- **Funções da sala** (`security definer`, para quem tem sessão; erros como códigos, ex.: `NO_NAME`, `ROOM_NOT_FOUND`, `ROOM_NOT_IN_LOBBY`, `NOT_ADMIN`, `TOO_FEW_PLAYERS`, `ROOM_NOT_FINISHED`, `NOT_PEOPLE_ROOM`, `NOT_BOTS_ROOM`):
   - `create_room()`: sala de pessoas em lobby; quem cria é o admin e o primeiro jogador.
   - `create_bots_room(n)`: sala contra bots (RULES.md §1.2) com n de 2 a 11 bots (`BOT_COUNT`), com nomes do staff ("Bot Rececionista"…). Os bots são `players` sem conta, com `bot_room_id`, e só existem nessa sala. Começa logo, sem lobby.
   - `join_room(code)`: só em lobby; numa sala contra bots dá `ROOM_NOT_FOUND`.
   - `leave_room(room)`: só em lobby. Se for o admin, o admin passa para quem entrou há mais tempo; se não sobrar ninguém, a sala é apagada.
   - `start_room(room)`: só o admin, só salas de pessoas, com 3 ou mais. Cria a partida com `start_date` = hoje (Lisboa): a noite 1 abre já e fecha às 23:59.
   - `restart_room(room)`: só o admin, com a sala acabada. Volta ao lobby, com o mesmo código e os mesmos jogadores; as partidas anteriores ficam na BD mas deixam de se ver. Numa sala contra bots, começa logo outra partida com os mesmos bots.
+  - `delete_bots_room(room)`: só o admin (`NOT_ADMIN`), só salas contra bots (`NOT_BOTS_ROOM`), a qualquer momento (RULES.md §1.2 v8). Apaga a sala e tudo o que era dela numa só instrução, pelas FKs `on delete cascade`: partidas, ações, noites, ledger, rankings, `room_players` e os bots. Não toca noutras salas nem na conta.
 - **RLS em `actions`:**
   - Cada jogador só pode inserir, alterar e ler as suas próprias ações.
   - Só pode escrever na noite atual, até às 23:59 de Lisboa inclusive: fecha às 00:00. Numa sala contra bots, a noite atual é a seguinte à última resolvida, a qualquer hora (`night_is_open`).
@@ -91,7 +92,7 @@ CLAUDE.md
   - **As minhas salas** (ecrã inicial): código, estado e o que falta fazer em cada sala (as que estão à minha espera primeiro), **Criar sala**, **Entrar com código** e **Jogar contra bots** (de 2 a 11).
   - Primeiro login: o nome que os outros vão ver (cria o meu `players`). Depois, o botão com o meu nome no cabeçalho ("🪪 Walter", ao lado de Sair) abre o mesmo `NameForm`, já preenchido, com Guardar e Cancelar (`update` ao meu `players`); ao guardar, os ecrãs voltam a ler e o nome novo aparece logo.
   - Dentro de uma sala, as abas só com dados dessa sala:
-    - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin. Contra bots: sem contagem, com **⏭️ Passar o dia** por baixo da escolha.
+    - Hoje: no lobby, o código grande (com Copiar), quem entrou, **Começar** para o admin (desligado com menos de 3) e Sair; a correr, escolha, quotas restantes e contagem até às 23:59; acabada, **Reiniciar** para o admin. Contra bots: sem contagem, com **⏭️ Passar o dia** por baixo da escolha e, em qualquer fase, **🗑️ Apagar sala** para o admin (com confirmação; depois volta a As minhas salas).
     - Manhã, em **modo história** (T12): a noite contada uma cena de cada vez — abertura (quantos em casa e fora), uma cena por jogador (em casa ou fora, com uma frase), os 🚨 apanhados (sem dizer onde, só se houver) e, por fim, a minha noite (relatório privado, só do meu ledger). Seguinte (ou toque), Saltar e Ver outra vez; com `prefers-reduced-motion`, tudo visível e sem animação. As rondas anteriores da partida atual continuam consultáveis.
     - Bairro/Histórico: só casa/fora. Uma casa por jogador, com a janela acesa se o jogador estava em casa, por noite. Nunca mostra ações, ataques, defesas nem bombas.
     - Os meus pontos (durante a partida) e o ranking final (só na resolução).
