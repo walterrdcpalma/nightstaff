@@ -88,10 +88,12 @@ export function Neighborhood({ roomId }: { roomId: number }) {
       </div>
       <Note title={`🏘️ O bairro na noite ${shown.night}`}>
         <Building rooms={rooms} night={shown.night} />
-        <p className="mt-3 text-xs">
-          Janela acesa: em casa · apagada, com X: fora · 🚨 a Segurança deu com essa pessoa. O que cada um fez
-          fica entre cada um e a noite.
-        </p>
+        <ul className="mt-3 space-y-1 text-xs">
+          <li>💡 Janela acesa: em casa.</li>
+          <li>✖️ Janela apagada, com X: fora.</li>
+          <li>🚨 A Segurança deu com essa pessoa.</li>
+        </ul>
+        <p className="mt-2 text-xs">O que cada um fez fica entre cada um e a noite.</p>
       </Note>
     </div>
   );
