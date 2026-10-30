@@ -187,7 +187,7 @@
   - Mobile-first: cartas em coluna, alvos grandes para o polegar. Com `prefers-reduced-motion`, sem animação. Texto em português de Portugal, tom de narrador.
   - **Só UI**: sem migrações, sem mexer no `engine/` nem em RLS (regra 9: nada a mudar em jogos a decorrer). A lógica pura (cor/inicial do avatar, estado de cada carta) em `web/src/lib/` com testes no Vitest. Sem dependências novas; componentes do shadcn/neobrutalism pela CLI se for preciso.
   - Atualizar o CLAUDE.md (UI) — regra 8.
-- [ ] **T19 — Bairro como prédio ilustrado**
+- [x] **T19 — Bairro como prédio ilustrado**
   - Protótipo aprovado pelo Walter (opção B): https://claude.ai/artifact/YWc9TQ1wohhzT14T4RdJiP. Seguir esse desenho.
   - No separador **Bairro/Histórico**, trocar a grelha de casas por **um prédio** desenhado em SVG inline (sem imagens externas nem dependências): letreiro "NIGHT STAFF" no topo, **uma divisão por jogador** em 2 colunas (a última fica sozinha se forem ímpares) e uma receção em baixo. Cada divisão tem a janela, o nome, o estado ("em casa"/"fora") e uma faixa na cor do jogador (cor e inicial estáveis derivadas do id, como na T18).
   - **Janela acesa** (ouro `#F5C542`, com a silhueta de uma pessoa) = estava em casa; **janela escura com X** = estava fora. Por noite, com o seletor de noites (1 a 9) já existente. Ao mudar de noite, as janelas acendem e apagam com transição CSS curta (`motion-safe:`); com `prefers-reduced-motion`, sem animação.
