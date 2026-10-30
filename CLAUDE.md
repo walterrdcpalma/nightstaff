@@ -87,6 +87,7 @@ CLAUDE.md
   - Fundo `#0B1020`, cartas `#151B33`.
   - Janela/ouro `#F5C542`, perigo `#E5484D`, defesa `#4C8DFF`.
 - **Ecrãs:**
+  - **❓ Ajuda** (T13), no cabeçalho de todos os ecrãs: abre por cima (estado do `App`, sem router), com Fechar (e Esc). "Como funciona, em 1 minuto" e perguntas frequentes com mini-cenários (`<details>`). Texto em `web/src/lib/help.ts` (dados puros, estático): os números vêm das constantes do `engine/` e os nomes do `ACTION_NAMES`, por isso mudam sozinhos; tem de bater com o `RULES.md`.
   - **As minhas salas** (ecrã inicial): código, estado e o que falta fazer em cada sala (as que estão à minha espera primeiro), **Criar sala**, **Entrar com código** e **Jogar contra bots** (de 2 a 11).
   - Primeiro login: o nome que os outros vão ver (cria o meu `players`). Depois, o botão com o meu nome no cabeçalho ("🪪 Walter", ao lado de Sair) abre o mesmo `NameForm`, já preenchido, com Guardar e Cancelar (`update` ao meu `players`); ao guardar, os ecrãs voltam a ler e o nome novo aparece logo.
   - Dentro de uma sala, as abas só com dados dessa sala:
