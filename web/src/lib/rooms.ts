@@ -73,6 +73,16 @@ export function missingPlayersText(players: number): string | null {
   return missing === 1 ? 'Falta 1 jogador para Começar.' : `Faltam ${missing} jogadores para Começar.`;
 }
 
+/** Expulsar (RULES.md §1.1 v9): só o admin, só no lobby de uma sala de pessoas, e nunca a si próprio. */
+export function canKick(room: { kind: RoomKind; status: RoomStatus; admin_id: string }, userId: string, playerId: string): boolean {
+  return room.kind === 'people' && room.status === 'lobby' && room.admin_id === userId && playerId !== userId;
+}
+
+/** Confirmação antes de expulsar. */
+export function kickWarning(name: string): string {
+  return `Expulsar ${name}? Pode voltar a entrar com o código.`;
+}
+
 /** Bots numa sala contra bots (RULES.md §1.2), como na BD (`create_bots_room`). */
 export const BOTS_MIN = 2;
 export const BOTS_MAX = 11;
@@ -126,6 +136,8 @@ export const ROOM_ERROR_TEXT: Record<string, string> = {
   BOT_COUNT: `Escolhe entre ${BOTS_MIN} e ${BOTS_MAX} bots.`,
   NIGHT_CHANGED: 'Esta noite já passou. Espreita outra vez.',
   NOT_BOTS_NIGHT: 'Não há nenhuma noite por passar nesta sala.',
+  CANNOT_KICK_SELF: 'Não te podes expulsar. Para sair, carrega em Sair da sala.',
+  PLAYER_NOT_IN_ROOM: 'Esse jogador já não está na sala.',
 };
 
 export function roomErrorText(message: string): string {

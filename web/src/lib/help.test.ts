@@ -180,10 +180,19 @@ describe('ajuda: perguntas', () => {
       'No Bairro, o que querem dizer a janela acesa, a escura e a sirene?',
       'Porque é que o Começar está desligado?',
       'O que quer dizer cada linha do meu relatório da manhã?',
+      // T22
+      'O admin expulsou-me do lobby. E agora?',
     ]) {
       expect(questions).toContain(q);
     }
     for (const q of helpFaq()) expect(q.answer.length).toBeGreaterThan(0);
+  });
+
+  it('expulsar: só no lobby, pelo admin, e quem sai pode voltar com o código (RULES.md §1.1 v9)', () => {
+    const rooms = helpSections().find((s) => s.id === 'rooms')!.intro.join(' ');
+    expect(rooms).toContain('No lobby, o admin pode expulsar outro jogador (nunca a si)');
+    expect(rooms).toContain('pode voltar a entrar com o código');
+    expect(answer('O admin expulsou-me')).toContain('Depois de Começar, já ninguém é expulso.');
   });
 
   it('a noite 1 acaba às 23:59 do dia do Começar (RULES.md §1.1)', () => {
