@@ -155,5 +155,5 @@
   - No cabeçalho, ao lado de **Sair**, mostrar o meu nome como botão (ex.: "🪪 Walter"). Abre o mesmo formulário do primeiro login, já preenchido, com **Guardar** e **Cancelar**, e atualiza o nome com `update` ao meu `players` (a RLS já só deixa mudar o próprio).
   - Reutilizar o `NameForm` e o `nameError` (1 a 24 caracteres, sem espaços nas pontas); sem componentes novos. Depois de guardar, o nome novo aparece logo nas salas, nas manchetes e no ranking.
   - Testes no Vitest para a lógica que ficar em `web/src/lib/` (validação e texto do botão). Sem dependências novas.
-- [ ] **T8 — Revisão final de segurança**
+- [x] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.

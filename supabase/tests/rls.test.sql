@@ -4,7 +4,7 @@
 -- Sala da Dina e da Eva: 9004 (a decorrer, jogo 9104). Ninguém partilha sala com as duas.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(81);
+select plan(83);
 
 -- Fixtures, como postgres (sem RLS). Ids altos para não chocar com as sequências.
 insert into auth.users (id, email) values
@@ -268,6 +268,17 @@ select is((select count(*)::int from public.players), 0, 'anon não vê jogadore
 select is((select count(*)::int from public.rooms), 0, 'anon não vê salas');
 select throws_ok($$select public.create_room()$$, '42501', null, 'anon não cria salas');
 select throws_ok($$select public.join_room('ABCDEF')$$, '42501', null, 'anon não entra em salas');
+
+-- ── Garantias gerais (T8) ────────────────────────────────────────────────────
+reset role;
+select is(
+  (select array_agg(tablename::text order by tablename) from pg_tables where schemaname = 'public' and not rowsecurity),
+  null, 'RLS ligada em todas as tabelas do public');
+select is(
+  (select array_agg(proname::text order by proname) from pg_proc
+   where pronamespace = 'public'::regnamespace and prosecdef
+     and not coalesce(proconfig @> array['search_path=""'], false)),
+  null, 'todas as funções security definer fixam o search_path');
 
 -- ── Prazo: 23:59 de Lisboa, com as mudanças de hora ──────────────────────────
 reset role;

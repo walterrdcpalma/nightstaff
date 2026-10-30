@@ -52,7 +52,7 @@ export const CAUGHT_LINES = [
   '🚨 {nome} jurou à Segurança que só estava a passear o cão. {nome} não tem cão.',
   '🚨 A Segurança deu com {nome} às 3 da manhã. A desculpa foi «insónia». A cara dizia «arrependimento».',
   '🚨 {nome} tentou explicar-se à Segurança. Ficou pior.',
-  '🚨 Lanterna na cara, e {nome} ainda pediu para ser pelo lado bom.',
+  '🚨 Lanterna na cara, e {nome} ainda perguntou se aquilo contava como horas extra.',
   '🚨 A Segurança deu com {nome} fora de horas. Já está no registo, ao lado das outras más ideias.',
   '🚨 {nome} disse à Segurança que se tinha enganado no caminho. Na vida, pelo menos, é verdade.',
   '🚨 A Segurança deu com {nome} onde não devia. O chefe vai saber de manhã, e a mãe à hora de almoço.',
