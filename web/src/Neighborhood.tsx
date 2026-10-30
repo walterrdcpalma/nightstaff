@@ -3,9 +3,9 @@ import { NIGHTS } from '../../engine/index.ts';
 import { Button } from '@/components/ui/button';
 import { loadGames, loadNames, loadNights } from '@/lib/data';
 import type { Game, ResolvedNight } from '@/lib/data';
-import { streetHouses } from '@/lib/street';
+import { buildingRooms } from '@/lib/building';
 import { NightView } from './NightView.tsx';
-import { Street } from './Street.tsx';
+import { Building } from './Building.tsx';
 import { LoadError, Note, useLoad } from './Note.tsx';
 
 /** A partida atual da sala, com as noites já resolvidas. Só a atual se vê (RLS): as anteriores não. */
@@ -56,8 +56,8 @@ export function Morning({ userId, roomId }: { userId: string; roomId: number }) 
 }
 
 /**
- * Bairro/Histórico da partida atual, como uma rua à noite (T19): uma casa por jogador, com a janela acesa se estava
- * em casa e apagada se estava fora, e a sirene de quem foi apanhado. Uma noite de cada vez. Nunca as ações (RULES.md §4).
+ * Bairro/Histórico da partida atual, como um prédio (T19, opção B): uma divisão por jogador, com a janela acesa se
+ * estava em casa e apagada se estava fora, e a sirene de quem foi apanhado. Uma noite de cada vez. Nunca as ações (RULES.md §4).
  */
 export function Neighborhood({ roomId }: { roomId: number }) {
   const current = useLoad(useCallback(() => loadCurrent(roomId), [roomId]));
@@ -69,7 +69,7 @@ export function Neighborhood({ roomId }: { roomId: number }) {
 
   const { nights, names } = current.data;
   const shown = nights.find((n) => n.night === picked) ?? nights[nights.length - 1];
-  const houses = streetHouses(shown.summary, (id) => names.get(id) ?? '?');
+  const rooms = buildingRooms(shown.summary, (id) => names.get(id) ?? '?');
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,11 +87,13 @@ export function Neighborhood({ roomId }: { roomId: number }) {
         ))}
       </div>
       <Note title={`🏘️ O bairro na noite ${shown.night}`}>
-        <Street houses={houses} night={shown.night} />
-        <p className="mt-3 text-xs">
-          Janela acesa: em casa · apagada, de cortina cruzada: fora · 🚨 a Segurança deu com essa pessoa. O que cada um fez
-          fica entre cada um e a noite.
-        </p>
+        <Building rooms={rooms} night={shown.night} />
+        <ul className="mt-3 space-y-1 text-xs">
+          <li>💡 Janela acesa: em casa.</li>
+          <li>✖️ Janela apagada, com X: fora.</li>
+          <li>🚨 A Segurança deu com essa pessoa.</li>
+        </ul>
+        <p className="mt-2 text-xs">O que cada um fez fica entre cada um e a noite.</p>
       </Note>
     </div>
   );
