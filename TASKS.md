@@ -157,3 +157,17 @@
   - Testes no Vitest para a lógica que ficar em `web/src/lib/` (validação e texto do botão). Sem dependências novas.
 - [ ] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
+- [ ] **T16 — Guia de deploy (`DEPLOY.md`)**
+  - Só **escrever o guia**. O agente **não faz deploy, não toca em produção e não mexe em secrets** (regras 2 e 3): quem executa os passos é o Walter, à mão. Nenhuma chave, URL ou palavra-passe reais no ficheiro, só os nomes dos segredos.
+  - Ficheiro `DEPLOY.md` na raiz, em português de Portugal, com uma **lista de verificação** por ordem, cada passo com o comando ou o sítio do painel, e como confirmar que correu bem:
+    1. **Projeto Supabase de produção:** criar, `supabase link` e `supabase db push`. Confirmar que `pg_cron`, `pg_net` e o Vault estão ativos.
+    2. **Segredos do Vault:** criar `project_url` e `service_role_key` (CLAUDE.md, Resolução da noite), e confirmar que o cron de hora a hora está agendado e chama a `resolve-night`.
+    3. **Edge Function:** `supabase functions deploy resolve-night`, e confirmar que responde (sem corpo = pg_cron; com `{ room_id, night }` = Passar o dia).
+    4. **Auth:** registo aberto (`enable_signup = true`), *Site URL* e *Redirect URLs* com o endereço real do site.
+    5. **Email (SMTP próprio):** o serviço de email por omissão do Supabase só envia para membros da organização e tem um limite de 2 mensagens por hora, por isso não serve para os amigos receberem o magic link. Passo a passo para configurar um SMTP próprio (por exemplo Brevo ou Resend), com o remetente e o teste de envio.
+    6. **Web:** `npm run build` e publicação do `web/dist` num alojamento estático (por exemplo Cloudflare Pages, Netlify ou Vercel), com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (**só a chave pública**, nunca a `service_role`), e o endereço final a entrar nos *Redirect URLs* do passo 4.
+    7. **Teste de fumo:** criar conta com um email novo e escolher o nome, criar uma sala, entrar com outra conta, Começar, escolher e ver a manhã seguinte (a noite resolvida pelo cron) e uma sala contra bots com Passar o dia.
+    8. **Se correr mal:** como ver os logs da função e do cron, e como repor (nunca apagar dados de produção sem backup).
+  - Incluir uma secção **"Depois do lançamento"**: onde ver erros, como mudar o SMTP e como rodar as chaves.
+  - Os comandos têm de existir de facto (confirmar no `package.json`, no `supabase/` e no CLAUDE.md); o que não se puder confirmar escreve-se como "confirmar no painel" e não se inventa.
+  - Sem dependências novas e sem mexer no código. Referir o `DEPLOY.md` no CLAUDE.md (secção Comandos) — regra 8.
