@@ -157,7 +157,7 @@
   - Testes no Vitest para a lógica que ficar em `web/src/lib/` (validação e texto do botão). Sem dependências novas.
 - [x] **T8 — Revisão final de segurança**
   - Repetir os testes de RLS com o web real. Confirmar que nenhuma chave `service_role` aparece no `web/` nem no bundle.
-- [ ] **T16 — Guia de deploy (`DEPLOY.md`)**
+- [x] **T16 — Guia de deploy (`DEPLOY.md`)**
   - Só **escrever o guia**. O agente **não faz deploy, não toca em produção e não mexe em secrets** (regras 2 e 3): quem executa os passos é o Walter, à mão. Nenhuma chave, URL ou palavra-passe reais no ficheiro, só os nomes dos segredos.
   - Ficheiro `DEPLOY.md` na raiz, em português de Portugal, com uma **lista de verificação** por ordem, cada passo com o comando ou o sítio do painel, e como confirmar que correu bem:
     1. **Projeto Supabase de produção:** criar, `supabase link` e `supabase db push`. Confirmar que `pg_cron`, `pg_net` e o Vault estão ativos.

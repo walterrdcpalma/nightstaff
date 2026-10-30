@@ -126,6 +126,8 @@ npm run demo:noite  # resolve já a noite atual; quem não escolheu joga com os 
 npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
 ```
 
+**Produção:** o `DEPLOY.md` (raiz) tem a lista de verificação para o Walter pôr o jogo no ar, à mão: projeto Supabase, segredos do Vault, Edge Function, Auth, SMTP próprio, web estático, teste de fumo e o que fazer se correr mal. Os agentes não fazem deploy (regra 3).
+
 ### Testar no browser com dados de demonstração
 1. `npx supabase start` e `npm run demo` (ou `-- terminado` ou `-- lobby`). O script recusa correr se o `SUPABASE_URL` não for local. A `service_role` local só existe no script.
 2. `npm run dev` e entrar como `walter@nightstaff.local`. O magic link chega ao Mailpit (http://127.0.0.1:54324).
