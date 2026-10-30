@@ -158,6 +158,12 @@ npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
 6. Não adicionar dependências sem justificar no PR.
 7. **Antes de começares uma tarefa**, lê os comentários de revisão do teu último PR com merge (`gh pr list --state merged --limit 1`, depois `gh pr view <n> --comments`). Trata das 🟡 sugestões que ainda estiverem pendentes ou explica no PR porque não o fizeste.
 8. **Decisões de implementação:** se mudares o modelo de dados, a estrutura ou as convenções (uma coluna nova, um nome, um formato), atualiza o CLAUDE.md **no mesmo PR** e lista a decisão na descrição. Se a decisão mudar as **regras do jogo** (pontos, quotas, horários, visibilidade), não decidas: pára e pergunta ao Walter.
+9. **Produção em uso (jogos a decorrer):** nenhum PR nem migração pode acabar, apagar, reiniciar ou corromper partidas a decorrer.
+   - Migrações só **aditivas e compatíveis**: colunas novas nulas ou com valor por omissão; nada de `drop`, `truncate` nem `delete`/`update` em massa nas tabelas de jogo (`players`, `rooms`, `room_players`, `games`, `game_players`, `actions`, `nights`, `ledger`, `rankings`). Mudar ou tirar uma coluna faz-se em **duas fases**: primeiro acrescenta-se e o código passa a usá-la; só noutro PR, mais tarde, se remove a antiga.
+   - Funções e políticas: `create or replace` sem mudar o que já faziam para quem joga. A RLS nunca pode expor mais, nem tirar acesso a quem já joga.
+   - **Uma partida a decorrer acaba com as regras com que começou.** Uma mudança de regras só vale para partidas novas, salvo decisão do Walter. A `resolve-night` e o `engine/` têm de continuar a resolver noites de partidas já começadas, sem alterar o que já está gravado.
+   - Antes de pedir revisão: aplicar a migração nova sobre uma BD local com uma partida a meio (`npm run demo`, depois `npx supabase migration up`) e confirmar que ela continua a resolver-se até ao fim (`npm run demo:noite`).
+   - A descrição do PR leva a secção **"Impacto em jogos a decorrer"** (mesmo que seja "nenhum"). Sem ela, não há merge.
 
 ## Processo automático
 - O trabalho está no **`TASKS.md`**, por ordem. Faz-se sempre a primeira tarefa `[ ]` que não esteja marcada como "em curso".

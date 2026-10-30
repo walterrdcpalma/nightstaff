@@ -171,3 +171,11 @@
   - Incluir uma secção **"Depois do lançamento"**: onde ver erros, como mudar o SMTP e como rodar as chaves.
   - Os comandos têm de existir de facto (confirmar no `package.json`, no `supabase/` e no CLAUDE.md); o que não se puder confirmar escreve-se como "confirmar no painel" e não se inventa.
   - Sem dependências novas e sem mexer no código. Referir o `DEPLOY.md` no CLAUDE.md (secção Comandos) — regra 8.
+- [ ] **T17 — Apagar a sala contra bots**
+  - Hoje uma sala contra bots não se consegue largar: o **Sair** só existe no lobby (que as salas de bots não têm) e o **Reiniciar** só serve depois da noite 9. As salas acumulam-se em **As minhas salas**.
+  - RULES.md §1.2 (v8): o jogador pode **apagar a sala** a qualquer momento, a meio ou acabada. Nas salas com pessoas isto **não existe**.
+  - Função na BD `delete_bots_room(p_room_id)` (`security definer`, para quem tem sessão): só o admin, só `kind = 'bots'` (senão `NOT_BOTS_ROOM`; sem ser o admin, `NOT_ADMIN`). Apaga a sala e tudo o que era dela: partidas, ações, noites, ledger, rankings, `room_players` **e os bots** (`players` com `bot_room_id` dessa sala). Tudo numa só transação. Não toca em nada de outras salas, nem na conta do jogador.
+  - Web: botão **🗑️ Apagar sala** no Hoje de uma sala contra bots, a qualquer momento, com confirmação ("Isto apaga a sala e o jogo, e não se desfaz"). Depois volta a **As minhas salas**. Erros com `LoadError`/texto de erro como o resto.
+  - **Regra 9 (produção em uso):** migração só **aditiva** (função nova). Não pode mexer em salas, partidas ou dados de ninguém; em "Impacto em jogos a decorrer", dizer que só se apagam salas de bots quando o próprio jogador o pede.
+  - Testes: pgTAP e/ou e2e com 2 jogadores e 2 salas de bots (apagar a minha não toca na do outro nem em salas de pessoas); um não-admin e uma sala de pessoas são recusados; os bots da sala desaparecem; o web mostra o botão só em salas de bots.
+  - Atualizar o CLAUDE.md (funções da sala e UI) — regra 8.
