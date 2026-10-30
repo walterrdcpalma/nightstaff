@@ -163,6 +163,7 @@ npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
    - Funções e políticas: `create or replace` sem mudar o que já faziam para quem joga. A RLS nunca pode expor mais, nem tirar acesso a quem já joga.
    - **Uma partida a decorrer acaba com as regras com que começou.** Uma mudança de regras só vale para partidas novas, salvo decisão do Walter. A `resolve-night` e o `engine/` têm de continuar a resolver noites de partidas já começadas, sem alterar o que já está gravado.
    - Antes de pedir revisão: aplicar a migração nova sobre uma BD local com uma partida a meio (`npm run demo`, depois `npx supabase migration up`) e confirmar que ela continua a resolver-se até ao fim (`npm run demo:noite`).
+   - Se o PR tem migração ou função nova, a descrição diz também **o que o Walter corre antes do merge** (`db push`, deploy da função).
    - A descrição do PR leva a secção **"Impacto em jogos a decorrer"** (mesmo que seja "nenhum"). Sem ela, não há merge.
 
 ## Processo automático
@@ -170,6 +171,7 @@ npm run demo:dia    # avança 1 dia (passagem de noite, fim da partida)
 - O **construtor** trabalha num branch `auto/<tarefa>`, abre o PR e, no próprio PR, muda a caixa da tarefa para `[x]`.
 - O **revisor** comenta e **faz merge sozinho** se a CI estiver verde e não houver 🔴 bloqueantes. Se houver, o construtor corrige no mesmo PR.
 - **Nunca há merge automático** de PRs que alterem `RULES.md`, `CENARIOS.md`, `.github/` ou `.claude/`, nem do `TASKS.md` além de mudar caixas `[ ]` → `[x]`. Esses PRs são do Walter.
+- **Também não há merge automático** de PRs que alterem `supabase/migrations/` ou `supabase/functions/`: o revisor revê e aprova (`verdict=ok`), mas o merge é do Walter. O site publica-se sozinho a cada merge no `main` (Cloudflare), por isso a ordem é **primeiro o backend, depois o site**: o Walter corre `npx supabase db push` (e `npx supabase functions deploy resolve-night`, se a função mudou) **antes** de fazer o merge. Migrações aditivas (regra 9) deixam o site antigo a funcionar nesse intervalo.
 - **Ao fim de 3 revisões com bloqueantes no mesmo PR**, o PR recebe a label `precisa-walter` e tudo para até o Walter intervir.
 - **Revisão final** (última tarefa do `TASKS.md`): testar a RLS com 2 utilizadores e confirmar que:
   - nenhuma ação de outro jogador é legível antes da resolução;
