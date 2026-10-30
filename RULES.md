@@ -1,4 +1,4 @@
-# Night Staff — Regras (v9)
+# Night Staff — Regras (v10)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -104,3 +104,8 @@ Aplica-se o **primeiro** caso que se verificar:
 - O defensor ganha +10 **por atacante** ou +10 fixo? Por agora fica por atacante.
 - Os números (10 / 5 / 2 / salário / quotas) ajustam-se com base no simulador e no primeiro jogo real.
 - Ideia para a v4: ação **Vigiar** (2 por partida), para ver se o alvo saiu de casa nessa noite.
+
+## 7. Painel de administração da app
+- Existe uma conta **admin da app** (o Walter), diferente do admin de cada sala. Só ela vê o painel, com **todas as salas** da app, separadas em **correntes** (lobby ou a decorrer) e **fechadas** (acabadas).
+- O painel mostra só **metadados** de cada sala: código, tipo (pessoas ou bots), estado, admin da sala, nomes dos jogadores, datas e a noite em curso. **Nunca** mostra ações, pontos, ledger nem rankings: a visibilidade do §4 não muda, nem para o admin da app.
+- O admin da app só **vê**; não altera, não expulsa nem apaga salas.
