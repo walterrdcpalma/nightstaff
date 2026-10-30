@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botsNight, canDeleteRoom, canStart, DELETE_ROOM_WARNING, codeError, missingPlayersText, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
+import { botsNight, canDeleteRoom, canKick, canStart, DELETE_ROOM_WARNING, codeError, kickWarning, missingPlayersText, nameButtonText, nameError, needsMe, normalizeCode, openNight, roomErrorText, roomTodo, sortRooms } from './rooms.ts';
 import type { RoomCard } from './rooms.ts';
 import { MIN_PLAYERS } from '../../../engine/index.ts';
 
@@ -71,6 +71,19 @@ describe('salas contra bots', () => {
     expect(canDeleteRoom({ kind: 'bots', admin_id: 'outro' }, 'eu')).toBe(false);
     expect(DELETE_ROOM_WARNING).toContain('não se desfaz');
     expect(roomErrorText('NOT_BOTS_ROOM')).toBe('Só se apagam as salas contra bots.');
+  });
+
+  it('Expulsar: só o admin, só no lobby de uma sala de pessoas, nunca a si próprio (T22)', () => {
+    const lobby = { kind: 'people', status: 'lobby', admin_id: 'eu' } as const;
+    expect(canKick(lobby, 'eu', 'ana')).toBe(true);
+    expect(canKick(lobby, 'eu', 'eu')).toBe(false);
+    expect(canKick(lobby, 'ana', 'bruno')).toBe(false);
+    expect(canKick({ ...lobby, status: 'running' }, 'eu', 'ana')).toBe(false);
+    expect(canKick({ ...lobby, status: 'finished' }, 'eu', 'ana')).toBe(false);
+    expect(canKick({ ...lobby, kind: 'bots' }, 'eu', 'ana')).toBe(false);
+    expect(kickWarning('Ana')).toBe('Expulsar Ana? Pode voltar a entrar com o código.');
+    expect(roomErrorText('CANNOT_KICK_SELF')).toBe('Não te podes expulsar. Para sair, carrega em Sair da sala.');
+    expect(roomErrorText('PLAYER_NOT_IN_ROOM')).toBe('Esse jogador já não está na sala.');
   });
 });
 

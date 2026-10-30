@@ -144,7 +144,7 @@ export function outcomeTable(): HelpRow[] {
     },
     {
       action: VISITA,
-      target: `Há também um ${DESPEDIMENTO} nessa casa`,
+      target: `Há também um ${DESPEDIMENTO} nessa casa, sem ${SEGURANCA}`,
       result: `Com o dono em casa, tu −${POINTS}; com o dono fora, 0. O ${DESPEDIMENTO} leva tudo.`,
     },
     {
@@ -221,6 +221,7 @@ export function helpSections(): HelpSection[] {
       intro: [
         'Cria uma sala e partilha o código de 6 caracteres. Quem a cria é o admin.',
         `O admin carrega em Começar quando houver pelo menos ${MIN_PLAYERS} jogadores, e a noite 1 abre logo. Depois disso, ninguém entra nem sai.`,
+        'No lobby, o admin pode expulsar outro jogador (nunca a si). Quem é expulso pode voltar a entrar com o código.',
         'No fim, o admin pode Reiniciar a sala: volta ao lobby com o mesmo código.',
         `Numa sala contra bots jogas contra ${BOTS_MIN} a ${BOTS_MAX} bots, e o dia só passa quando carregas em ⏭️ Passar o dia.`,
       ],
@@ -231,9 +232,9 @@ export function helpSections(): HelpSection[] {
       title: '💡 Dicas',
       intro: [
         `A ${SEGURANCA} só tem ${QUOTAS.DEFEND} usos: guarda-a para as noites em que achas que te vão aparecer à porta.`,
-        `O ${DESPEDIMENTO} só há ${QUOTAS.BOMB}. Acerta esteja o dono onde estiver, por isso não precisas de adivinhar se saiu.`,
+        `O ${DESPEDIMENTO} só há ${QUOTAS.BOMB}. Acerta esteja o dono em casa ou fora (só a ${SEGURANCA} o trava), por isso não precisas de adivinhar se saiu.`,
         `Fora de casa (${VISITA}, ${DESPEDIMENTO} ou ${DESAPARECER}), uma ${VISITA} à tua porta custa-te ${BURGLARY_POINTS} em vez de ${POINTS}, mas perdes o bónus de casa.`,
-        'O Bairro mostra quem costuma sair e quem fica: é a única pista pública que há.',
+        'O Bairro mostra quem costuma sair e quem fica, e as sirenes de quem foi apanhado: são as únicas pistas públicas que há.',
         `A noite ${NIGHTS} conta a dobrar: quem chega lá com quotas por gastar ainda pode dar a volta.`,
       ],
       outro: [],
@@ -253,7 +254,7 @@ export const REPORT_MEANING: Record<LedgerReason, string> = {
   BOMB_SUCCESS: `o teu ${DESPEDIMENTO} acertou: é o bolo (ou a tua parte, se houve mais do que um).`,
   BOMB_DEFENDED: `o dono tinha ${SEGURANCA}: ficaste apanhado.`,
   VICTIM: `estavas em casa sem ${SEGURANCA} e alguém te fez uma ${VISITA}.`,
-  BOMBED: `alguém te fez um ${DESPEDIMENTO}, estivesses onde estivesses.`,
+  BOMBED: `alguém te fez um ${DESPEDIMENTO} e não tinhas ${SEGURANCA}: apanha-te em casa ou fora.`,
   BURGLARY_VICTIM: 'tinhas saído e alguém te foi à casa vazia.',
   DEFENSE: `a tua ${SEGURANCA} apanhou essa pessoa: +${POINTS} por cada um.`,
   HOME_BONUS: 'ficaste em casa e ninguém te apareceu à porta.',
@@ -361,6 +362,13 @@ export function helpFaq(): HelpQuestion[] {
       answer: [
         'Não. A partir de Começar a lista de jogadores fica fixa até ao fim da partida: ninguém entra nem sai.',
         `Se deixares de escolher, ficas de ${FOLGA} todas as noites. Numa sala contra bots, podes apagá-la quando quiseres.`,
+      ],
+    },
+    {
+      question: 'O admin expulsou-me do lobby. E agora?',
+      answer: [
+        'O admin pode expulsar quem quiser do lobby, antes de Começar. A sala deixa de aparecer em As minhas salas.',
+        'Não há lista negra: com o código, podes voltar a entrar. Depois de Começar, já ninguém é expulso.',
       ],
     },
     {

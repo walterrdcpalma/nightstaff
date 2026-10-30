@@ -3,20 +3,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Player, Room } from '@/lib/data';
 import { CONTEXT_HELP } from '@/lib/help';
-import { canStart, missingPlayersText, roomErrorText } from '@/lib/rooms';
+import { canKick, canStart, kickWarning, missingPlayersText, roomErrorText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 import { HelpLink } from './HelpLink.tsx';
 import { Note } from './Note.tsx';
 
 /**
  * Lobby (RULES.md §1.1): o código para partilhar e quem já entrou. O admin carrega em Começar (com 3 ou mais),
- * e a noite 1 abre logo. Qualquer um pode sair; se sair o admin, passa a admin quem entrou há mais tempo.
+ * e a noite 1 abre logo. Qualquer um pode sair; se sair o admin, passa a admin quem entrou há mais tempo. O admin pode
+ * expulsar os outros (v9), com confirmação; quem sai assim pode voltar a entrar com o código.
  */
 export function Lobby(props: { room: Room; players: Player[]; userId: string; onChange: () => void; onLeft: () => void }) {
   const { room, players, userId } = props;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [kicking, setKicking] = useState<Player | null>(null);
   const isAdmin = room.admin_id === userId;
   const admin = players.find((p) => p.id === room.admin_id);
   const missing = missingPlayersText(players.length);
@@ -46,6 +48,21 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
     }
   }
 
+  async function kick(player: Player) {
+    setError(null);
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc('kick_player', { p_room_id: room.id, p_player_id: player.id });
+      if (error) setError(roomErrorText(error.message));
+    } catch {
+      setError(roomErrorText(''));
+    } finally {
+      setBusy(false);
+      setKicking(null);
+      props.onChange();
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Note title="📝 Lobby">
@@ -66,10 +83,30 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
                 {p.name}
                 {p.id === userId && ' (tu)'}
               </span>
-              {p.id === room.admin_id && <Badge>👑 admin</Badge>}
+              <span className="flex items-center gap-2">
+                {p.id === room.admin_id && <Badge>👑 admin</Badge>}
+                {canKick(room, userId, p.id) && (
+                  <Button size="sm" variant="neutral" onClick={() => setKicking(p)} disabled={busy}>
+                    Expulsar
+                  </Button>
+                )}
+              </span>
             </li>
           ))}
         </ul>
+        {kicking && (
+          <div className="mt-4 flex flex-col gap-3 rounded-base border-2 border-border p-3">
+            <p>{kickWarning(kicking.name)}</p>
+            <div className="flex flex-wrap gap-3">
+              <Button className="bg-danger" onClick={() => kick(kicking)} disabled={busy}>
+                {busy ? 'A expulsar…' : 'Sim, expulsar'}
+              </Button>
+              <Button variant="neutral" onClick={() => setKicking(null)} disabled={busy}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
       </Note>
 
       {isAdmin ? (
@@ -79,7 +116,7 @@ export function Lobby(props: { room: Room; players: Player[]; userId: string; on
           </Button>
           <p className="flex items-center gap-2 text-sm">
             {missing ?? 'A noite 1 abre logo e fecha às 23:59 de hoje. Depois, ninguém entra nem sai.'}
-            <HelpLink anchor={CONTEXT_HELP.lobby} label="porque é que o Começar está desligado" />
+            {missing && <HelpLink anchor={CONTEXT_HELP.lobby} label="porque é que o Começar está desligado" />}
           </p>
         </div>
       ) : (
