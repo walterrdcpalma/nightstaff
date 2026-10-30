@@ -37,7 +37,8 @@ export interface HelpQuestion {
 
 const HOME_ACTIONS: ActionType[] = ['STAY', 'DEFEND'];
 
-const ACTION_TEXT: Record<ActionType, string> = {
+/** O que cada ação faz, numa frase (também nas cartas do Hoje, T18). */
+export const ACTION_TEXT: Record<ActionType, string> = {
   STAY: `Ficas em casa a descansar. Se ninguém te atacar, ganhas o bónus de casa (+${HOME_BONUS}).`,
   DEFEND: `Ficas em casa de lanterna na mão. Quem te atacar perde pontos e fica apanhado à vista de todos, e tu ganhas ${POINTS} por cada um.`,
   ATTACK: `Vais a casa de alguém tirar-lhe ${POINTS} pontos. Se a casa estiver vazia, é um assalto: rende menos.`,

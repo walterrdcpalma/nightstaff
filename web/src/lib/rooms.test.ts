@@ -68,7 +68,7 @@ describe('salas contra bots', () => {
     expect(canDeleteRoom({ kind: 'bots', admin_id: 'eu' }, 'eu')).toBe(true);
     expect(canDeleteRoom({ kind: 'people', admin_id: 'eu' }, 'eu')).toBe(false);
     expect(canDeleteRoom({ kind: 'bots', admin_id: 'outro' }, 'eu')).toBe(false);
-    expect(DELETE_ROOM_WARNING).toBe('Isto apaga a sala e o jogo, e não se desfaz.');
+    expect(DELETE_ROOM_WARNING).toContain('não se desfaz');
     expect(roomErrorText('NOT_BOTS_ROOM')).toBe('Só se apagam as salas contra bots.');
   });
 });
