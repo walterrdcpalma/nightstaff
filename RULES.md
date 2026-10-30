@@ -1,4 +1,4 @@
-# Night Staff — Regras (v7)
+# Night Staff — Regras (v8)
 
 > Fonte da verdade do jogo. O motor (`engine/`) implementa exatamente isto.
 > Agentes: **não alterem este ficheiro**. Se uma regra for ambígua, parem e perguntem ao Walter.
@@ -24,6 +24,7 @@
 - O tempo **não segue o relógio**. A noite só acaba quando o jogador carrega em **⏭️ Passar o dia**: os bots escolhem as suas ações **ao calhas**, sempre dentro das regras (quotas, alvos e sem atacar o mesmo alvo duas noites seguidas), e a noite é resolvida logo.
 - Se o jogador não escolheu nada, fica com `STAY`, como sempre.
 - Depois da noite 9 há resolução e a sala acaba. Pode-se reiniciar, como as outras.
+- O jogador pode **apagar a sala** a qualquer momento, a meio ou acabada: é só dele e não afeta mais ninguém. Apaga-se tudo o que era da sala. Nas salas com pessoas isto não existe.
 - As regras do jogo (§2–§5) são as mesmas.
 
 ### 1.3 Pontos
