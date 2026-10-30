@@ -187,11 +187,12 @@
   - Mobile-first: cartas em coluna, alvos grandes para o polegar. Com `prefers-reduced-motion`, sem animação. Texto em português de Portugal, tom de narrador.
   - **Só UI**: sem migrações, sem mexer no `engine/` nem em RLS (regra 9: nada a mudar em jogos a decorrer). A lógica pura (cor/inicial do avatar, estado de cada carta) em `web/src/lib/` com testes no Vitest. Sem dependências novas; componentes do shadcn/neobrutalism pela CLI se for preciso.
   - Atualizar o CLAUDE.md (UI) — regra 8.
-- [x] **T19 — Bairro como rua ilustrada**
-  - No separador **Bairro/Histórico**, trocar a grelha de casas por uma **rua à noite** desenhada em SVG inline (sem imagens externas nem dependências): uma casa por jogador, lado a lado (em scroll horizontal no mobile), com o nome por baixo e o avatar (inicial + cor do id, como na T18).
-  - **Janela acesa** (ouro `#F5C542`) = estava em casa; **janela escura** = estava fora. Por noite, com seletor de noite (1 a 9) já existente. Ao mudar de noite, as janelas acendem/apagam com transição CSS curta (`motion-safe:`); com `prefers-reduced-motion`, sem animação.
-  - Mostra os 🚨 apanhados dessa noite com um pequeno sinal por cima da casa (a sirene), **sem dizer onde** (RULES.md §4). Nunca mostra ações, ataques, defesas, bombas, pontos nem quem foi atacado — só casa/fora e apanhado, vindos do `nights.summary` público.
-  - Paleta do tema escuro (fundo `#0B1020`, cartas `#151B33`), contornos claros e grossos do neobrutalism. Acessível: cada casa tem `aria-label` ("Ana: em casa"/"Ana: fora"), e o estado não depende só da cor (ex.: janela com cortina ou "X" quando fora).
-  - Com 3 a 12 jogadores a rua tem de caber e ler-se bem; testar os extremos.
-  - **Só UI** (regra 9: nada a mudar em jogos a decorrer; sem migrações, `engine/` nem RLS). Lógica pura (posições, estado de cada casa) em `web/src/lib/` com testes no Vitest, incluindo um teste de que nada além de casa/fora/apanhado chega ao componente. Sem dependências novas.
+- [ ] **T19 — Bairro como prédio ilustrado**
+  - Protótipo aprovado pelo Walter (opção B): https://claude.ai/artifact/YWc9TQ1wohhzT14T4RdJiP. Seguir esse desenho.
+  - No separador **Bairro/Histórico**, trocar a grelha de casas por **um prédio** desenhado em SVG inline (sem imagens externas nem dependências): letreiro "NIGHT STAFF" no topo, **uma divisão por jogador** em 2 colunas (a última fica sozinha se forem ímpares) e uma receção em baixo. Cada divisão tem a janela, o nome, o estado ("em casa"/"fora") e uma faixa na cor do jogador (cor e inicial estáveis derivadas do id, como na T18).
+  - **Janela acesa** (ouro `#F5C542`, com a silhueta de uma pessoa) = estava em casa; **janela escura com X** = estava fora. Por noite, com o seletor de noites (1 a 9) já existente. Ao mudar de noite, as janelas acendem e apagam com transição CSS curta (`motion-safe:`); com `prefers-reduced-motion`, sem animação.
+  - Os 🚨 apanhados dessa noite aparecem no canto da divisão, **sem dizer onde** (RULES.md §4). Nunca mostra ações, ataques, defesas, bombas, pontos nem quem foi atacado: só casa/fora e apanhado, vindos do `nights.summary` público.
+  - Paleta do tema escuro (fundo `#0B1020`, cartas `#151B33`), contornos claros e grossos e sombra dura do neobrutalism. Acessível: cada divisão tem `aria-label` ("Ana: em casa", "Ana: fora, apanhada"); o estado não depende só da cor (silhueta vs. X e o texto).
+  - Tem de caber sem scroll lateral em mobile, com 3 a 12 jogadores (o prédio cresce na vertical); testar os extremos.
+  - **Só UI** (regra 9: nada a mudar em jogos a decorrer; sem migrações, `engine/` nem RLS). Lógica pura (posição de cada divisão, estado) em `web/src/lib/` com testes no Vitest, incluindo um teste de que nada além de casa/fora/apanhado chega ao componente. Sem dependências novas.
   - Atualizar o CLAUDE.md (UI, Bairro) — regra 8.
