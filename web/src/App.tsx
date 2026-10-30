@@ -2,9 +2,11 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { loadMe } from '@/lib/data';
+import type { HelpAnchor } from '@/lib/help';
 import { nameButtonText } from '@/lib/rooms';
 import { supabase } from '@/lib/supabase';
 import Help from './Help.tsx';
+import { HelpContext } from './HelpLink.tsx';
 import Login from './Login.tsx';
 import NameForm from './NameForm.tsx';
 import { Morning, Neighborhood } from './Neighborhood.tsx';
@@ -18,10 +20,11 @@ type Tab = keyof typeof TABS;
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  // A ajuda abre por cima de qualquer ecrã (T13), sem router: o ecrã de baixo mantém o estado.
-  const [help, setHelp] = useState(false);
-  const openHelp = useCallback(() => setHelp(true), []);
-  const closeHelp = useCallback(() => setHelp(false), []);
+  // A ajuda abre por cima de qualquer ecrã (T13), sem router: o ecrã de baixo mantém o estado. Com uma âncora (o "?"
+  // de um ecrã, T21), abre nessa secção; sem âncora ('top'), no início.
+  const [help, setHelp] = useState<HelpAnchor | 'top' | null>(null);
+  const openHelp = useCallback((anchor?: HelpAnchor) => setHelp(anchor ?? 'top'), []);
+  const closeHelp = useCallback(() => setHelp(null), []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -32,19 +35,21 @@ export default function App() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-4">
       {/* Com a ajuda aberta, o ecrã de baixo fica `inert`: o Tab e os leitores de ecrã ficam só na ajuda. */}
-      <div className="contents" inert={help}>
-        {session === undefined ? (
-          <Header onHelp={openHelp} />
-        ) : session ? (
-          <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} />
-        ) : (
-          <>
+      <div className="contents" inert={help !== null}>
+        <HelpContext.Provider value={openHelp}>
+          {session === undefined ? (
             <Header onHelp={openHelp} />
-            <Login />
-          </>
-        )}
+          ) : session ? (
+            <SignedIn key={session.user.id} userId={session.user.id} onHelp={openHelp} />
+          ) : (
+            <>
+              <Header onHelp={openHelp} />
+              <Login />
+            </>
+          )}
+        </HelpContext.Provider>
       </div>
-      {help && <Help onClose={closeHelp} />}
+      {help && <Help anchor={help === 'top' ? undefined : help} onClose={closeHelp} />}
     </main>
   );
 }
@@ -55,7 +60,7 @@ function Header({ onHelp, children }: { onHelp: () => void; children?: React.Rea
     <header className="flex items-center justify-between gap-2">
       <h1 className="text-2xl text-main">Night Staff</h1>
       <div className="flex min-w-0 items-center gap-2">
-        <Button variant="neutral" size="sm" className="shrink-0" onClick={onHelp}>
+        <Button variant="neutral" size="sm" className="shrink-0" onClick={() => onHelp()}>
           ❓ Ajuda
         </Button>
         {children}
