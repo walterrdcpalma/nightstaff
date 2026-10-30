@@ -1,5 +1,6 @@
 // Leituras partilhadas pelos ecrãs, como o jogador com sessão (RLS). Um erro lança: o ecrã mostra-o.
 import type { ActionType, NightSummary } from '../../../engine/index.ts';
+import type { AdminRoomRow } from './admin.ts';
 import type { MyEntry } from './night.ts';
 import type { LedgerRow, RankingDbRow } from './points.ts';
 import type { RoomKind, RoomStatus } from './rooms.ts';
@@ -128,4 +129,14 @@ export async function loadLedger(gameId: number): Promise<LedgerRow[]> {
 /** Ranking final de uma partida acabada (a RLS esconde-o durante a partida). */
 export async function loadRanking(gameId: number): Promise<RankingDbRow[]> {
   return ok(await supabase.from('rankings').select('player_id, rank, points, successful_attacks').eq('game_id', gameId));
+}
+
+/** Sou o admin da app (T23)? Para os outros, `false`: o botão do painel nem aparece. */
+export async function loadIsAppAdmin(): Promise<boolean> {
+  return ok(await supabase.rpc('is_app_admin'));
+}
+
+/** Todas as salas da app, só com metadados (RULES.md §7). Só o admin da app; os outros recebem `NOT_APP_ADMIN`. */
+export async function loadAdminRooms(): Promise<AdminRoomRow[]> {
+  return ok(await supabase.rpc('admin_list_rooms'));
 }

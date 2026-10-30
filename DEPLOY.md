@@ -119,6 +119,11 @@ Com duas contas de email tuas (A e B) e, se der, um terceiro amigo (ou uma terce
 4. **No dia seguinte**, depois das 00:00 de Lisboa (o cron corre ao minuto 0), abrir a **☀️ Manhã**: a história da noite 1 e o relatório privado de cada um. No SQL Editor: `select game_id, night, resolved_at from nights order by resolved_at desc limit 3;`
 5. **Sala contra bots:** **A** cria uma sala contra 3 bots, escolhe, carrega em **⏭️ Passar o dia** e vê a Manhã da noite 1 logo a seguir. Repetir até à noite 9, ou só algumas noites: o ranking e o 🏆 Funcionário do Mês aparecem nos Pontos no fim.
 6. **❓ Ajuda** abre e fecha. **🪪 o meu nome** muda e aparece nas salas.
+7. **🛠️ Painel da app** (RULES.md §7): depois de entrares no site pela primeira vez e escolheres o nome, no *SQL Editor* do projeto de produção, com o teu email:
+   ```sql
+   insert into app_admins select p.id from players p join auth.users u on u.id = p.id where u.email = '<email>';
+   ```
+   Recarregar o site: aparece **🛠️ Painel** no cabeçalho, com as salas de todos, separadas em Correntes e Fechadas. Com a conta **B**, o botão não aparece. Para tirar o acesso: `delete from app_admins where player_id = (select id from auth.users where email = '<email>');`
 
 Se tudo correr bem, o jogo está no ar.
 
