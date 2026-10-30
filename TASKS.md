@@ -141,7 +141,7 @@
     - as perguntas da lista acima existem, sem repetidas.
   - Tom de narrador e de português de Portugal, com o humor de sempre mas **sem sacrificar a clareza**: quem lê tem de perceber as regras. Mobile-first. Só a ajuda é estática: não lê nada da BD, por isso não revela nada privado.
   - O texto tem de bater certo com o `RULES.md`. Se algo estiver ambíguo, parar e perguntar (regra 5).
-- [ ] **T14 — Frases da Manhã com mais humor negro**
+- [x] **T14 — Frases da Manhã com mais humor negro**
   - Reescrever as frases de `web/src/lib/story.ts` (T12) com **humor negro de bairro**: a vida, não as pessoas. Temas à vontade: a ex, o ex, stories às 3 da manhã, ressaca, dívidas, o chefe, a mãe a ligar, crises existenciais a meio do supermercado, ensaiar discursos que nunca se vão dizer.
     - Em casa: "{nome} ficou em casa a ver o perfil da ex pela 14.ª vez. Só para ter a certeza de que continua feliz."
     - Fora: "{nome} saiu sem dizer para onde. Passar pela rua da ex não foi de propósito."
